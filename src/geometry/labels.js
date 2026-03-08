@@ -108,15 +108,6 @@ export function computeLabelPosition(edgeGeometry, opts = {}) {
   let point, tangent;
 
   switch (type) {
-    case 'straight': {
-      point = vec(
-        lerp(startPoint.x, endPoint.x, pos),
-        lerp(startPoint.y, endPoint.y, pos),
-      );
-      tangent = vecSub(endPoint, startPoint);
-      break;
-    }
-
     case 'quadratic': {
       const cp = edgeGeometry.controlPoint;
       point = pointOnQuadBezier(startPoint, cp, endPoint, pos);
@@ -131,8 +122,8 @@ export function computeLabelPosition(edgeGeometry, opts = {}) {
       break;
     }
 
+    case 'straight':
     default:
-      // Fallback: treat as straight
       point = vec(
         lerp(startPoint.x, endPoint.x, pos),
         lerp(startPoint.y, endPoint.y, pos),

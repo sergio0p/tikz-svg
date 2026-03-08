@@ -71,16 +71,16 @@ export function collectShadowFilters(resolvedNodes) {
   const seen = new Map();
   for (const style of Object.values(resolvedNodes)) {
     if (!style.shadow) continue;
-    const shadow = style.shadow === true ? { ...DEFAULTS.shadowDefaults } : { ...style.shadow };
+
+    const shadow = style.shadow === true
+      ? { ...DEFAULTS.shadowDefaults }
+      : { ...style.shadow };
     const key = `${shadow.dx}-${shadow.dy}-${shadow.blur}-${shadow.color}`;
+
     if (!seen.has(key)) {
-      seen.set(key, {
-        id: `shadow-${seen.size}`,
-        ...shadow,
-      });
+      seen.set(key, { id: `shadow-${seen.size}`, ...shadow });
     }
-    // Attach the filter ID back to the style
     style._shadowFilterId = seen.get(key).id;
   }
-  return Array.from(seen.values());
+  return [...seen.values()];
 }

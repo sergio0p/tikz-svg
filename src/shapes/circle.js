@@ -80,11 +80,7 @@ function borderPoint(geom, direction) {
  * @returns {string}
  */
 function backgroundPath(geom) {
-  const { center, radius } = geom;
-  const cx = center.x;
-  const cy = center.y;
-  const r = radius;
-  // Full circle as two semicircular arcs
+  const { center: { x: cx, y: cy }, radius: r } = geom;
   return (
     `M ${cx - r} ${cy}` +
     ` A ${r} ${r} 0 1 0 ${cx + r} ${cy}` +

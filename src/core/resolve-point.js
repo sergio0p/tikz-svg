@@ -19,7 +19,7 @@
  */
 export function resolvePoint(point, opts = {}) {
   // Already a coordinate pair
-  if (point !== null && typeof point === 'object' && 'x' in point && 'y' in point) {
+  if (typeof point === 'object' && point !== null && 'x' in point && 'y' in point) {
     return { x: point.x, y: point.y };
   }
 

@@ -64,22 +64,21 @@ export function render(svgEl, config) {
     const shape = getShape(shapeName);
     const center = resolvedStates[id].position;
 
-    // Build the config object expected by each shape's savedGeometry().
-    // Circle needs { center, radius }.
-    // Rectangle needs { center, halfWidth, halfHeight }.
-    // Ellipse needs { center, rx, ry }.
+    // Build the config object expected by each shape's savedGeometry()
     const geomConfig = { center };
-    if (shapeName === 'circle') {
-      geomConfig.radius = style.radius ?? DEFAULTS.nodeRadius;
-    } else if (shapeName === 'rectangle') {
-      geomConfig.halfWidth = style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius;
-      geomConfig.halfHeight = style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius;
-    } else if (shapeName === 'ellipse') {
-      geomConfig.rx = style.rx ?? style.radius ?? DEFAULTS.nodeRadius;
-      geomConfig.ry = style.ry ?? style.radius ?? DEFAULTS.nodeRadius;
-    } else {
-      // Generic fallback — pass radius and let the shape sort it out
-      geomConfig.radius = style.radius ?? DEFAULTS.nodeRadius;
+    switch (shapeName) {
+      case 'rectangle':
+        geomConfig.halfWidth = style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius;
+        geomConfig.halfHeight = style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius;
+        break;
+      case 'ellipse':
+        geomConfig.rx = style.rx ?? style.radius ?? DEFAULTS.nodeRadius;
+        geomConfig.ry = style.ry ?? style.radius ?? DEFAULTS.nodeRadius;
+        break;
+      case 'circle':
+      default:
+        geomConfig.radius = style.radius ?? DEFAULTS.nodeRadius;
+        break;
     }
 
     const geom = shape.savedGeometry(geomConfig);
@@ -157,12 +156,9 @@ export function render(svgEl, config) {
 
   // ── PHASE 5: RESOLVE STYLES ─────────────────────────────────────────
 
-  // Node styles are already resolved (stored in nodeRegistry[id].style).
-  const resolvedNodeStyles = {};
-  for (const id of stateIds) {
-    resolvedNodeStyles[id] = nodeRegistry[id].style;
-  }
-
+  const resolvedNodeStyles = Object.fromEntries(
+    stateIds.map(id => [id, nodeRegistry[id].style])
+  );
   const shadowFilters = collectShadowFilters(resolvedNodeStyles);
 
   // ── PHASE 6: EMIT SVG ──────────────────────────────────────────────

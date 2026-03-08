@@ -94,9 +94,7 @@ function borderPoint(geom, direction) {
  * @returns {string}
  */
 function backgroundPath(geom) {
-  const { center, rx, ry } = geom;
-  const cx = center.x;
-  const cy = center.y;
+  const { center: { x: cx, y: cy }, rx, ry } = geom;
   return (
     `M ${cx - rx} ${cy}` +
     ` A ${rx} ${ry} 0 1 0 ${cx + rx} ${cy}` +

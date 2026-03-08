@@ -39,15 +39,10 @@ function createSVGElement(tag, attrs = {}) {
  */
 function initialApproachVector(initial) {
   if (initial === true || initial === 'left') {
-    // Arrow comes from the left → approach direction is "rightward" toward node
     return { x: 1, y: 0 };
   }
   const dirEntry = DIRECTIONS[initial];
-  if (dirEntry) {
-    return { x: dirEntry.vector.x, y: dirEntry.vector.y };
-  }
-  // Fallback: from the left
-  return { x: 1, y: 0 };
+  return dirEntry ? { x: dirEntry.vector.x, y: dirEntry.vector.y } : { x: 1, y: 0 };
 }
 
 /**
@@ -331,13 +326,6 @@ function createShapeElement(geom, style, opts = {}) {
   const shape = style.shape ?? 'circle';
 
   switch (shape) {
-    case 'circle': {
-      const r = Math.max(0, (geom.radius ?? DEFAULTS.nodeRadius) - inset);
-      return createSVGElement('circle', {
-        cx: 0, cy: 0, r, fill, stroke, 'stroke-width': strokeWidth,
-      });
-    }
-
     case 'rectangle': {
       const hw = Math.max(0, geom.halfWidth - inset);
       const hh = Math.max(0, geom.halfHeight - inset);
@@ -355,8 +343,9 @@ function createShapeElement(geom, style, opts = {}) {
       });
     }
 
+    case 'circle':
     default: {
-      const r = Math.max(0, DEFAULTS.nodeRadius - inset);
+      const r = Math.max(0, (geom.radius ?? DEFAULTS.nodeRadius) - inset);
       return createSVGElement('circle', {
         cx: 0, cy: 0, r, fill, stroke, 'stroke-width': strokeWidth,
       });

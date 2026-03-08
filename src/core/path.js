@@ -93,7 +93,6 @@ export class Path {
     for (let i = 0; i < segCount; i++) {
       const a1 = toRad(angle);
       const a2 = toRad(angle + segAngle);
-      const halfSeg = toRad(segAngle / 2);
 
       // Standard arc-to-cubic approximation
       const alpha = Math.sin(a2 - a1) * (Math.sqrt(4 + 3 * Math.tan((a2 - a1) / 2) ** 2) - 1) / 3;
@@ -127,7 +126,7 @@ export class Path {
 
     const endpointOf = (seg) => {
       switch (seg.type) {
-        case 'M': return { x: seg.args[0], y: seg.args[1] };
+        case 'M':
         case 'L': return { x: seg.args[0], y: seg.args[1] };
         case 'C': return { x: seg.args[4], y: seg.args[5] };
         default: return null;

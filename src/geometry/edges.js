@@ -156,23 +156,13 @@ export function computeBentEdge(sourceNode, targetNode, bend, defaults = {}) {
 export function computeLoopEdge(node, loop, defaults = {}) {
   const loopSize = defaults.loopSize ?? DEFAULTS.loopSize;
 
-  let outAngle, inAngle, looseness;
+  const preset = typeof loop === 'string'
+    ? (LOOP_PRESETS[loop] ?? LOOP_PRESETS.above)
+    : null;
 
-  if (typeof loop === 'string') {
-    const preset = LOOP_PRESETS[loop] ?? LOOP_PRESETS.above;
-    outAngle = preset.out;
-    inAngle = preset.in;
-    looseness = 1;
-  } else if (typeof loop === 'object' && loop !== null) {
-    outAngle = loop.out ?? 120;
-    inAngle = loop.in ?? 60;
-    looseness = loop.looseness ?? 1;
-  } else {
-    // Default to 'above'
-    outAngle = 120;
-    inAngle = 60;
-    looseness = 1;
-  }
+  const outAngle = preset?.out ?? loop?.out ?? 120;
+  const inAngle = preset?.in ?? loop?.in ?? 60;
+  const looseness = loop?.looseness ?? 1;
 
   const effectiveSize = loopSize * looseness;
 

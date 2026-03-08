@@ -34,13 +34,16 @@ src/
   core/math.js          — vector math, Bézier, angles
   core/constants.js     — DIRECTIONS table, DEFAULTS
   core/resolve-point.js — universal coordinate resolver
+  core/transform.js     — 2D affine transform matrix + scoped stack
+  core/arrow-tips.js    — arrow tip registry + 6 built-in tip definitions
+  core/path.js          — soft-path builder with segment model + SVG serialization
   shapes/shape.js       — shape registry (registerShape/getShape)
   shapes/circle.js      — circle shape (self-registering)
   shapes/rectangle.js   — rectangle shape
   shapes/ellipse.js     — ellipse shape
   positioning/positioning.js — topological sort + direction table positioning
   geometry/edges.js     — straight, bent, loop edge paths
-  geometry/arrows.js    — stealth arrow marker defs
+  geometry/arrows.js    — stealth arrow marker defs (legacy, single arrow)
   geometry/labels.js    — edge label positioning
   style/style.js        — resolveNodeStyle, resolveEdgeStyle, collectShadowFilters
   svg/emitter.js        — SVG DOM construction
@@ -53,7 +56,7 @@ src/
 - SVG DOM via `document.createElementNS`
 - TikZ angles: 0°=east, CCW positive; SVG: y-down
 - Style cascade: DEFAULTS → stateStyle → per-node overrides
-- All 56 tests pass: `npm test` (uses `node --test`)
+- 140 tests across 34 suites pass: `npm test` (uses `node --test`)
 
 ---
 

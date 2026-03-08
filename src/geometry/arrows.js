@@ -16,19 +16,18 @@ import { DEFAULTS } from '../core/constants.js';
  * @returns {{ viewBox: string, path: string, refX: number, refY: number, markerWidth: number, markerHeight: number }}
  */
 function stealthArrow(size) {
-  const w = size;
   const h = size * 0.7;
   const notch = size * 0.25;
+  const halfH = h / 2;
 
-  // Tip at (w, h/2), base spans from (0, 0) to (0, h) with notch at (notch, h/2)
-  const path = `M 0 0 L ${w} ${h / 2} L 0 ${h} L ${notch} ${h / 2} Z`;
+  const path = `M 0 0 L ${size} ${halfH} L 0 ${h} L ${notch} ${halfH} Z`;
 
   return {
-    viewBox: `0 0 ${w} ${h}`,
+    viewBox: `0 0 ${size} ${h}`,
     path,
-    refX: w,
-    refY: h / 2,
-    markerWidth: w,
+    refX: size,
+    refY: halfH,
+    markerWidth: size,
     markerHeight: h,
   };
 }

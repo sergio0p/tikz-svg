@@ -124,23 +124,16 @@ const LatexDef = {
     const { length, width, open } = p;
     const halfW = width / 2;
 
-    // The Latex tip uses Bezier curves from PGF:
-    //   moveto(innerLength, 0)
-    //   curveto(.877 * iL, .078 * halfW)(.337 * iL, .519 * halfW)(0, halfW)
-    //   lineto(0, -halfW)
-    //   curveto(.337 * iL, -.519 * halfW)(.877 * iL, -.078 * halfW)(innerLength, 0)
-    //   close
-    const iL = length;
-
+    // PGF Bezier curves for the Latex tip shape
     const d = [
-      `M ${iL} 0`,
-      `C ${(0.877192 * iL).toFixed(3)} ${(0.077922 * halfW).toFixed(3)},` +
-        ` ${(0.337381 * iL).toFixed(3)} ${(0.519480 * halfW).toFixed(3)},` +
+      `M ${length} 0`,
+      `C ${(0.877192 * length).toFixed(3)} ${(0.077922 * halfW).toFixed(3)},` +
+        ` ${(0.337381 * length).toFixed(3)} ${(0.519480 * halfW).toFixed(3)},` +
         ` 0 ${halfW.toFixed(3)}`,
       `L 0 ${(-halfW).toFixed(3)}`,
-      `C ${(0.337381 * iL).toFixed(3)} ${(-0.519480 * halfW).toFixed(3)},` +
-        ` ${(0.877192 * iL).toFixed(3)} ${(-0.077922 * halfW).toFixed(3)},` +
-        ` ${iL} 0`,
+      `C ${(0.337381 * length).toFixed(3)} ${(-0.519480 * halfW).toFixed(3)},` +
+        ` ${(0.877192 * length).toFixed(3)} ${(-0.077922 * halfW).toFixed(3)},` +
+        ` ${length} 0`,
       'Z',
     ].join(' ');
 
@@ -170,24 +163,16 @@ const ToDef = {
   path(userParams) {
     const p = resolveParams(this, userParams);
     const { length, width } = p;
-
-    // Inner dimensions (subtract lineWidth for the stroke-based tip)
-    const iL = length;
     const halfW = width / 2;
 
-    // PGF Computer Modern Rightarrow:
-    //   moveto(-iL, halfW)
-    //   curveto(-.817*iL, .2*halfW)(-.410*iL, .058*halfW)(0, 0)
-    //   curveto(-.410*iL, -.058*halfW)(-.817*iL, -.2*halfW)(-iL, -halfW)
-    //
-    // Translated so tip is at (length, 0) and tail at (0, ±halfW):
+    // PGF Computer Modern Rightarrow, translated so tip is at (length, 0)
     const d = [
       `M 0 ${halfW.toFixed(3)}`,
-      `C ${(0.18269 * iL).toFixed(3)} ${(0.2 * halfW).toFixed(3)},` +
-        ` ${(0.58981 * iL).toFixed(3)} ${(0.05833 * halfW).toFixed(3)},` +
-        ` ${iL.toFixed(3)} 0`,
-      `C ${(0.58981 * iL).toFixed(3)} ${(-0.05833 * halfW).toFixed(3)},` +
-        ` ${(0.18269 * iL).toFixed(3)} ${(-0.2 * halfW).toFixed(3)},` +
+      `C ${(0.18269 * length).toFixed(3)} ${(0.2 * halfW).toFixed(3)},` +
+        ` ${(0.58981 * length).toFixed(3)} ${(0.05833 * halfW).toFixed(3)},` +
+        ` ${length.toFixed(3)} 0`,
+      `C ${(0.58981 * length).toFixed(3)} ${(-0.05833 * halfW).toFixed(3)},` +
+        ` ${(0.18269 * length).toFixed(3)} ${(-0.2 * halfW).toFixed(3)},` +
         ` 0 ${(-halfW).toFixed(3)}`,
     ].join(' ');
 
@@ -250,11 +235,10 @@ const CircleDef = {
     const r = length / 2;
 
     // Full circle via two SVG arcs, centered at (r, 0)
-    const cx = r;
     const d = [
-      `M ${cx + r} 0`,
-      `A ${r} ${r} 0 1 0 ${cx - r} 0`,
-      `A ${r} ${r} 0 1 0 ${cx + r} 0`,
+      `M ${length} 0`,
+      `A ${r} ${r} 0 1 0 0 0`,
+      `A ${r} ${r} 0 1 0 ${length} 0`,
       'Z',
     ].join(' ');
 

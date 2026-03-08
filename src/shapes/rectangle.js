@@ -114,16 +114,12 @@ function borderPoint(geom, direction) {
  * @returns {string}
  */
 function backgroundPath(geom) {
-  const { center, halfWidth: hw, halfHeight: hh } = geom;
-  const x0 = center.x - hw;
-  const y0 = center.y - hh;
-  const x1 = center.x + hw;
-  const y1 = center.y + hh;
+  const { center: { x: cx, y: cy }, halfWidth: hw, halfHeight: hh } = geom;
   return (
-    `M ${x0} ${y0}` +
-    ` L ${x1} ${y0}` +
-    ` L ${x1} ${y1}` +
-    ` L ${x0} ${y1}` +
+    `M ${cx - hw} ${cy - hh}` +
+    ` L ${cx + hw} ${cy - hh}` +
+    ` L ${cx + hw} ${cy + hh}` +
+    ` L ${cx - hw} ${cy + hh}` +
     ` Z`
   );
 }
