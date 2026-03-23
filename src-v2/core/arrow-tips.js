@@ -323,7 +323,7 @@ export function createMarker(document, tipName, params = {}, edgeStyle = {}) {
   const h = p.width + pad * 2;
 
   marker.setAttribute('viewBox', `${-pad} ${-h / 2} ${w + pad} ${h}`);
-  marker.setAttribute('refX', `${result.tipEnd}`);
+  marker.setAttribute('refX', `${result.lineEnd}`);
   marker.setAttribute('refY', '0');
   marker.setAttribute('markerWidth', `${w}`);
   marker.setAttribute('markerHeight', `${h}`);

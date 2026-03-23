@@ -166,6 +166,8 @@ function buildDefs(arrowDefs, shadowFilters) {
       if (def.pathStroke && def.pathStroke !== 'none') {
         pathAttrs.stroke = def.pathStroke;
         if (def.pathStrokeWidth) pathAttrs['stroke-width'] = def.pathStrokeWidth;
+      } else {
+        pathAttrs.stroke = 'none';
       }
     } else {
       pathAttrs.fill = def.color;
@@ -436,7 +438,7 @@ function createShapeElement(geom, style, opts = {}) {
  * @param {string} arrowMarkerId - marker id to use for the arrowhead
  * @returns {SVGPathElement}
  */
-function emitInitialArrow(node, arrowMarkerId) {
+function emitInitialArrow(node, arrowMarkerId, arrowDef) {
   const { geom, style, shape } = node;
   const initial = style.initial;
   const length = DEFAULTS.initialArrowLength;
@@ -447,7 +449,15 @@ function emitInitialArrow(node, arrowMarkerId) {
   const reverseApproach = { x: -approach.x, y: -approach.y };
 
   // Arrow tip: use shape's borderPoint for correct geometry on any shape
-  const tip = shape.borderPoint(geom, reverseApproach);
+  const borderTip = shape.borderPoint(geom, reverseApproach);
+
+  // Pull endpoint back by auto-shorten amount so arrow tip lands at the border
+  // (refX = lineEnd means the marker extends forward by tipEnd - lineEnd)
+  const autoShorten = arrowDef ? (arrowDef.tipEnd - arrowDef.lineEnd) : 0;
+  const tip = {
+    x: borderTip.x + reverseApproach.x * autoShorten,
+    y: borderTip.y + reverseApproach.y * autoShorten,
+  };
 
   // Arrow start: tip displaced by length in the reverse direction
   const startX = tip.x + reverseApproach.x * length;
@@ -570,7 +580,8 @@ export function emitSVG(svgEl, resolved) {
 
   // 6. Emit nodes
   // Find the first arrow def to reuse for initial arrows (stealth marker)
-  const defaultArrowId = arrowDefs.length > 0 ? arrowDefs[0].id : null;
+  const defaultArrowDef = arrowDefs.length > 0 ? arrowDefs[0] : null;
+  const defaultArrowId = defaultArrowDef ? defaultArrowDef.id : null;
 
   for (const [id, node] of Object.entries(nodes)) {
     const g = emitNode(id, node);
@@ -579,7 +590,7 @@ export function emitSVG(svgEl, resolved) {
 
     // 7. Emit initial arrow if node is an initial state
     if (node.style.initial) {
-      const arrowPath = emitInitialArrow(node, defaultArrowId);
+      const arrowPath = emitInitialArrow(node, defaultArrowId, defaultArrowDef);
       edgeLayer.appendChild(arrowPath);
     }
   }
