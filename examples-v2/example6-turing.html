@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Turing Machine Automaton — TikZ-SVG</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    svg { width: 500px; height: 400px; }
+    h1 { font-size: 1.2rem; color: #333; }
+    pre { background: #fff; padding: 1rem; border: 1px solid #ddd; font-size: 0.75rem; max-width: 600px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>Turing Machine Automaton (reproduced from TikZ source)</h1>
+  <svg id="automaton"></svg>
+
+  <pre>\usetikzlibrary{arrows.meta,automata,positioning}
+\begin{tikzpicture}[->,>={Stealth[round]},shorten >=1pt,auto,
+  node distance=2cm,on grid,semithick,inner sep=2pt,bend angle=45]
+\node[initial,state] (A) {$q_a$};
+\node[state] (B) [above right=of A] {$q_b$};
+\node[state] (D) [below right=of A] {$q_d$};
+\node[state] (C) [below right=of B] {$q_c$};
+\node[state] (E) [below=of D] {$q_e$};
+\path [every node/.style={font=\footnotesize}]
+   (A) edge node {0,1,L} (B)
+   edge node {1,1,R} (C)
+   (B) edge [loop above] node {1,1,L} (B)
+   edge node {0,1,L} (C)
+   (C) edge node {0,1,L} (D)
+   edge [bend left] node {1,0,R} (E)
+   (D) edge [loop below] node {1,1,R} (D)
+   edge node {0,1,R} (A)
+   (E) edge [bend left] node {1,0,R} (A);
+\end{tikzpicture}</pre>
+
+  <script type="module">
+    import { renderAutomaton } from '../src-v2/automata/automata.js';
+
+    const svg = document.getElementById('automaton');
+
+    renderAutomaton(svg, {
+      nodeDistance: 80,       // node distance=2cm ~ 80px
+      onGrid: true,
+      stateStyle: {
+        radius: 20,
+        fill: '#ffffff',
+        stroke: '#000000',
+        strokeWidth: 1.5,     // semithick
+        fontSize: 13,
+        fontFamily: 'serif',
+        labelColor: '#000000',
+      },
+      edgeStyle: {
+        stroke: '#000000',
+        strokeWidth: 1.5,     // semithick
+      },
+      states: {
+        A: {
+          initial: true,
+          label: 'qₐ',
+        },
+        B: {
+          position: { 'above right': 'A' },
+          label: 'q_b',
+        },
+        D: {
+          position: { 'below right': 'A' },
+          label: 'q_d',
+        },
+        C: {
+          position: { 'below right': 'B' },
+          label: 'q_c',
+        },
+        E: {
+          position: { 'below': 'D' },
+          label: 'q_e',
+        },
+      },
+      edges: [
+        { from: 'A', to: 'B', label: '0,1,L' },
+        { from: 'A', to: 'C', label: '1,1,R' },
+        { from: 'B', to: 'B', label: '1,1,L', loop: 'above' },
+        { from: 'B', to: 'C', label: '0,1,L' },
+        { from: 'C', to: 'D', label: '0,1,L' },
+        { from: 'C', to: 'E', label: '1,0,R', bend: 45 },
+        { from: 'D', to: 'D', label: '1,1,R', loop: 'below' },
+        { from: 'D', to: 'A', label: '0,1,R' },
+        { from: 'E', to: 'A', label: '1,0,R', bend: 45 },
+      ],
+    });
+  </script>
+</body>
+</html>

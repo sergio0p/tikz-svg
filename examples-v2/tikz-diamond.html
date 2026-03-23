@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TikZ Diamond Automaton — TikZ-SVG</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    svg { width: 500px; height: 400px; }
+    h1 { font-size: 1.2rem; color: #333; }
+    pre { background: #fff; padding: 1rem; border: 1px solid #ddd; font-size: 0.75rem; max-width: 600px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>TikZ Diamond Automaton (reproduced from TikZ source)</h1>
+  <svg id="automaton"></svg>
+
+  <pre>\usetikzlibrary{arrows.meta,automata,positioning,shadows}
+\begin{tikzpicture}[shorten >=1pt,node distance=2cm,on grid,
+  >={Stealth[round]},thick,
+  every state/.style={fill,draw=none,orange,text=white,circular drop shadow},
+  accepting/.style={green!50!black,text=white},
+  initial/.style={red,text=white}]
+\node[state,initial] (q_0) {$q_0$};
+\node[state] (q_1) [above right=of q_0] {$q_1$};
+\node[state] (q_2) [below right=of q_0] {$q_2$};
+\node[state,accepting](q_3) [below right=of q_1] {$q_3$};
+\path[->] (q_0) edge node [above left] {0} (q_1)
+   edge node [below left] {1} (q_2)
+   (q_1) edge node [above right] {1} (q_3)
+   edge [loop above] node {0} ()
+   (q_2) edge node [below right] {0} (q_3)
+   edge [loop below] node {1} ();
+\end{tikzpicture}</pre>
+
+  <script type="module">
+    import { renderAutomaton } from '../src-v2/automata/automata.js';
+
+    const svg = document.getElementById('automaton');
+
+    renderAutomaton(svg, {
+      nodeDistance: 80,       // node distance=2cm (~40px per cm)
+      onGrid: true,
+      stateStyle: {
+        radius: 22,
+        fill: '#f97316',          // orange
+        stroke: 'none',           // draw=none
+        strokeWidth: 0,
+        labelColor: '#ffffff',    // text=white
+        shadow: { dx: 2, dy: 3, blur: 4, color: 'rgba(0,0,0,0.35)' },  // circular drop shadow
+        fontSize: 16,
+        fontFamily: 'serif',
+      },
+      edgeStyle: {
+        stroke: '#333333',
+        strokeWidth: 2,           // thick
+        arrow: 'stealth',
+      },
+      states: {
+        q0: {
+          initial: true,
+          label: 'q₀',
+          fill: '#dc2626',        // initial/.style={red,...}
+        },
+        q1: {
+          position: { 'above right': 'q0' },
+          label: 'q₁',
+        },
+        q2: {
+          position: { 'below right': 'q0' },
+          label: 'q₂',
+        },
+        q3: {
+          position: { 'below right': 'q1' },
+          label: 'q₃',
+          accepting: true,
+          fill: '#16a34a',        // accepting/.style={green!50!black,...}
+          stroke: 'none',
+          acceptingInset: 3,
+        },
+      },
+      edges: [
+        { from: 'q0', to: 'q1', label: '0' },
+        { from: 'q0', to: 'q2', label: '1' },
+        { from: 'q1', to: 'q3', label: '1' },
+        { from: 'q1', to: 'q1', label: '0', loop: 'above' },
+        { from: 'q2', to: 'q3', label: '0' },
+        { from: 'q2', to: 'q2', label: '1', loop: 'below' },
+      ],
+    });
+  </script>
+</body>
+</html>
