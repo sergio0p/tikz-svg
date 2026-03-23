@@ -96,9 +96,13 @@ Supported positions: `above`, `below`, `left`, `right`, `above left`, `above rig
 
 #### Style options
 
-**`stateStyle`**: `radius`, `fill`, `stroke`, `strokeWidth`, `labelColor`, `fontSize`, `fontFamily`, `shadow`, `shape` (`'circle'`, `'rectangle'`, `'ellipse'`).
+**`stateStyle`**: `radius`, `fill`, `stroke`, `strokeWidth`, `labelColor`, `fontSize`, `fontFamily`, `shadow`, `outerSep`, `shape`.
 
-**`edgeStyle`**: `stroke`, `strokeWidth`, `arrow` (`'stealth'`), `arrowSize`.
+Shapes (14): `'circle'`, `'rectangle'`, `'ellipse'`, `'diamond'`, `'star'`, `'regular polygon'`, `'trapezium'`, `'semicircle'`, `'isosceles triangle'`, `'kite'`, `'dart'`, `'circular sector'`, `'cylinder'`, `'rectangle split'`.
+
+**`edgeStyle`**: `stroke`, `strokeWidth`, `arrow`, `arrowSize`, `shortenStart`, `shortenEnd`, `labelDistance`, `innerSep`.
+
+Arrow tips (18): `'stealth'`, `'latex'`, `'to'`, `'bar'`, `'circle'`, `'bracket'`, `'kite'`, `'square'`, `'straight barb'`, `'hooks'`, `'arc barb'`, `'tee barb'`, `'implies'`, `'triangle'`, `'diamond'`, `'rectangle'`, `'parenthesis'`, `'none'`. Plus caps: `'round cap'`, `'butt cap'`, `'triangle cap'`, `'fast triangle'`, `'fast round'`, `'rays'`.
 
 ### Core Modules
 
@@ -137,8 +141,8 @@ Registry of named arrow tip definitions, each producing SVG path data. Replaces 
 ```js
 import { defaultRegistry, createMarker, ArrowTipRegistry } from './src/core/arrow-tips.js';
 
-// Query built-in tips
-defaultRegistry.names(); // → ['Stealth', 'Latex', 'To', 'Bar', 'Circle', 'Bracket']
+// Query built-in tips (18 tips + aliases)
+defaultRegistry.names(); // → ['Stealth', 'Latex', 'Kite', 'Square', 'Circle', 'Straight Barb', ...]
 
 // Generate path data for an arrow tip
 const stealth = defaultRegistry.get('Stealth');
@@ -150,7 +154,7 @@ svgDefs.appendChild(element);
 path.setAttribute('marker-end', `url(#${id})`);
 ```
 
-**Built-in tips:** Stealth, Latex, To (Computer Modern Rightarrow), Bar, Circle, Bracket. Each supports `length`, `width`, `inset`, `lineWidth`, and `open` parameters.
+**Built-in tips (18):** Stealth, Latex, Kite, Square, Circle (geometric/filled); Straight Barb, Hooks, Arc Barb, Tee Barb, Classical TikZ Rightarrow, Computer Modern Rightarrow, Implies (barbs/stroked); Round Cap, Butt Cap, Triangle Cap, Fast Triangle, Fast Round (caps); Rays (special). Plus aliases: To, Bar, Bracket, LaTeX, Triangle, Rectangle, Ellipse, Diamond, Parenthesis. Each supports `length`, `width`, `inset`, `lineWidth`, and `open` parameters.
 
 **`path()` returns:** `{ d, lineEnd, tipEnd, visualBackEnd, fillMode }` where `fillMode` is `'filled'`, `'stroke'`, or `'both'`.
 
@@ -208,39 +212,50 @@ Open `examples/index.html` in a browser to browse all demos, or open individual 
 ## Architecture
 
 ```
-src/
-  index.js                     — 6-phase render pipeline (parse → position → node geometry → edge geometry → styles → emit)
-  automata/automata.js         — renderAutomaton() convenience wrapper
+src-v2/                          (development sandbox — src/ is live, don't edit)
+  index.js                     — 6-phase render pipeline + 14 shape imports
+  automata/automata.js         — renderAutomaton() wrapper (shortenEnd: 1)
 
   core/
     math.js                    — vector math, Bézier curves, angles
-    constants.js               — direction table, defaults
+    constants.js               — direction table, defaults (outerSep, labelDistance, loopLooseness)
     resolve-point.js           — coordinate resolver
     transform.js               — 2D affine transform matrix + scoped stack
-    arrow-tips.js              — arrow tip registry + 6 built-in tip definitions
+    arrow-tips.js              — arrow tip registry + 18 built-in tips + aliases
     path.js                    — soft-path builder with segment model + SVG serialization
 
   shapes/
-    shape.js                   — shape registry (registerShape / getShape)
-    circle.js                  — circle: anchors, border points, background path
-    rectangle.js               — rectangle: corner + edge anchors
-    ellipse.js                 — ellipse: parametric border points
+    shape.js                   — registry + createShape factory + polygonBorderPoint
+    circle.js                  — circle (hand-rolled, outerSep)
+    rectangle.js               — rectangle (hand-rolled, outerSep)
+    ellipse.js                 — ellipse (hand-rolled, outerSep)
+    diamond.js                 — diamond (factory)
+    star.js                    — N-pointed star (factory)
+    regular-polygon.js         — N-sided polygon (factory)
+    trapezium.js               — trapezium with angled sides (factory)
+    semicircle.js              — half circle (factory)
+    isosceles-triangle.js      — triangle with apex (factory)
+    kite.js                    — kite quadrilateral (factory)
+    dart.js                    — arrowhead shape (factory)
+    circular-sector.js         — pie slice (factory)
+    cylinder.js                — 3D cylinder (factory)
+    rectangle-split.js         — N-part divided rectangle (factory)
 
   positioning/
     positioning.js             — topological sort + direction-based layout
 
   geometry/
-    edges.js                   — straight, bent, self-loop edge paths
-    arrows.js                  — stealth arrow marker defs (legacy, single arrow)
-    labels.js                  — edge label positioning along curves
+    edges.js                   — straight, bent, loop + shorten post-processing
+    arrows.js                  — bridges arrow-tips registry to pipeline + auto-shortening
+    labels.js                  — node-based label positioning with TikZ anchor selection
 
   style/
-    style.js                   — style resolution cascade
+    style.js                   — style resolution cascade (outerSep, innerSep, shortenEnd)
 
   svg/
-    emitter.js                 — SVG DOM construction
+    emitter.js                 — SVG DOM + generic backgroundPath fallback for new shapes
 
-References/                    — PGF/TikZ .tex source files used as implementation reference
+References/                    — PGF/TikZ .tex source files (from TeX Live 2025)
 ```
 
 ### Design principles
@@ -256,7 +271,7 @@ References/                    — PGF/TikZ .tex source files used as implementa
 npm test
 ```
 
-Runs 140 tests across 34 suites using `node --test` with jsdom for DOM support.
+Runs 168 tests using `node --test` with jsdom for DOM support.
 
 | Suite | Tests | Covers |
 |-------|-------|--------|

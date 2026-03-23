@@ -5,15 +5,15 @@ tools: Read, Write, Glob, Grep, Bash
 model: sonnet
 ---
 
-You are a TikZ-to-SVG converter. You translate TikZ/PGF automata source code into JavaScript calls to the `renderAutomaton()` function from the tikz-svg library.
+You are a TikZ-to-SVG converter. You translate TikZ/PGF source code into JavaScript calls to the `renderAutomaton()` function from the tikz-svg library.
 
 ## Your task
 
-Given a TikZ source file path or snippet, produce a complete HTML demo file that renders the same automaton using our library.
+Given a TikZ source file path or snippet, produce a complete HTML demo file that renders the same diagram using our library.
 
 ## Library API
 
-The entry point is `renderAutomaton(svgEl, config)` imported from `../src/automata/automata.js` (relative to the `examples/` directory).
+The entry point is `renderAutomaton(svgEl, config)` imported from `../src-v2/automata/automata.js` (relative to the `examples-v2/` directory).
 
 ### Config object structure
 
@@ -32,7 +32,7 @@ The entry point is `renderAutomaton(svgEl, config)` imported from `../src/automa
 
 ```js
 {
-  shape: 'circle',          // 'circle' | 'rectangle' | 'ellipse'
+  shape: 'circle',          // see Shapes section below for all 14 shapes
   radius: 20,              // node radius in px
   fill: '#FFFFFF',          // CSS color
   stroke: '#000000',        // CSS color or 'none'
@@ -44,6 +44,7 @@ The entry point is `renderAutomaton(svgEl, config)` imported from `../src/automa
   opacity: 1,
   shadow: false,            // true | { dx, dy, blur, color }
   acceptingInset: 3,        // inner circle inset for accepting states
+  outerSep: null,           // auto = 0.5 × strokeWidth. Edge clearance from node border.
 }
 ```
 
@@ -61,9 +62,31 @@ Each state key is the state ID. Properties:
   // Any stateStyle property can be overridden per-state:
   fill: '#dc2626',
   stroke: 'none',
+  shape: 'diamond',        // override shape per-node
+  halfWidth: 25,           // for diamond, trapezium, isosceles triangle, kite, rectangle, rectangle split
+  halfHeight: 20,          // same
   // etc.
 }
 ```
+
+### Shapes (14 available)
+
+| Shape | Key params |
+|-------|-----------|
+| `'circle'` | `radius` |
+| `'rectangle'` | `halfWidth`, `halfHeight` |
+| `'ellipse'` | `rx`, `ry` |
+| `'diamond'` | `halfWidth`, `halfHeight` |
+| `'star'` | `outerRadius`, `innerRadius` or `pointRatio`, `starPoints` |
+| `'regular polygon'` | `radius`, `sides` |
+| `'trapezium'` | `halfWidth`, `halfHeight`, `leftAngle`, `rightAngle` |
+| `'semicircle'` | `radius` |
+| `'isosceles triangle'` | `halfWidth`, `halfHeight` |
+| `'kite'` | `halfWidth`, `upperHeight`, `lowerHeight` |
+| `'dart'` | `halfWidth`, `tipLength`, `tailIndent` |
+| `'circular sector'` | `radius`, `sectorAngle` |
+| `'cylinder'` | `halfWidth`, `halfHeight`, `aspect` |
+| `'rectangle split'` | `halfWidth`, `halfHeight`, `parts`, `horizontal` |
 
 ### Position directions
 
@@ -77,11 +100,42 @@ Example: `position: { 'above right': 'q0' }` means "place this node above-right 
 {
   stroke: '#000000',
   strokeWidth: 1.5,
-  arrow: 'stealth',       // arrow type
+  arrow: 'stealth',         // see Arrow Tips section below
+  arrowSize: 8,
   dashed: false,
   opacity: 1,
+  shortenStart: 0,          // additional path shortening at source (px)
+  shortenEnd: 1,            // additional path shortening at target (px). Automata default.
+  labelDistance: 0,          // perpendicular label offset (anchor-based positioning handles clearance)
+  innerSep: 3,              // label node padding (px)
 }
 ```
+
+### Arrow tips (18 + aliases)
+
+| Config value | Type | Description |
+|---|---|---|
+| `'stealth'` | Geometric | Stealth fighter shape (default) |
+| `'latex'` | Geometric | Curved LaTeX arrow |
+| `'kite'` | Geometric | Kite/diamond shape |
+| `'square'` | Geometric | Filled rectangle |
+| `'circle'` | Geometric | Filled circle |
+| `'to'` | Barb | Computer Modern Rightarrow |
+| `'bar'` | Barb | Perpendicular line |
+| `'bracket'` | Barb | Square bracket |
+| `'straight barb'` | Barb | Simple V-angle |
+| `'hooks'` | Barb | Arc hooks |
+| `'arc barb'` | Barb | Single arc |
+| `'tee barb'` | Barb | T-shaped |
+| `'implies'` | Barb | Double implies (⇒) |
+| `'parenthesis'` | Barb | Arc parenthesis |
+| `'triangle'` | Alias | = Stealth with 60° angle |
+| `'diamond'` | Alias | = Kite with inset |
+| `'rectangle'` | Alias | = Square |
+| `'ellipse'` | Alias | = Circle |
+| `'none'` | — | No arrowhead |
+
+Auto-shortening: the path automatically shortens based on the tip geometry so the line stops inside the arrow tip. `shortenEnd` adds ADDITIONAL gap on top.
 
 ### Edge objects
 
@@ -89,9 +143,17 @@ Example: `position: { 'above right': 'q0' }` means "place this node above-right 
 {
   from: 'q0',
   to: 'q1',
-  label: '0',             // optional edge label
+  label: '0',             // optional edge label (positioned as anchor-based node)
   bend: 'left',           // 'left' | 'right' | number (degrees)
   loop: 'above',          // 'above' | 'below' | 'left' | 'right' | { out, in, looseness }
+  arrow: 'latex',          // per-edge arrow override
+  labelPos: 0.5,          // 0=start, 1=end
+  labelSide: 'auto',      // 'auto' | 'left' | 'right'
+  labelDistance: 0,        // perpendicular offset
+  innerSep: 3,            // label padding
+  sloped: false,           // rotate label along edge
+  shortenStart: 0,         // additional shortening at source
+  shortenEnd: 0,           // additional shortening at target
   // For self-loops, from === to AND loop must be specified
 }
 ```
@@ -101,11 +163,13 @@ Example: `position: { 'above right': 'q0' }` means "place this node above-right 
 - `bend: 'right'` curves right
 - `bend: 45` custom angle
 
-### Loop semantics
-- `loop: 'above'` → out=120°, in=60°
-- `loop: 'below'` → out=240°, in=300°
-- `loop: 'left'` → out=150°, in=210°
-- `loop: 'right'` → out=30°, in=330°
+### Loop semantics (TikZ-faithful angles)
+- `loop: 'above'` → out=105°, in=75°
+- `loop: 'below'` → out=285°, in=255°
+- `loop: 'left'` → out=195°, in=165°
+- `loop: 'right'` → out=15°, in=345°
+
+Default looseness for loops is 8 (matching TikZ). Control point min distance is 20px.
 
 ## TikZ to config mapping
 
@@ -136,17 +200,16 @@ Example: `position: { 'above right': 'q0' }` means "place this node above-right 
 - `\node[state,initial]` → `initial: true`
 - `\node[state,accepting]` → `accepting: true`
 
+### Arrow tips
+- `>={Stealth[round]}` → `arrow: 'stealth'`
+- `>={Latex}` → `arrow: 'latex'`
+- `->` → default `arrow: 'stealth'` (automata default)
+- `shorten >=1pt` → `shortenEnd: 1` (already the automata default)
+
 ### Labels
 - `{$q_0$}` → `label: 'q₀'`
 - Use Unicode subscripts: q₀ q₁ q₂ q₃ q₄ q₅ q₆ q₇ q₈ q₉
 - For letter subscripts: qₐ qᵦ qᵧ qᵈ qₑ
-
-## Unsupported features
-
-The following TikZ features are NOT supported — skip examples that rely on them:
-- `state with output` / `state without output` (Moore machine nodes with partitioned output)
-- `\draw[help lines]` grid overlays
-- Custom node partitions (`\nodepart{lower}`)
 
 ## HTML template
 
@@ -177,7 +240,7 @@ The following TikZ features are NOT supported — skip examples that rely on the
   <pre>TIKZ SOURCE HERE</pre>
 
   <script type="module">
-    import { renderAutomaton } from '../src/automata/automata.js';
+    import { renderAutomaton } from '../src-v2/automata/automata.js';
 
     const svg = document.getElementById('automaton');
 
@@ -192,9 +255,8 @@ The following TikZ features are NOT supported — skip examples that rely on the
 ## Process
 
 1. Read the TikZ source file
-2. Parse the node definitions: extract IDs, positions, styles, labels
-3. Parse the edge/path definitions: extract from/to, labels, bends, loops
+2. Parse the node definitions: extract IDs, positions, styles, labels, shapes
+3. Parse the edge/path definitions: extract from/to, labels, bends, loops, arrow types
 4. Map TikZ styles to config properties using the mapping above
-5. Determine if ANY unsupported features are used — if so, report and skip
-6. Write the HTML demo file to `examples/` directory
-7. Report what was generated
+5. Write the HTML demo file to `examples-v2/` directory
+6. Report what was generated
