@@ -120,6 +120,8 @@ export function render(svgEl, config) {
   const resolvedEdgeStyles = [];
   const arrowDefsMap = new Map();
 
+  const resolvedArrowDefs = [];  // per-edge arrow def (or null)
+
   for (let i = 0; i < edges.length; i++) {
     const style = resolveEdgeStyle(i, config);
     const arrowDef = getArrowDef({
@@ -132,6 +134,7 @@ export function render(svgEl, config) {
     }
     style.arrowId = arrowDef ? arrowDef.id : null;
     resolvedEdgeStyles.push(style);
+    resolvedArrowDefs.push(arrowDef);
   }
 
   const arrowDefs = Array.from(arrowDefsMap.values());
@@ -157,14 +160,22 @@ export function render(svgEl, config) {
       throw new Error(`Edge ${i}: unknown target state "${toId}"`);
     }
 
+    // Compute total path shortening: auto (from arrow tip) + user shorten
+    // TikZ: total = (tipEnd - lineEnd) + user_shorten
+    // (pgfcorearrows.code.tex lines 788-820)
+    const arrowDef = resolvedArrowDefs[i];
+    const autoShortenEnd = arrowDef ? (arrowDef.tipEnd - arrowDef.lineEnd) : 0;
+    const userShortenEnd = edge.shortenEnd ?? edgeStyle.shortenEnd ?? 0;
+    const userShortenStart = edge.shortenStart ?? edgeStyle.shortenStart ?? 0;
+
     const edgeConfig = {
       bend: edge.bend ?? edgeStyle.bend,
       loop: edge.loop ?? edgeStyle.loop,
       out: edge.out,
       in: edge.in,
       looseness: edge.looseness,
-      shortenStart: edge.shortenStart ?? edgeStyle.shortenStart,
-      shortenEnd: edge.shortenEnd ?? edgeStyle.shortenEnd,
+      shortenStart: userShortenStart,
+      shortenEnd: autoShortenEnd + userShortenEnd,
     };
 
     const geom = computeEdgePath(sourceNode, targetNode, edgeConfig);

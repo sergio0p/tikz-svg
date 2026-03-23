@@ -159,10 +159,18 @@ function buildDefs(arrowDefs, shadowFilters) {
       orient: def.orient ?? 'auto',
       markerUnits: 'userSpaceOnUse',
     });
-    const path = createSVGElement('path', {
-      d: def.path,
-      fill: def.color,
-    });
+    const pathAttrs = { d: def.path };
+    // Support both legacy (color only) and new (pathFill/pathStroke) formats
+    if (def.pathFill != null) {
+      pathAttrs.fill = def.pathFill;
+      if (def.pathStroke && def.pathStroke !== 'none') {
+        pathAttrs.stroke = def.pathStroke;
+        if (def.pathStrokeWidth) pathAttrs['stroke-width'] = def.pathStrokeWidth;
+      }
+    } else {
+      pathAttrs.fill = def.color;
+    }
+    const path = createSVGElement('path', pathAttrs);
     marker.appendChild(path);
     defs.appendChild(marker);
   }
