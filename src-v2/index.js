@@ -64,6 +64,35 @@ export function render(svgEl, config) {
     onGrid: config.onGrid,
   });
 
+  // ── PHASE 2.5: APPLY TRANSFORMS ────────────────────────────────────
+  // Apply global and per-group coordinate transforms to resolved positions.
+  // This is a coordinate transform (TikZ-preferred): positions are remapped,
+  // not wrapped in SVG transform attributes.
+
+  if (config.transform || config.groups) {
+    for (const id of stateIds) {
+      const pos = resolvedStates[id].position;
+      let transformed = { x: pos.x, y: pos.y };
+
+      // Apply group transforms (in declaration order)
+      if (config.groups) {
+        for (const group of config.groups) {
+          if (!group.transform) continue;
+          if (!group.nodes || !Array.isArray(group.nodes)) continue;
+          if (!group.nodes.includes(id)) continue;
+          transformed = group.transform.apply(transformed);
+        }
+      }
+
+      // Apply global transform last (so it wraps group transforms)
+      if (config.transform) {
+        transformed = config.transform.apply(transformed);
+      }
+
+      resolvedStates[id].position = transformed;
+    }
+  }
+
   // ── PHASE 3: COMPUTE NODE GEOMETRY ──────────────────────────────────
   // Create shape instances, cache their saved geometry and anchors.
 

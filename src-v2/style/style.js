@@ -1,4 +1,5 @@
 import { DEFAULTS } from '../core/constants.js';
+import { StyleRegistry, resolveGroupStyle } from './registry.js';
 
 /**
  * Resolve effective style for a node.
@@ -26,10 +27,13 @@ export function resolveNodeStyle(nodeId, config) {
     labelColor: '#000000',
     className: null,
   };
-  // Merge stateStyle (global overrides), then per-node properties
+  // Merge: DEFAULTS → stateStyle → group style → expanded named style + per-node
+  const registry = new StyleRegistry(config.styles);
   const stateStyle = config.stateStyle || {};
+  const groupStyle = resolveGroupStyle(config.groups, 'nodes', nodeId, registry);
   const nodeProps = config.states?.[nodeId] || {};
-  return { ...base, ...stateStyle, ...nodeProps };
+  const expandedProps = registry.expand(nodeProps);
+  return { ...base, ...stateStyle, ...groupStyle, ...expandedProps };
 }
 
 /**
@@ -57,9 +61,13 @@ export function resolveEdgeStyle(edgeIndex, config) {
     shortenEnd: DEFAULTS.shortenEnd,
     className: null,
   };
+  // Merge: DEFAULTS → edgeStyle → group style → expanded named style + per-edge
+  const registry = new StyleRegistry(config.styles);
   const edgeStyle = config.edgeStyle || {};
+  const groupStyle = resolveGroupStyle(config.groups, 'edges', edgeIndex, registry);
   const edgeProps = config.edges?.[edgeIndex] || {};
-  return { ...base, ...edgeStyle, ...edgeProps };
+  const expandedProps = registry.expand(edgeProps);
+  return { ...base, ...edgeStyle, ...groupStyle, ...expandedProps };
 }
 
 /**

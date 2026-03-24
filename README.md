@@ -65,6 +65,9 @@ Currently supports the automata library. Moving toward general-purpose TikZ cove
 | `edges` | `Array` | `[]` | Array of edge objects |
 | `stateStyle` | `Object` | `{}` | Default style for all states |
 | `edgeStyle` | `Object` | `{}` | Default style for all edges |
+| `styles` | `Object` | `{}` | Named style definitions (see below) |
+| `groups` | `Array` | `[]` | Node/edge groups with shared styles (see below) |
+| `transform` | `Transform` | — | Global coordinate transform (see below) |
 | `nodeDistance` | `number` | `60` | Distance between nodes for relative positioning |
 | `onGrid` | `boolean` | `false` | Snap positions to grid |
 
@@ -80,6 +83,7 @@ Currently supports the automata library. Moving toward general-purpose TikZ cove
 | `stroke` | `string` | Per-state stroke override |
 | `radius` | `number` | Per-state radius override |
 | `shadow` | `Object` | Drop shadow: `{ dx, dy, blur, color }` |
+| `style` | `string` | Reference to a named style in `config.styles` |
 
 Supported positions: `above`, `below`, `left`, `right`, `above left`, `above right`, `below left`, `below right`.
 
@@ -93,6 +97,67 @@ Supported positions: `above`, `below`, `left`, `right`, `above left`, `above rig
 | `bend` | `string\|number` | `'left'`, `'right'`, or angle in degrees |
 | `loop` | `string` | Self-loop direction: `'above'`, `'below'`, `'left'`, `'right'` |
 | `looseness` | `number` | Loop/bend looseness multiplier |
+| `style` | `string` | Reference to a named style in `config.styles` |
+
+#### Named Styles
+
+Define reusable style bundles in `config.styles` and reference them by name via the `style` property on any node or edge. Per-element properties override the named style.
+
+```js
+renderAutomaton(svg, {
+  styles: {
+    blueNode: { fill: '#dbeafe', stroke: '#93c5fd', strokeWidth: 2 },
+    dangerEdge: { stroke: 'red', dashed: true },
+  },
+  states: {
+    q0: { style: 'blueNode', initial: true },
+    q1: { style: 'blueNode', fill: '#fdf' }, // fill overrides blueNode.fill
+  },
+  edges: [
+    { from: 'q0', to: 'q1', style: 'dangerEdge', label: 'a' },
+  ],
+});
+```
+
+**Cascade order:** `DEFAULTS → stateStyle/edgeStyle → group style → named style + per-element props`
+
+#### Groups
+
+Group nodes or edges to apply shared styles. Group styles sit between picture-level (`stateStyle`/`edgeStyle`) and per-element styles in the cascade. Groups can reference named styles.
+
+```js
+renderAutomaton(svg, {
+  styles: { red: { fill: '#fee', stroke: 'red' } },
+  groups: [
+    { nodes: ['q0', 'q1'], style: { fill: '#ddf', stroke: 'blue' } },
+    { nodes: ['q2', 'q3'], style: 'red' },  // named style reference
+    { edges: [0, 1], style: { dashed: true } },
+  ],
+  states: { q0: {}, q1: { fill: '#fdf' }, q2: {}, q3: {} },
+  edges: [ /* ... */ ],
+});
+```
+
+#### Coordinate Transforms
+
+Apply global or per-group coordinate transforms using the `Transform` class. Transforms are applied as coordinate transforms (positions are remapped), not SVG `transform` attributes.
+
+```js
+import { Transform } from './src-v2/core/transform.js';
+
+renderAutomaton(svg, {
+  transform: new Transform().rotate(45),  // rotate entire picture
+  groups: [
+    {
+      nodes: ['q2', 'q3'],
+      style: { fill: 'blue' },
+      transform: new Transform().translate(100, 0),  // shift group
+    },
+  ],
+  states: { /* ... */ },
+  edges: [ /* ... */ ],
+});
+```
 
 #### Style options
 
@@ -250,6 +315,7 @@ src-v2/                          (development sandbox — src/ is live, don't ed
     labels.js                  — node-based label positioning with TikZ anchor selection
 
   style/
+    registry.js                — named style registry + group style resolution
     style.js                   — style resolution cascade (outerSep, innerSep, shortenEnd)
 
   svg/
@@ -271,7 +337,7 @@ References/                    — PGF/TikZ .tex source files (from TeX Live 202
 npm test
 ```
 
-Runs 168 tests using `node --test` with jsdom for DOM support.
+Runs 191 tests using `node --test` with jsdom for DOM support.
 
 | Suite | Tests | Covers |
 |-------|-------|--------|
@@ -281,6 +347,9 @@ Runs 168 tests using `node --test` with jsdom for DOM support.
 | Geometry (edges, labels, arrows) | 12 | straight/bent/loop edges, label placement, arrow defs |
 | Shapes (circle, rect, ellipse) | 20 | anchors, border points, background paths |
 | Positioning | 15 | spec parsing, topological sort, on-grid, cycles |
+| Style registry | 10 | named style storage, expansion, cascade integration |
+| Groups | 9 | node/edge groups, cascade order, named style interaction |
+| Pipeline transforms | 4 | global transform, rotation, per-group transform |
 | Integration | 4 | full pipeline with jsdom, style overrides |
 
 ### Roadmap

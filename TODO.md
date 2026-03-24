@@ -30,9 +30,13 @@ New shapes render via `shape.backgroundPath()` as `<path>` elements. No new swit
 
 ---
 
-## TODO: Arrow tip placement and capabilities
+## ✅ DONE (src-v2): Arrow tip registry (18 tips + aliases)
 
-Arrow tips need improvement to match TikZ capabilities. Current implementation uses a single hardcoded stealth arrow. TikZ supports multiple arrow tip styles (Stealth, Latex, To, Bar, Circle, Bracket), configurable sizing, double tips, reversed tips, and precise placement at path endpoints. The `arrow-tips.js` registry has 6 tip definitions but they are not wired into the render pipeline. Import full TikZ arrow capabilities in a next edition.
+ArrowTipRegistry with 18 built-in tips + 9 aliases from `pgflibraryarrows.meta.code.tex`, fully wired to the render pipeline via `geometry/arrows.js`. Auto-shortening from `pgfcorearrows.code.tex`. Supports `fillMode` (filled/stroke/both) and `open` parameter.
+
+## ✅ DONE (src-v2): Named styles, groups, and pipeline transforms
+
+Style registry (`style/registry.js`) with `config.styles` for reusable named bundles. Node/edge groups (`config.groups`) for shared styles. Global and per-group coordinate transforms (`config.transform`). Cascade: `DEFAULTS → stateStyle/edgeStyle → group → named style + per-element`.
 
 ---
 
@@ -102,7 +106,7 @@ src-v2/
   core/constants.js     — DIRECTIONS table, DEFAULTS
   core/resolve-point.js — universal coordinate resolver
   core/transform.js     — 2D affine transform matrix + scoped stack
-  core/arrow-tips.js    — arrow tip registry + 6 built-in tip definitions
+  core/arrow-tips.js    — arrow tip registry + 18 built-in tip definitions + aliases
   core/path.js          — soft-path builder with segment model + SVG serialization
   shapes/shape.js       — shape registry + createShape factory + polygonBorderPoint
   shapes/circle.js      — circle (hand-rolled, outerSep)
@@ -121,8 +125,9 @@ src-v2/
   shapes/rectangle-split.js — N-part divided rectangle (factory)
   positioning/positioning.js — topological sort + direction table positioning
   geometry/edges.js     — straight, bent, loop edges + shorten
-  geometry/arrows.js    — stealth arrow marker defs
+  geometry/arrows.js    — bridges arrow-tips registry to pipeline + auto-shortening
   geometry/labels.js    — node-based label positioning with anchor selection
+  style/registry.js     — named style registry + group style resolution
   style/style.js        — resolveNodeStyle, resolveEdgeStyle, collectShadowFilters
   svg/emitter.js        — SVG DOM construction + generic shape fallback
   index.js              — 6-phase render pipeline (14 shapes registered)
@@ -133,8 +138,8 @@ src-v2/
 - ES modules, no external deps
 - SVG DOM via `document.createElementNS`
 - TikZ angles: 0°=east, CCW positive; SVG: y-down
-- Style cascade: DEFAULTS → stateStyle → per-node overrides
-- 168 tests pass: `npm test` (uses `node --test`)
+- Style cascade: DEFAULTS → stateStyle/edgeStyle → group → named style + per-element
+- 191 tests pass: `npm test` (uses `node --test`)
 - TikZ-reference-first: always check PGF source before fixing visual issues
 
 ---
