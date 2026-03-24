@@ -1,0 +1,50 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\makeatletter\def\input@path{{./}}\makeatother
+\usetikzlibrary{shapes.multipart}
+\usepgflibrary{shapes.multipart.enhanced}
+
+\begin{document}
+\begin{tikzpicture}[every node/.style={draw, thick}]
+
+%% Row 1: Short text
+\node[circle split] (cs1) at (0,0) {A \nodepart{lower} B};
+\node[circle split enhanced, circle split parts=2] (cse1) at (2.5,0) {A \nodepart{lower} B};
+\node[draw=none, font=\tiny] at (1.25,1) {circle};
+
+\node[ellipse split] (es1) at (6,0) {A \nodepart{lower} B};
+\node[ellipse split enhanced, ellipse split parts=2] (ese1) at (9,0) {A \nodepart{lower} B};
+\node[draw=none, font=\tiny] at (7.5,1) {ellipse};
+
+%% Row 2: Longer text
+\node[circle split] (cs2) at (0,-3) {Hello \nodepart{lower} World};
+\node[circle split enhanced, circle split parts=2] (cse2) at (3.5,-3) {Hello \nodepart{lower} World};
+
+\node[ellipse split] (es2) at (7.5,-3) {Hello \nodepart{lower} World};
+\node[ellipse split enhanced, ellipse split parts=2] (ese2) at (12,-3) {Hello \nodepart{lower} World};
+
+%% Row 3: Unequal parts
+\node[circle split] (cs3) at (0,-6) {Tall \nodepart{lower} x};
+\node[circle split enhanced, circle split parts=2] (cse3) at (2.5,-6) {Tall \nodepart{lower} x};
+
+\node[ellipse split] (es3) at (6,-6) {Wide Top Part \nodepart{lower} b};
+\node[ellipse split enhanced, ellipse split parts=2] (ese3) at (10.5,-6) {Wide Top Part \nodepart{lower} b};
+
+%% Labels
+\node[draw=none, font=\scriptsize, anchor=north] at (cs1.south) {original};
+\node[draw=none, font=\scriptsize, anchor=north] at (cse1.south) {enhanced};
+\node[draw=none, font=\scriptsize, anchor=north] at (es1.south) {original};
+\node[draw=none, font=\scriptsize, anchor=north] at (ese1.south) {enhanced};
+
+\node[draw=none, font=\scriptsize, anchor=north] at (cs2.south) {original};
+\node[draw=none, font=\scriptsize, anchor=north] at (cse2.south) {enhanced};
+\node[draw=none, font=\scriptsize, anchor=north] at (es2.south) {original};
+\node[draw=none, font=\scriptsize, anchor=north] at (ese2.south) {enhanced};
+
+\node[draw=none, font=\scriptsize, anchor=north] at (cs3.south) {original};
+\node[draw=none, font=\scriptsize, anchor=north] at (cse3.south) {enhanced};
+\node[draw=none, font=\scriptsize, anchor=north] at (es3.south) {original};
+\node[draw=none, font=\scriptsize, anchor=north] at (ese3.south) {enhanced};
+
+\end{tikzpicture}
+\end{document}

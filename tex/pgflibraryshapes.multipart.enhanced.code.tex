@@ -1,0 +1,875 @@
+% pgflibraryshapes.multipart.enhanced.code.tex
+%
+% Enhanced multipart shapes: circle split enhanced, ellipse split enhanced.
+% Supports up to 4 parts (matching the boxes already allocated by shapes.multipart).
+%
+% Dependencies: shapes.multipart (for box allocation, \pgf@lib@sh@getalpha,
+%   \pgf@lib@sh@toalpha, \pgf@lib@sh@rs@process@list), pgfmoduleshapes.
+%
+% Usage:
+%   \usepgflibrary{shapes.multipart.enhanced}
+% or via TikZ:
+%   \usetikzlibrary{shapes.multipart.enhanced}
+
+\ProvidesFileRCS{pgflibraryshapes.multipart.enhanced.code.tex}
+
+%
+% =====================================================================
+%  Keys and booleans for circle split enhanced
+% =====================================================================
+%
+
+\newif\ifpgfcirclesplitdrawsplits\pgfcirclesplitdrawsplitstrue
+\newif\ifpgfcirclesplitignoreemptyparts
+\newif\ifpgfcirclesplitusecustomfill
+
+\def\pgf@lib@sh@cs@list@fill{none}%
+
+\pgfkeys{/pgf/.cd,
+    circle split parts/.initial=2,
+    circle split draw splits/.is if=pgfcirclesplitdrawsplits,
+    circle split part align/.initial=center,
+    circle split ignore empty parts/.is if=pgfcirclesplitignoreemptyparts,
+    circle split part fill/.code={%
+        \def\pgf@lib@sh@cs@list@fill{#1}%
+        \pgfcirclesplitusecustomfilltrue%
+    },
+    circle split uses custom fill/.is if=pgfcirclesplitusecustomfill,
+}%
+
+%
+% Helper: compute total stacked height and max half-width for N parts.
+% After this macro:
+%   \pgf@ya = total stacked height (including top/bottom inner ysep)
+%   \pgf@xa = max half-width (including inner xsep)
+%   \c@pgf@counta = number of parts (clamped 1..4)
+%   \pgf@yc = inner ysep
+%
+% Used by savedanchor and saveddimen (which can't share savedmacro results).
+%
+\def\pgf@lib@sh@cs@computestack{%
+    \pgfmathsetcount\c@pgf@counta{\pgfkeysvalueof{/pgf/circle split parts}}%
+    \ifnum\c@pgf@counta<1\relax\c@pgf@counta=1\relax\fi%
+    \ifnum\c@pgf@counta>4\relax\c@pgf@counta=4\relax\fi%
+    %
+    \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+    \pgfmathsetlength\pgf@xc{\pgfkeysvalueof{/pgf/inner xsep}}%
+    %
+    % Max half-width.
+    %
+    \pgf@xa=.5\wd\pgfnodeparttextbox%
+    \ifnum\c@pgf@counta>1\relax%
+        \ifdim.5\wd\pgfnodepartlowerbox>\pgf@xa\pgf@xa=.5\wd\pgfnodepartlowerbox\fi%
+    \fi%
+    \ifnum\c@pgf@counta>2\relax%
+        \ifdim.5\wd\pgfnodepartthreebox>\pgf@xa\pgf@xa=.5\wd\pgfnodepartthreebox\fi%
+    \fi%
+    \ifnum\c@pgf@counta>3\relax%
+        \ifdim.5\wd\pgfnodepartfourbox>\pgf@xa\pgf@xa=.5\wd\pgfnodepartfourbox\fi%
+    \fi%
+    \advance\pgf@xa by\pgf@xc%
+    %
+    % Height for radius: tallest_part * 2 + linewidth/2 + 2*innerysep.
+    % Same formula as original circle split (MW correction).
+    % For N>2 parts, we take max with half the actual stacked height
+    % so the radius grows to contain all chord positions.
+    %
+    \pgf@yb=.5\ht\pgfnodeparttextbox%
+    \advance\pgf@yb by.5\dp\pgfnodeparttextbox%
+    \ifnum\c@pgf@counta>1\relax%
+        \pgf@xb=.5\ht\pgfnodepartlowerbox\advance\pgf@xb by.5\dp\pgfnodepartlowerbox%
+        \ifdim\pgf@xb>\pgf@yb\pgf@yb=\pgf@xb\fi%
+    \fi%
+    \ifnum\c@pgf@counta>2\relax%
+        \pgf@xb=.5\ht\pgfnodepartthreebox\advance\pgf@xb by.5\dp\pgfnodepartthreebox%
+        \ifdim\pgf@xb>\pgf@yb\pgf@yb=\pgf@xb\fi%
+    \fi%
+    \ifnum\c@pgf@counta>3\relax%
+        \pgf@xb=.5\ht\pgfnodepartfourbox\advance\pgf@xb by.5\dp\pgfnodepartfourbox%
+        \ifdim\pgf@xb>\pgf@yb\pgf@yb=\pgf@xb\fi%
+    \fi%
+    \pgf@ya=2\pgf@yb%  tallest_totalht
+    \advance\pgf@ya by.5\pgflinewidth%
+    \advance\pgf@ya by2\pgf@yc%
+    %
+    % pgf@ya = height dimension for radius normalization (full, not halved).
+    % This matches the original circle split exactly for 2 parts.
+    %
+    % Actual total stacked height for chord/center positioning.
+    %
+    \pgf@xb=2\pgf@yc%
+    \advance\pgf@xb by\ht\pgfnodeparttextbox\advance\pgf@xb by\dp\pgfnodeparttextbox%
+    \ifnum\c@pgf@counta>1\relax%
+        \advance\pgf@xb by2\pgf@yc\advance\pgf@xb by\pgflinewidth%
+        \advance\pgf@xb by\ht\pgfnodepartlowerbox\advance\pgf@xb by\dp\pgfnodepartlowerbox%
+    \fi%
+    \ifnum\c@pgf@counta>2\relax%
+        \advance\pgf@xb by2\pgf@yc\advance\pgf@xb by\pgflinewidth%
+        \advance\pgf@xb by\ht\pgfnodepartthreebox\advance\pgf@xb by\dp\pgfnodepartthreebox%
+    \fi%
+    \ifnum\c@pgf@counta>3\relax%
+        \advance\pgf@xb by2\pgf@yc\advance\pgf@xb by\pgflinewidth%
+        \advance\pgf@xb by\ht\pgfnodepartfourbox\advance\pgf@xb by\dp\pgfnodepartfourbox%
+    \fi%
+    % pgf@xb = actual stacked height (preserved for chord/center callers).
+    % For N>2, ensure ya >= half the stacked height so the circle
+    % radius is large enough for all chord positions.
+    % (Using full pgf@xb here was the original bug — it doubled the radius.)
+    \pgf@yb=.5\pgf@xb%
+    \ifdim\pgf@yb>\pgf@ya%
+        \pgf@ya=\pgf@yb%
+    \fi%
+    % pgf@ya = radius height dim. pgf@xa = radius half-width dim.
+}%
+
+
+%
+% =====================================================================
+%  Shape: circle split enhanced
+% =====================================================================
+%
+% A circle split into up to 4 horizontal strips by chords.
+% Parts: text (=one), lower (=two), three, four — top to bottom.
+%
+
+\pgfdeclareshape{circle split enhanced}{%
+    %
+    \nodeparts{text,lower,three,four}%
+    %
+    % ---- savedmacro: compute chord y-positions and part count ----
+    %
+    % Chord y-positions are relative to the circle center (y=0).
+    % The chord is placed at the CENTER of the gap between parts,
+    % which is: innerysep + linewidth/2 below the bottom of part k's content.
+    %
+    \savedmacro\circlesplitparameters{%
+        \pgf@lib@sh@cs@computestack%
+        \edef\parts{\the\c@pgf@counta}%
+        \addtosavedmacro\parts%
+        %
+        \pgfmathsetlength\pgf@x{\pgfkeysvalueof{/pgf/outer xsep}}%
+        \edef\outerxsep{\the\pgf@x}%
+        \pgfmathsetlength\pgf@y{\pgfkeysvalueof{/pgf/outer ysep}}%
+        \edef\outerysep{\the\pgf@y}%
+        \addtosavedmacro\outerxsep%
+        \addtosavedmacro\outerysep%
+        %
+        % Walk down from top of content stack, computing chord positions.
+        % Cursor pgf@yb starts at +actual_totalheight/2.
+        %
+        \pgf@yb=.5\pgf@xb%
+        %
+        % Skip top inner ysep padding.
+        %
+        \advance\pgf@yb by-\pgf@yc%
+        %
+        % Part 1: subtract content.
+        %
+        \advance\pgf@yb by-\ht\pgfnodeparttextbox%
+        \advance\pgf@yb by-\dp\pgfnodeparttextbox%
+        %
+        % Chord 1: center of gap between parts 1 and 2.
+        %
+        \ifnum\c@pgf@counta>1\relax%
+            \pgf@xb=\pgf@yb%
+            \advance\pgf@xb by-\pgf@yc%
+            \advance\pgf@xb by-.5\pgflinewidth%
+            \edef\chordyone{\the\pgf@xb}%
+            \addtosavedmacro\chordyone%
+            %
+            % Advance past the full gap.
+            %
+            \advance\pgf@yb by-2\pgf@yc%
+            \advance\pgf@yb by-\pgflinewidth%
+            %
+            % Part 2: subtract content.
+            %
+            \advance\pgf@yb by-\ht\pgfnodepartlowerbox%
+            \advance\pgf@yb by-\dp\pgfnodepartlowerbox%
+        \fi%
+        %
+        % Chord 2: center of gap between parts 2 and 3.
+        %
+        \ifnum\c@pgf@counta>2\relax%
+            \pgf@xb=\pgf@yb%
+            \advance\pgf@xb by-\pgf@yc%
+            \advance\pgf@xb by-.5\pgflinewidth%
+            \edef\chordytwo{\the\pgf@xb}%
+            \addtosavedmacro\chordytwo%
+            %
+            \advance\pgf@yb by-2\pgf@yc%
+            \advance\pgf@yb by-\pgflinewidth%
+            %
+            % Part 3.
+            %
+            \advance\pgf@yb by-\ht\pgfnodepartthreebox%
+            \advance\pgf@yb by-\dp\pgfnodepartthreebox%
+        \fi%
+        %
+        % Chord 3: center of gap between parts 3 and 4.
+        %
+        \ifnum\c@pgf@counta>3\relax%
+            \pgf@xb=\pgf@yb%
+            \advance\pgf@xb by-\pgf@yc%
+            \advance\pgf@xb by-.5\pgflinewidth%
+            \edef\chordythree{\the\pgf@xb}%
+            \addtosavedmacro\chordythree%
+        \fi%
+        %
+        % Process fill list if custom fill is active.
+        %
+        \ifpgfcirclesplitusecustomfill%
+            \pgf@lib@sh@rs@process@list{\pgf@lib@sh@cs@list@fill}{\parts}%
+        \fi%
+    }%
+    %
+    % ---- savedanchor: centerpoint ----
+    %
+    % Circle center relative to the text box reference point.
+    % The text baseline is at y=0. Part 1 content top is at +ht(textbox).
+    % Above that is innerysep (top padding).
+    % So: top of content stack = ht(textbox) + innerysep
+    % And: center_y = top_of_stack - totalheight/2
+    %              = ht(textbox) + innerysep - totalheight/2
+    %
+    \savedanchor\centerpoint{%
+        \pgf@lib@sh@cs@computestack%
+        % pgf@xb = actual total stacked height
+        \pgf@x=.5\wd\pgfnodeparttextbox%
+        \pgf@y=\ht\pgfnodeparttextbox%
+        \advance\pgf@y by\pgf@yc%  +innerysep (top padding)
+        \advance\pgf@y by-.5\pgf@xb% -actual_totalheight/2
+    }%
+    %
+    % ---- saveddimen: radius ----
+    %
+    % Uses the same normalized-vector approach as the original circle split
+    % to compute the circumscribed circle of the content rectangle.
+    %
+    \saveddimen\radius{%
+        \pgf@lib@sh@cs@computestack%
+        %
+        % pgf@xa = half-width, pgf@ya = full height dimension (for normalization).
+        % The normalized-vector approach needs (half-width, full-height), same as original.
+        %
+        % Compute radius via normalized vector (same as original circle split).
+        %
+        \pgf@process{\pgfpointnormalised{\pgfqpoint{\pgf@xa}{\pgf@ya}}}%
+        \ifdim\pgf@x>\pgf@y%
+            \c@pgf@counta=\pgf@x%
+            \ifnum\c@pgf@counta=0\relax\else%
+                \divide\c@pgf@counta by 255\relax%
+                \pgf@xa=16\pgf@xa\relax%
+                \divide\pgf@xa by\c@pgf@counta%
+                \pgf@xa=16\pgf@xa\relax%
+            \fi%
+        \else%
+            \c@pgf@counta=\pgf@y%
+            \ifnum\c@pgf@counta=0\relax\else%
+                \divide\c@pgf@counta by 255\relax%
+                \pgf@ya=16\pgf@ya\relax%
+                \divide\pgf@ya by\c@pgf@counta%
+                \pgf@xa=16\pgf@ya\relax%
+            \fi%
+        \fi%
+        \pgf@x=\pgf@xa%
+        %
+        % Enforce minimum width/height.
+        %
+        \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/minimum width}}%
+        \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/minimum height}}%
+        \ifdim\pgf@x<.5\pgf@xb\pgf@x=.5\pgf@xb\fi%
+        \ifdim\pgf@x<.5\pgf@yb\pgf@x=.5\pgf@yb\fi%
+        %
+        % Add larger of outer separations.
+        %
+        \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/outer xsep}}%
+        \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/outer ysep}}%
+        \ifdim\pgf@xb<\pgf@yb%
+            \advance\pgf@x by\pgf@yb%
+        \else%
+            \advance\pgf@x by\pgf@xb%
+        \fi%
+    }%
+    %
+    % ---- savedanchors: per-part text origins ----
+    %
+    % Each part's text box reference point (left edge, baseline) in node coords.
+    % Part 1 (text) is always at the origin.
+    %
+    \savedanchor\loweranchor{%
+        \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+        \pgf@x=-.5\wd\pgfnodepartlowerbox%
+        \advance\pgf@x by.5\wd\pgfnodeparttextbox%
+        \pgf@y=-\dp\pgfnodeparttextbox%
+        \advance\pgf@y by-2\pgf@yc%
+        \advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartlowerbox%
+    }%
+    \savedanchor\threeanchor{%
+        \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+        \pgf@x=-.5\wd\pgfnodepartthreebox%
+        \advance\pgf@x by.5\wd\pgfnodeparttextbox%
+        \pgf@y=-\dp\pgfnodeparttextbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartlowerbox%
+        \advance\pgf@y by-\dp\pgfnodepartlowerbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartthreebox%
+    }%
+    \savedanchor\fouranchor{%
+        \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+        \pgf@x=-.5\wd\pgfnodepartfourbox%
+        \advance\pgf@x by.5\wd\pgfnodeparttextbox%
+        \pgf@y=-\dp\pgfnodeparttextbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartlowerbox%
+        \advance\pgf@y by-\dp\pgfnodepartlowerbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartthreebox%
+        \advance\pgf@y by-\dp\pgfnodepartthreebox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartfourbox%
+    }%
+    %
+    % ---- Compass anchors: inherit from circle ----
+    %
+    \inheritanchorborder[from=circle]%
+    \inheritanchor[from=circle]{center}%
+    \inheritanchor[from=circle]{north}%
+    \inheritanchor[from=circle]{north west}%
+    \inheritanchor[from=circle]{north east}%
+    \inheritanchor[from=circle]{south}%
+    \inheritanchor[from=circle]{south west}%
+    \inheritanchor[from=circle]{south east}%
+    \inheritanchor[from=circle]{east}%
+    \inheritanchor[from=circle]{west}%
+    \inheritanchor[from=circle]{mid}%
+    \inheritanchor[from=circle]{mid east}%
+    \inheritanchor[from=circle]{mid west}%
+    \inheritanchor[from=circle]{base}%
+    \inheritanchor[from=circle]{base east}%
+    \inheritanchor[from=circle]{base west}%
+    %
+    % ---- Per-part anchors ----
+    %
+    \anchor{text}{\pgfpointorigin}%
+    \anchor{one}{\pgfpointorigin}%
+    \anchor{lower}{\loweranchor}%
+    \anchor{two}{\loweranchor}%
+    \anchor{three}{\threeanchor}%
+    \anchor{four}{\fouranchor}%
+    %
+    % ---- Background path: circle + chord lines ----
+    %
+    \inheritbackgroundpath[from=circle]%
+    %
+    \beforebackgroundpath{%
+        \ifpgfcirclesplitdrawsplits%
+            \circlesplitparameters%
+            %
+            % Path radius = radius - max(outerxsep, outerysep).
+            % This matches the radius used by \inheritbackgroundpath[from=circle]
+            % (the circle stroke is centered on this radius).
+            %
+            \pgfutil@tempdima=\radius%
+            \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/outer xsep}}%
+            \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/outer ysep}}%
+            \ifdim\pgf@xb<\pgf@yb%
+                \advance\pgfutil@tempdima by-\pgf@yb%
+            \else%
+                \advance\pgfutil@tempdima by-\pgf@xb%
+            \fi%
+            %
+            \pgfsetshortenstart{0pt}%
+            \pgfsetshortenend{0pt}%
+            \pgfsetarrows{-}%
+            %
+            %
+            % Draw each chord.
+            % NOTE: \pgfpointadd clobbers \pgf@xa and \pgf@ya internally,
+            % so we store the chord half-width in \pgfutil@tempdimb and
+            % reference the chord y-position from the \chordyN macros directly.
+            %
+            \ifnum\parts>1\relax%
+                \pgf@ya=\chordyone\relax%
+                \pgfmathsqrt{\pgfmath@tonumber{\pgfutil@tempdima}*\pgfmath@tonumber{\pgfutil@tempdima}%
+                    -\pgfmath@tonumber{\pgf@ya}*\pgfmath@tonumber{\pgf@ya}}%
+                \pgfutil@tempdimb=\pgfmathresult pt\relax%
+                \pgfpathmoveto{\pgfpointadd{\centerpoint}{\pgfqpoint{-\pgfutil@tempdimb}{\chordyone}}}%
+                \pgfpathlineto{\pgfpointadd{\centerpoint}{\pgfqpoint{\pgfutil@tempdimb}{\chordyone}}}%
+                \pgfusepath{stroke}%
+            \fi%
+            \ifnum\parts>2\relax%
+                \pgf@ya=\chordytwo\relax%
+                \pgfmathsqrt{\pgfmath@tonumber{\pgfutil@tempdima}*\pgfmath@tonumber{\pgfutil@tempdima}%
+                    -\pgfmath@tonumber{\pgf@ya}*\pgfmath@tonumber{\pgf@ya}}%
+                \pgfutil@tempdimb=\pgfmathresult pt\relax%
+                \pgfpathmoveto{\pgfpointadd{\centerpoint}{\pgfqpoint{-\pgfutil@tempdimb}{\chordytwo}}}%
+                \pgfpathlineto{\pgfpointadd{\centerpoint}{\pgfqpoint{\pgfutil@tempdimb}{\chordytwo}}}%
+                \pgfusepath{stroke}%
+            \fi%
+            \ifnum\parts>3\relax%
+                \pgf@ya=\chordythree\relax%
+                \pgfmathsqrt{\pgfmath@tonumber{\pgfutil@tempdima}*\pgfmath@tonumber{\pgfutil@tempdima}%
+                    -\pgfmath@tonumber{\pgf@ya}*\pgfmath@tonumber{\pgf@ya}}%
+                \pgfutil@tempdimb=\pgfmathresult pt\relax%
+                \pgfpathmoveto{\pgfpointadd{\centerpoint}{\pgfqpoint{-\pgfutil@tempdimb}{\chordythree}}}%
+                \pgfpathlineto{\pgfpointadd{\centerpoint}{\pgfqpoint{\pgfutil@tempdimb}{\chordythree}}}%
+                \pgfusepath{stroke}%
+            \fi%
+        \fi%
+    }%
+    %
+    % ---- Behind background path: per-part custom fill ----
+    %
+    % Approach: clip to the circle, then fill horizontal rectangles
+    % for each part strip. The clip masks the rectangle to the arc shape.
+    %
+    \behindbackgroundpath{%
+        \ifpgfcirclesplitusecustomfill%
+            \circlesplitparameters%
+            %
+            % Drawing radius (same as background path circle).
+            %
+            \pgfutil@tempdima=\radius%
+            \pgfmathsetlength{\pgf@xb}{\pgfkeysvalueof{/pgf/outer xsep}}%
+            \pgfmathsetlength{\pgf@yb}{\pgfkeysvalueof{/pgf/outer ysep}}%
+            \ifdim\pgf@xb<\pgf@yb%
+                \advance\pgfutil@tempdima by-\pgf@yb%
+            \else%
+                \advance\pgfutil@tempdima by-\pgf@xb%
+            \fi%
+            %
+            % Helper: fill one horizontal strip (clip to circle, fill rectangle).
+            % \pgf@cs@topy, \pgf@cs@boty = y-bounds relative to circle center.
+            % \pgf@cs@fillcolor = color name.
+            %
+            \def\pgf@cs@fillstrip{%
+                \begin{pgfscope}%
+                    % Clip to the circle.
+                    \pgfpathcircle{\centerpoint}{\pgfutil@tempdima}%
+                    \pgfusepath{clip}%
+                    % Fill rectangle spanning this strip.
+                    \pgfpathrectanglecorners
+                        {\pgfpointadd{\centerpoint}{\pgfqpoint{-\pgfutil@tempdima}{\pgf@cs@boty}}}%
+                        {\pgfpointadd{\centerpoint}{\pgfqpoint{\pgfutil@tempdima}{\pgf@cs@topy}}}%
+                    \expandafter\pgfsetfillcolor\expandafter{\pgf@cs@fillcolor}%
+                    \pgfusepath{fill}%
+                \end{pgfscope}%
+            }%
+            %
+            % Part 1.
+            \expandafter\ifx\csname pgf@lib@sh@rs@one@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                \edef\pgf@cs@topy{\the\pgfutil@tempdima}%
+                \ifnum\parts>1\relax\edef\pgf@cs@boty{\chordyone}\else%
+                    \pgf@xa=-\pgfutil@tempdima\edef\pgf@cs@boty{\the\pgf@xa}\fi%
+                \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@one@item\endcsname}%
+                \pgf@cs@fillstrip%
+            \fi%
+            % Part 2.
+            \ifnum\parts>1\relax%
+                \expandafter\ifx\csname pgf@lib@sh@rs@two@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                    \edef\pgf@cs@topy{\chordyone}%
+                    \ifnum\parts>2\relax\edef\pgf@cs@boty{\chordytwo}\else%
+                        \pgf@xa=-\pgfutil@tempdima\edef\pgf@cs@boty{\the\pgf@xa}\fi%
+                    \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@two@item\endcsname}%
+                    \pgf@cs@fillstrip%
+                \fi%
+            \fi%
+            % Part 3.
+            \ifnum\parts>2\relax%
+                \expandafter\ifx\csname pgf@lib@sh@rs@three@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                    \edef\pgf@cs@topy{\chordytwo}%
+                    \ifnum\parts>3\relax\edef\pgf@cs@boty{\chordythree}\else%
+                        \pgf@xa=-\pgfutil@tempdima\edef\pgf@cs@boty{\the\pgf@xa}\fi%
+                    \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@three@item\endcsname}%
+                    \pgf@cs@fillstrip%
+                \fi%
+            \fi%
+            % Part 4.
+            \ifnum\parts>3\relax%
+                \expandafter\ifx\csname pgf@lib@sh@rs@four@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                    \edef\pgf@cs@topy{\chordythree}%
+                    \pgf@xa=-\pgfutil@tempdima\edef\pgf@cs@boty{\the\pgf@xa}%
+                    \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@four@item\endcsname}%
+                    \pgf@cs@fillstrip%
+                \fi%
+            \fi%
+        \fi%
+    }%
+}%
+
+
+
+%
+% =====================================================================
+%  Keys and booleans for ellipse split enhanced
+% =====================================================================
+%
+
+\newif\ifpgfellipsesplitdrawsplits\pgfellipsesplitdrawsplitstrue
+\newif\ifpgfellipsesplitignoreemptyparts
+\newif\ifpgfellipsesplitusecustomfill
+
+\def\pgf@lib@sh@es@list@fill{none}%
+
+\pgfkeys{/pgf/.cd,
+    ellipse split parts/.initial=2,
+    ellipse split draw splits/.is if=pgfellipsesplitdrawsplits,
+    ellipse split part align/.initial=center,
+    ellipse split ignore empty parts/.is if=pgfellipsesplitignoreemptyparts,
+    ellipse split part fill/.code={%
+        \def\pgf@lib@sh@es@list@fill{#1}%
+        \pgfellipsesplitusecustomfilltrue%
+    },
+    ellipse split uses custom fill/.is if=pgfellipsesplitusecustomfill,
+}%
+
+%
+% Helper for ellipse: compute stack using ellipse split parts key.
+%
+\def\pgf@lib@sh@es@computestack{%
+    \pgfmathsetcount\c@pgf@counta{\pgfkeysvalueof{/pgf/ellipse split parts}}%
+    \ifnum\c@pgf@counta<1\relax\c@pgf@counta=1\relax\fi%
+    \ifnum\c@pgf@counta>4\relax\c@pgf@counta=4\relax\fi%
+    %
+    \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+    \pgfmathsetlength\pgf@xc{\pgfkeysvalueof{/pgf/inner xsep}}%
+    %
+    \pgf@xa=.5\wd\pgfnodeparttextbox%
+    \ifnum\c@pgf@counta>1\relax%
+        \ifdim.5\wd\pgfnodepartlowerbox>\pgf@xa\pgf@xa=.5\wd\pgfnodepartlowerbox\fi%
+    \fi%
+    \ifnum\c@pgf@counta>2\relax%
+        \ifdim.5\wd\pgfnodepartthreebox>\pgf@xa\pgf@xa=.5\wd\pgfnodepartthreebox\fi%
+    \fi%
+    \ifnum\c@pgf@counta>3\relax%
+        \ifdim.5\wd\pgfnodepartfourbox>\pgf@xa\pgf@xa=.5\wd\pgfnodepartfourbox\fi%
+    \fi%
+    \advance\pgf@xa by\pgf@xc%
+    %
+    % Height for radii: same approach as circle split enhanced.
+    % tallest*2 formula, then max with half the actual stacked height.
+    %
+    \pgf@yb=.5\ht\pgfnodeparttextbox\advance\pgf@yb by.5\dp\pgfnodeparttextbox%
+    \ifnum\c@pgf@counta>1\relax%
+        \pgf@xb=.5\ht\pgfnodepartlowerbox\advance\pgf@xb by.5\dp\pgfnodepartlowerbox%
+        \ifdim\pgf@xb>\pgf@yb\pgf@yb=\pgf@xb\fi%
+    \fi%
+    \ifnum\c@pgf@counta>2\relax%
+        \pgf@xb=.5\ht\pgfnodepartthreebox\advance\pgf@xb by.5\dp\pgfnodepartthreebox%
+        \ifdim\pgf@xb>\pgf@yb\pgf@yb=\pgf@xb\fi%
+    \fi%
+    \ifnum\c@pgf@counta>3\relax%
+        \pgf@xb=.5\ht\pgfnodepartfourbox\advance\pgf@xb by.5\dp\pgfnodepartfourbox%
+        \ifdim\pgf@xb>\pgf@yb\pgf@yb=\pgf@xb\fi%
+    \fi%
+    \pgf@ya=2\pgf@yb%
+    \advance\pgf@ya by.5\pgflinewidth%
+    \advance\pgf@ya by2\pgf@yc%
+    %
+    % Actual total stacked height for chord/center.
+    %
+    \pgf@xb=2\pgf@yc%
+    \advance\pgf@xb by\ht\pgfnodeparttextbox\advance\pgf@xb by\dp\pgfnodeparttextbox%
+    \ifnum\c@pgf@counta>1\relax%
+        \advance\pgf@xb by2\pgf@yc\advance\pgf@xb by\pgflinewidth%
+        \advance\pgf@xb by\ht\pgfnodepartlowerbox\advance\pgf@xb by\dp\pgfnodepartlowerbox%
+    \fi%
+    \ifnum\c@pgf@counta>2\relax%
+        \advance\pgf@xb by2\pgf@yc\advance\pgf@xb by\pgflinewidth%
+        \advance\pgf@xb by\ht\pgfnodepartthreebox\advance\pgf@xb by\dp\pgfnodepartthreebox%
+    \fi%
+    \ifnum\c@pgf@counta>3\relax%
+        \advance\pgf@xb by2\pgf@yc\advance\pgf@xb by\pgflinewidth%
+        \advance\pgf@xb by\ht\pgfnodepartfourbox\advance\pgf@xb by\dp\pgfnodepartfourbox%
+    \fi%
+    % For N>2, ensure ya >= half the stacked height.
+    \pgf@yb=.5\pgf@xb%
+    \ifdim\pgf@yb>\pgf@ya\pgf@ya=\pgf@yb\fi%
+}%
+
+
+%
+% =====================================================================
+%  Shape: ellipse split enhanced
+% =====================================================================
+%
+
+\pgfdeclareshape{ellipse split enhanced}{%
+    %
+    \nodeparts{text,lower,three,four}%
+    %
+    % ---- savedanchor: radii ----
+    %
+    \savedanchor\radii{%
+        \pgf@lib@sh@es@computestack%
+        %
+        % Ellipse radii: 1.4142 * half-dims (same as existing ellipse split).
+        % pgf@xa = half-width, pgf@ya = height dim (same meaning as original).
+        %
+        \pgf@x=1.414213\pgf@xa%
+        \pgf@y=1.414213\pgf@ya%
+        %
+        \pgfmathsetlength\pgf@xa{\pgfkeysvalueof{/pgf/minimum width}}%
+        \pgfmathsetlength\pgf@ya{\pgfkeysvalueof{/pgf/minimum height}}%
+        \ifdim\pgf@x<.5\pgf@xa\pgf@x=.5\pgf@xa\fi%
+        \ifdim\pgf@y<.5\pgf@ya\pgf@y=.5\pgf@ya\fi%
+        %
+        \pgfmathaddtolength\pgf@x{\pgfkeysvalueof{/pgf/outer xsep}}%
+        \pgfmathaddtolength\pgf@y{\pgfkeysvalueof{/pgf/outer ysep}}%
+    }%
+    %
+    % ---- savedmacro: chord positions ----
+    %
+    \savedmacro\ellipsesplitparameters{%
+        \pgf@lib@sh@es@computestack%
+        \edef\parts{\the\c@pgf@counta}%
+        \addtosavedmacro\parts%
+        %
+        \pgfmathsetlength\pgf@x{\pgfkeysvalueof{/pgf/outer xsep}}%
+        \edef\outerxsep{\the\pgf@x}%
+        \pgfmathsetlength\pgf@y{\pgfkeysvalueof{/pgf/outer ysep}}%
+        \edef\outerysep{\the\pgf@y}%
+        \addtosavedmacro\outerxsep%
+        \addtosavedmacro\outerysep%
+        %
+        % Walk down from top, same logic as circle split enhanced.
+        % Use pgf@xb (actual stacked height), not pgf@ya (radius height).
+        %
+        \pgf@yb=.5\pgf@xb%
+        \advance\pgf@yb by-\pgf@yc%
+        %
+        \advance\pgf@yb by-\ht\pgfnodeparttextbox%
+        \advance\pgf@yb by-\dp\pgfnodeparttextbox%
+        %
+        \ifnum\c@pgf@counta>1\relax%
+            \pgf@xb=\pgf@yb%
+            \advance\pgf@xb by-\pgf@yc\advance\pgf@xb by-.5\pgflinewidth%
+            \edef\chordyone{\the\pgf@xb}%
+            \addtosavedmacro\chordyone%
+            \advance\pgf@yb by-2\pgf@yc\advance\pgf@yb by-\pgflinewidth%
+            \advance\pgf@yb by-\ht\pgfnodepartlowerbox%
+            \advance\pgf@yb by-\dp\pgfnodepartlowerbox%
+        \fi%
+        \ifnum\c@pgf@counta>2\relax%
+            \pgf@xb=\pgf@yb%
+            \advance\pgf@xb by-\pgf@yc\advance\pgf@xb by-.5\pgflinewidth%
+            \edef\chordytwo{\the\pgf@xb}%
+            \addtosavedmacro\chordytwo%
+            \advance\pgf@yb by-2\pgf@yc\advance\pgf@yb by-\pgflinewidth%
+            \advance\pgf@yb by-\ht\pgfnodepartthreebox%
+            \advance\pgf@yb by-\dp\pgfnodepartthreebox%
+        \fi%
+        \ifnum\c@pgf@counta>3\relax%
+            \pgf@xb=\pgf@yb%
+            \advance\pgf@xb by-\pgf@yc\advance\pgf@xb by-.5\pgflinewidth%
+            \edef\chordythree{\the\pgf@xb}%
+            \addtosavedmacro\chordythree%
+        \fi%
+        %
+        \ifpgfellipsesplitusecustomfill%
+            \pgf@lib@sh@rs@process@list{\pgf@lib@sh@es@list@fill}{\parts}%
+        \fi%
+    }%
+    %
+    % ---- savedanchor: centerpoint ----
+    %
+    \savedanchor\centerpoint{%
+        \pgf@lib@sh@es@computestack%
+        % pgf@xb = actual total stacked height
+        \pgf@x=.5\wd\pgfnodeparttextbox%
+        \pgf@y=\ht\pgfnodeparttextbox%
+        \advance\pgf@y by\pgf@yc%
+        \advance\pgf@y by-.5\pgf@xb%
+    }%
+    %
+    % ---- savedanchors: per-part text origins ----
+    %
+    \savedanchor\loweranchor{%
+        \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+        \pgf@x=-.5\wd\pgfnodepartlowerbox%
+        \advance\pgf@x by.5\wd\pgfnodeparttextbox%
+        \pgf@y=-\dp\pgfnodeparttextbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartlowerbox%
+    }%
+    \savedanchor\threeanchor{%
+        \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+        \pgf@x=-.5\wd\pgfnodepartthreebox%
+        \advance\pgf@x by.5\wd\pgfnodeparttextbox%
+        \pgf@y=-\dp\pgfnodeparttextbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartlowerbox\advance\pgf@y by-\dp\pgfnodepartlowerbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartthreebox%
+    }%
+    \savedanchor\fouranchor{%
+        \pgfmathsetlength\pgf@yc{\pgfkeysvalueof{/pgf/inner ysep}}%
+        \pgf@x=-.5\wd\pgfnodepartfourbox%
+        \advance\pgf@x by.5\wd\pgfnodeparttextbox%
+        \pgf@y=-\dp\pgfnodeparttextbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartlowerbox\advance\pgf@y by-\dp\pgfnodepartlowerbox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartthreebox\advance\pgf@y by-\dp\pgfnodepartthreebox%
+        \advance\pgf@y by-2\pgf@yc\advance\pgf@y by-\pgflinewidth%
+        \advance\pgf@y by-\ht\pgfnodepartfourbox%
+    }%
+    \savedanchor\basepoint{%
+        \pgf@x=.5\wd\pgfnodeparttextbox%
+        \pgf@y=0pt\relax%
+    }%
+    \savedanchor\midpoint{%
+        \pgf@x=.5\wd\pgfnodeparttextbox%
+        \pgfmathsetlength\pgf@y{.5ex}%
+    }%
+    %
+    % ---- Compass anchors (same pattern as existing ellipse split) ----
+    %
+    \anchor{center}{\centerpoint}%
+    \anchor{mid}{\midpoint}%
+    \anchor{mid east}{\radii\pgf@xa=\pgf@x\midpoint\advance\pgf@x by\pgf@xa}%
+    \anchor{mid west}{\radii\pgf@xa=\pgf@x\midpoint\advance\pgf@x by-\pgf@xa}%
+    \anchor{base}{\basepoint}%
+    \anchor{base east}{\radii\pgf@xa=\pgf@x\basepoint\advance\pgf@x by\pgf@xa}%
+    \anchor{base west}{\radii\pgf@xa=\pgf@x\basepoint\advance\pgf@x by-\pgf@xa}%
+    \anchor{north}{\pgfpointadd{\centerpoint}{\radii\pgf@x=0pt}}%
+    \anchor{south}{\pgfpointadd{\centerpoint}{\radii\pgf@x=0pt\pgf@y=-\pgf@y}}%
+    \anchor{east}{\pgfpointadd{\centerpoint}{\radii\pgf@y=0pt}}%
+    \anchor{west}{\pgfpointadd{\centerpoint}{\radii\pgf@x=-\pgf@x\pgf@y=0pt}}%
+    \anchor{north west}{\pgfpointadd{\centerpoint}{\radii\pgf@x=-0.707106\pgf@x\pgf@y=0.707106\pgf@y}}%
+    \anchor{south west}{\pgfpointadd{\centerpoint}{\radii\pgf@x=-0.707106\pgf@x\pgf@y=-0.707106\pgf@y}}%
+    \anchor{north east}{\pgfpointadd{\centerpoint}{\radii\pgf@x=0.707106\pgf@x\pgf@y=0.707106\pgf@y}}%
+    \anchor{south east}{\pgfpointadd{\centerpoint}{\radii\pgf@x=0.707106\pgf@x\pgf@y=-0.707106\pgf@y}}%
+    %
+    % ---- Per-part anchors ----
+    %
+    \anchor{text}{\pgfpointorigin}%
+    \anchor{one}{\pgfpointorigin}%
+    \anchor{lower}{\loweranchor}%
+    \anchor{two}{\loweranchor}%
+    \anchor{three}{\threeanchor}%
+    \anchor{four}{\fouranchor}%
+    %
+    % ---- Background path: ellipse + chord lines ----
+    %
+    \backgroundpath{%
+        \radii%
+        \pgfmathaddtolength\pgf@x{-\pgfkeysvalueof{/pgf/outer xsep}}%
+        \pgfmathaddtolength\pgf@y{-\pgfkeysvalueof{/pgf/outer ysep}}%
+        \pgfutil@tempdima=\pgf@x%
+        \pgfutil@tempdimb=\pgf@y%
+        \pgfpathellipse{\centerpoint}%
+            {\pgfqpoint{\the\pgfutil@tempdima}{0pt}}%
+            {\pgfqpoint{0pt}{\the\pgfutil@tempdimb}}%
+        %
+        \ifpgfellipsesplitdrawsplits%
+            \ellipsesplitparameters%
+            %
+            % Helper: draw chord at a given y relative to center.
+            % Chord half-width for ellipse: a * sqrt(1 - (y/b)^2).
+            %
+            % NOTE: Store chord half-width in \pgf@xc (safe from \pgfpointadd
+            % which clobbers \pgf@xa/\pgf@ya). Pass chord y via ##1 macro.
+            \def\pgf@es@drawchord##1{%
+                \pgf@ya=##1\relax%
+                \pgfmathdivide@{\pgfmath@tonumber{\pgf@ya}}{\pgfmath@tonumber{\pgfutil@tempdimb}}%
+                \pgfmathmultiply@{\pgfmathresult}{\pgfmathresult}%
+                \pgfmathsubtract@{1}{\pgfmathresult}%
+                \ifdim\pgfmathresult pt<0pt\relax\def\pgfmathresult{0}\fi%
+                \pgfmathsqrt{\pgfmathresult}%
+                \pgf@xc=\pgfmathresult\pgfutil@tempdima%
+                \pgfpathmoveto{\pgfpointadd{\centerpoint}{\pgfqpoint{-\pgf@xc}{##1}}}%
+                \pgfpathlineto{\pgfpointadd{\centerpoint}{\pgfqpoint{\pgf@xc}{##1}}}%
+            }%
+            %
+            \ifnum\parts>1\relax\pgf@es@drawchord{\chordyone}\fi%
+            \ifnum\parts>2\relax\pgf@es@drawchord{\chordytwo}\fi%
+            \ifnum\parts>3\relax\pgf@es@drawchord{\chordythree}\fi%
+        \fi%
+    }%
+    %
+    % ---- Behind background path: per-part fill (clip-based) ----
+    %
+    \behindbackgroundpath{%
+        \ifpgfellipsesplitusecustomfill%
+            \ellipsesplitparameters%
+            \radii%
+            \pgfmathaddtolength\pgf@x{-\pgfkeysvalueof{/pgf/outer xsep}}%
+            \pgfmathaddtolength\pgf@y{-\pgfkeysvalueof{/pgf/outer ysep}}%
+            \pgfutil@tempdima=\pgf@x% a (xradius)
+            \pgfutil@tempdimb=\pgf@y% b (yradius)
+            %
+            % Helper: fill one horizontal strip (clip to ellipse, fill rectangle).
+            %
+            \def\pgf@es@fillstrip{%
+                \begin{pgfscope}%
+                    \pgfpathellipse{\centerpoint}%
+                        {\pgfqpoint{\the\pgfutil@tempdima}{0pt}}%
+                        {\pgfqpoint{0pt}{\the\pgfutil@tempdimb}}%
+                    \pgfusepath{clip}%
+                    \pgfpathrectanglecorners
+                        {\pgfpointadd{\centerpoint}{\pgfqpoint{-\pgfutil@tempdima}{\pgf@cs@boty}}}%
+                        {\pgfpointadd{\centerpoint}{\pgfqpoint{\pgfutil@tempdima}{\pgf@cs@topy}}}%
+                    \expandafter\pgfsetfillcolor\expandafter{\pgf@cs@fillcolor}%
+                    \pgfusepath{fill}%
+                \end{pgfscope}%
+            }%
+            %
+            % Part 1.
+            \expandafter\ifx\csname pgf@lib@sh@rs@one@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                \edef\pgf@cs@topy{\the\pgfutil@tempdimb}%
+                \ifnum\parts>1\relax\edef\pgf@cs@boty{\chordyone}\else%
+                    \pgf@xa=-\pgfutil@tempdimb\edef\pgf@cs@boty{\the\pgf@xa}\fi%
+                \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@one@item\endcsname}%
+                \pgf@es@fillstrip%
+            \fi%
+            % Part 2.
+            \ifnum\parts>1\relax%
+                \expandafter\ifx\csname pgf@lib@sh@rs@two@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                    \edef\pgf@cs@topy{\chordyone}%
+                    \ifnum\parts>2\relax\edef\pgf@cs@boty{\chordytwo}\else%
+                        \pgf@xa=-\pgfutil@tempdimb\edef\pgf@cs@boty{\the\pgf@xa}\fi%
+                    \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@two@item\endcsname}%
+                    \pgf@es@fillstrip%
+                \fi%
+            \fi%
+            % Part 3.
+            \ifnum\parts>2\relax%
+                \expandafter\ifx\csname pgf@lib@sh@rs@three@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                    \edef\pgf@cs@topy{\chordytwo}%
+                    \ifnum\parts>3\relax\edef\pgf@cs@boty{\chordythree}\else%
+                        \pgf@xa=-\pgfutil@tempdimb\edef\pgf@cs@boty{\the\pgf@xa}\fi%
+                    \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@three@item\endcsname}%
+                    \pgf@es@fillstrip%
+                \fi%
+            \fi%
+            % Part 4.
+            \ifnum\parts>3\relax%
+                \expandafter\ifx\csname pgf@lib@sh@rs@four@item\endcsname\pgf@lib@sh@rs@nonetext\else%
+                    \edef\pgf@cs@topy{\chordythree}%
+                    \pgf@xa=-\pgfutil@tempdimb\edef\pgf@cs@boty{\the\pgf@xa}%
+                    \edef\pgf@cs@fillcolor{\csname pgf@lib@sh@rs@four@item\endcsname}%
+                    \pgf@es@fillstrip%
+                \fi%
+            \fi%
+        \fi%
+    }%
+    %
+    % ---- anchorborder: ellipse ----
+    %
+    \anchorborder{%
+        \pgfextract@process\externalpoint{}%
+        \radii%
+        \edef\pgf@marshal{%
+            \noexpand\pgfpointadd{\noexpand\pgfpointborderellipse{\noexpand\externalpoint}%
+                {\noexpand\pgfpoint{\the\pgf@x}{\the\pgf@y}}}{\noexpand\centerpoint}%
+        }%
+        \pgf@marshal%
+    }%
+}%
+
+
+\endinput

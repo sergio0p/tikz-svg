@@ -1,0 +1,159 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+
+% Add our directory to the search path.
+\makeatletter
+\def\input@path{{./}}
+\makeatother
+
+\usetikzlibrary{shapes.multipart}
+\usepgflibrary{shapes.multipart.enhanced}
+
+\begin{document}
+
+\begin{tikzpicture}[
+    every node/.style={draw, thick, anchor=center},
+    every circle split enhanced node/.style={},
+    every ellipse split enhanced node/.style={},
+]
+
+%% ============================================================
+%%  Circle split enhanced — 2 parts (like original circle split)
+%% ============================================================
+
+\node[circle split enhanced, circle split parts=2]
+    (c2) at (0,0)
+    {Top
+    \nodepart{lower}
+    Bottom};
+
+\node[anchor=west, draw=none] at (c2.east) {\tiny\ 2 parts};
+
+%% ============================================================
+%%  Circle split enhanced — 3 parts
+%% ============================================================
+
+\node[circle split enhanced, circle split parts=3]
+    (c3) at (0,-3)
+    {One
+    \nodepart{lower}
+    Two
+    \nodepart{three}
+    Three};
+
+\node[anchor=west, draw=none] at (c3.east) {\tiny\ 3 parts};
+
+%% ============================================================
+%%  Circle split enhanced — 4 parts
+%% ============================================================
+
+\node[circle split enhanced, circle split parts=4]
+    (c4) at (0,-6.5)
+    {First
+    \nodepart{lower}
+    Second
+    \nodepart{three}
+    Third
+    \nodepart{four}
+    Fourth};
+
+\node[anchor=west, draw=none] at (c4.east) {\tiny\ 4 parts};
+
+%% ============================================================
+%%  Circle split enhanced — 3 parts with custom fill
+%% ============================================================
+
+\node[circle split enhanced, circle split parts=3,
+    circle split part fill={red!20, green!20, blue!20}]
+    (c3f) at (4,0)
+    {Red
+    \nodepart{lower}
+    Green
+    \nodepart{three}
+    Blue};
+
+\node[anchor=west, draw=none] at (c3f.east) {\tiny\ custom fill};
+
+%% ============================================================
+%%  Circle split enhanced — draw splits off
+%% ============================================================
+
+\node[circle split enhanced, circle split parts=3,
+    circle split draw splits=false,
+    circle split part fill={orange!30, yellow!30, cyan!30}]
+    (c3ns) at (4,-3)
+    {A
+    \nodepart{lower}
+    B
+    \nodepart{three}
+    C};
+
+\node[anchor=west, draw=none] at (c3ns.east) {\tiny\ no splits};
+
+
+%% ============================================================
+%%  Ellipse split enhanced — 2 parts
+%% ============================================================
+
+\node[ellipse split enhanced, ellipse split parts=2]
+    (e2) at (9,0)
+    {Wide Top Part
+    \nodepart{lower}
+    Bottom};
+
+\node[anchor=west, draw=none] at (e2.east) {\tiny\ 2 parts};
+
+%% ============================================================
+%%  Ellipse split enhanced — 3 parts with fill
+%% ============================================================
+
+\node[ellipse split enhanced, ellipse split parts=3,
+    ellipse split part fill={red!20, green!20, blue!20}]
+    (e3) at (9,-3)
+    {Alpha
+    \nodepart{lower}
+    Beta
+    \nodepart{three}
+    Gamma};
+
+\node[anchor=west, draw=none] at (e3.east) {\tiny\ 3 parts + fill};
+
+%% ============================================================
+%%  Ellipse split enhanced — 4 parts
+%% ============================================================
+
+\node[ellipse split enhanced, ellipse split parts=4]
+    (e4) at (9,-6.5)
+    {First
+    \nodepart{lower}
+    Second
+    \nodepart{three}
+    Third
+    \nodepart{four}
+    Fourth};
+
+\node[anchor=west, draw=none] at (e4.east) {\tiny\ 4 parts};
+
+
+%% ============================================================
+%%  Anchor visualization on 3-part circle
+%% ============================================================
+
+\node[circle split enhanced, circle split parts=3, minimum size=2.5cm]
+    (anch) at (4,-6.5)
+    {A
+    \nodepart{lower}
+    B
+    \nodepart{three}
+    C};
+
+\foreach \a in {north, south, east, west, north east, north west, south east, south west} {
+    \fill[red] (anch.\a) circle (1.5pt);
+}
+\fill[blue] (anch.center) circle (1.5pt);
+
+\node[anchor=west, draw=none] at (anch.east) {\tiny\ anchors};
+
+\end{tikzpicture}
+
+\end{document}

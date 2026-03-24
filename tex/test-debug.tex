@@ -1,0 +1,18 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\makeatletter\def\input@path{{./}}\makeatother
+\usetikzlibrary{shapes.multipart}
+\usepgflibrary{shapes.multipart.enhanced}
+\begin{document}
+\begin{tikzpicture}
+% Side by side
+\node[circle split, draw, thick] (orig) at (0,0) {X \nodepart{lower} Y};
+\node[circle split enhanced, circle split parts=2, draw, thick] (e2) at (3,0) {X \nodepart{lower} Y};
+\node[circle split enhanced, circle split parts=3, draw, thick] (e3) at (6.5,0) {A \nodepart{lower} B \nodepart{three} C};
+\node[circle split enhanced, circle split parts=4, draw, thick] (e4) at (10.5,0) {1 \nodepart{lower} 2 \nodepart{three} 3 \nodepart{four} 4};
+\node[below=2pt, font=\tiny] at (orig.south) {original};
+\node[below=2pt, font=\tiny] at (e2.south) {ours 2};
+\node[below=2pt, font=\tiny] at (e3.south) {ours 3};
+\node[below=2pt, font=\tiny] at (e4.south) {ours 4};
+\end{tikzpicture}
+\end{document}
