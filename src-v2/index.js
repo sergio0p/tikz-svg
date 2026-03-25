@@ -240,6 +240,7 @@ export function render(svgEl, config) {
     edges: [],
     arrowDefs,
     shadowFilters,
+    seed: config.seed,
   };
 
   for (const id of stateIds) {

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Decoration Demo (wavy style)</title>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; }
+    .demo { margin: 2rem 0; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Decoration Demo: <code>wavy</code> style</h1>
+  <p>Matches TikZ <code>decoration={random steps}</code> with <code>rounded corners</code>.</p>
+
+  <div class="demo">
+    <h2>Wavy Edges</h2>
+    <p>Named <code>wavy</code> style on edges (segmentLength=23, amplitude=2.8, roundedCorners=4).</p>
+    <svg id="demo-edges" width="600" height="150"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Wavy Node Borders</h2>
+    <p>Decoration applied to all nodes via <code>stateStyle</code>.</p>
+    <svg id="demo-nodes" width="500" height="200"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Wavy Ellipse Nodes (matching LEC style)</h2>
+    <p>Replicates the <code>\node [draw, ellipse, wavy, ultra thick, fill=...]</code> pattern from E510 lectures.</p>
+    <svg id="demo-ellipse" width="600" height="200"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    const wavy = {
+      type: 'random steps',
+      segmentLength: 23,
+      amplitude: 2.8,
+      roundedCorners: 4,
+      preLength: 2.8,
+      postLength: 2.8,
+    };
+
+    // Demo 1: Wavy edges
+    render(document.getElementById('demo-edges'), {
+      seed: 666,
+      nodeDistance: 150,
+      styles: {
+        wavy: { decoration: wavy },
+      },
+      states: {
+        A: { position: [0, 0], label: 'A' },
+        B: { position: { right: 'A' }, label: 'B' },
+        C: { position: { right: 'B' }, label: 'C' },
+      },
+      edges: [
+        { from: 'A', to: 'B', label: 'wavy', style: 'wavy' },
+        { from: 'B', to: 'C', label: 'normal' },
+      ],
+    });
+
+    // Demo 2: Wavy circle nodes
+    render(document.getElementById('demo-nodes'), {
+      seed: 666,
+      stateStyle: {
+        decoration: { type: 'random steps', segmentLength: 15, amplitude: 2, roundedCorners: 3 },
+        fill: '#e3f2fd',
+        strokeWidth: 2,
+      },
+      nodeDistance: 120,
+      states: {
+        q0: { position: [0, 0], label: 'Start', initial: true },
+        q1: { position: { right: 'q0' }, label: 'End', accepting: true },
+      },
+      edges: [{ from: 'q0', to: 'q1' }],
+    });
+
+    // Demo 3: Wavy ellipse (matching LEC wavy style on ellipses)
+    render(document.getElementById('demo-ellipse'), {
+      seed: 666,
+      nodeDistance: 180,
+      states: {
+        finite: {
+          position: [0, 0],
+          label: 'T = {0,1,...,T}',
+          shape: 'ellipse', rx: 55, ry: 28,
+          fill: '#ffcdd2', strokeWidth: 3,
+          decoration: wavy,
+        },
+        infinite: {
+          position: { right: 'finite' },
+          label: 'T = {0,1,...,+\u221e}',
+          shape: 'ellipse', rx: 55, ry: 28,
+          fill: '#bbdefb', strokeWidth: 3,
+          decoration: wavy,
+        },
+      },
+      edges: [],
+    });
+  </script>
+</body>
+</html>

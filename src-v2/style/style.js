@@ -26,6 +26,7 @@ export function resolveNodeStyle(nodeId, config) {
     acceptingInset: DEFAULTS.acceptingInset,
     labelColor: '#000000',
     className: null,
+    decoration: null,
   };
   // Merge: DEFAULTS → stateStyle → group style → expanded named style + per-node
   const registry = new StyleRegistry(config.styles);
@@ -60,6 +61,7 @@ export function resolveEdgeStyle(edgeIndex, config) {
     shortenStart: DEFAULTS.shortenStart,
     shortenEnd: DEFAULTS.shortenEnd,
     className: null,
+    decoration: null,
   };
   // Merge: DEFAULTS → edgeStyle → group style → expanded named style + per-edge
   const registry = new StyleRegistry(config.styles);

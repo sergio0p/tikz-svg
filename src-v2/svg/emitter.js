@@ -8,6 +8,8 @@
 
 import { DEFAULTS, DIRECTIONS } from '../core/constants.js';
 import { Transform } from '../core/transform.js';
+import { morphPath, shapeToSVGPath } from '../decorations/index.js';
+import { SeededRandom } from '../core/random.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -211,8 +213,13 @@ function buildDefs(arrowDefs, shadowFilters) {
  * @param {Object} edge
  * @returns {SVGPathElement}
  */
-function emitEdgePath(edge) {
-  const { path, style } = edge;
+function emitEdgePath(edge, prng) {
+  let { path, style } = edge;
+
+  // Apply decoration if configured
+  if (style.decoration) {
+    path = morphPath(path, { ...style.decoration, prng });
+  }
 
   const attrs = {
     d: path,
@@ -313,7 +320,7 @@ function emitLabelNode(edge) {
  * @param {Object} node - { center, geom, style, label }
  * @returns {SVGGElement}
  */
-function emitNode(id, node) {
+function emitNode(id, node, prng) {
   const { center, geom, style, label, shape } = node;
 
   const g = createSVGElement('g', {
@@ -327,7 +334,7 @@ function emitNode(id, node) {
   }
 
   // Determine shape and create element
-  const shapeEl = createShapeElement(geom, style, { shape });
+  const shapeEl = createShapeElement(geom, style, { shape, prng });
   if (style.shadow && style._shadowFilterId) {
     shapeEl.setAttribute('filter', `url(#${style._shadowFilterId})`);
   }
@@ -336,7 +343,7 @@ function emitNode(id, node) {
   // Accepting (double border) — inner shape with inset
   if (style.accepting) {
     const inset = style.acceptingInset ?? DEFAULTS.acceptingInset;
-    const innerEl = createShapeElement(geom, style, { inset, fillOverride: 'none', shape });
+    const innerEl = createShapeElement(geom, style, { inset, fillOverride: 'none', shape, prng });
     g.appendChild(innerEl);
   }
 
@@ -371,6 +378,27 @@ function createShapeElement(geom, style, opts = {}) {
   const stroke = style.stroke ?? DEFAULTS.nodeStroke;
   const strokeWidth = style.strokeWidth ?? DEFAULTS.nodeStrokeWidth;
   const shapeName = style.shape ?? 'circle';
+
+  // Decoration: convert shape to path string, morph, emit as <path>
+  if (style.decoration && opts.prng) {
+    let pathStr = '';
+    if (['circle', 'ellipse', 'rectangle'].includes(shapeName)) {
+      pathStr = shapeToSVGPath(shapeName, geom, { inset });
+    } else {
+      const shapeImpl = opts.shape;
+      if (shapeImpl && shapeImpl.backgroundPath) {
+        const localGeom = shapeImpl.savedGeometry({ ...geom, center: { x: 0, y: 0 } });
+        if (inset > 0) localGeom.outerSep = (localGeom.outerSep ?? 0) + inset;
+        pathStr = shapeImpl.backgroundPath(localGeom);
+      }
+    }
+    if (pathStr) {
+      const decorated = morphPath(pathStr, { ...style.decoration, prng: opts.prng });
+      return createSVGElement('path', {
+        d: decorated, fill, stroke, 'stroke-width': strokeWidth,
+      });
+    }
+  }
 
   // Drawn dimensions use visual size (subtract outerSep from anchor dimensions)
   switch (shapeName) {
@@ -537,7 +565,11 @@ export function emitSVG(svgEl, resolved) {
     edges = [],
     shadowFilters = [],
     arrowDefs = [],
+    seed,
   } = resolved;
+
+  // PRNG for deterministic decoration rendering
+  const prng = new SeededRandom(seed ?? 42);
 
   // 1. Clear existing content
   while (svgEl.firstChild) {
@@ -566,7 +598,7 @@ export function emitSVG(svgEl, resolved) {
 
   // 4. Emit edges
   for (const edge of edges) {
-    const pathEl = emitEdgePath(edge);
+    const pathEl = emitEdgePath(edge, prng);
     edgeLayer.appendChild(pathEl);
     refs.edges.push(pathEl);
 
@@ -584,7 +616,7 @@ export function emitSVG(svgEl, resolved) {
   const defaultArrowId = defaultArrowDef ? defaultArrowDef.id : null;
 
   for (const [id, node] of Object.entries(nodes)) {
-    const g = emitNode(id, node);
+    const g = emitNode(id, node, prng);
     nodeLayer.appendChild(g);
     refs.nodes[id] = g;
 
