@@ -40,6 +40,22 @@ describe('StyleRegistry', () => {
     const expanded = reg.expand({ style: 'x' });
     assert.strictEqual(expanded.style, undefined);
   });
+
+  it('includes built-in wavy style without user definition', () => {
+    const reg = new StyleRegistry({});
+    const wavy = reg.get('wavy');
+    assert.ok(wavy.decoration, 'wavy should have a decoration property');
+    assert.strictEqual(wavy.decoration.type, 'random steps');
+    assert.strictEqual(wavy.decoration.roundedCorners, 4);
+  });
+
+  it('user-defined style overrides built-in', () => {
+    const reg = new StyleRegistry({
+      wavy: { decoration: { type: 'random steps', amplitude: 10 } },
+    });
+    const wavy = reg.get('wavy');
+    assert.strictEqual(wavy.decoration.amplitude, 10);
+  });
 });
 
 import { resolveNodeStyle, resolveEdgeStyle } from '../src-v2/style/style.js';

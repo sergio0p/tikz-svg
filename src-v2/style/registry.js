@@ -1,11 +1,28 @@
 /**
+ * Built-in named styles.
+ * User-defined styles with the same name override these.
+ */
+const BUILTIN_STYLES = {
+  wavy: {
+    decoration: {
+      type: 'random steps',
+      segmentLength: 23,
+      amplitude: 2.8,
+      roundedCorners: 4,
+      preLength: 2.8,
+      postLength: 2.8,
+    },
+  },
+};
+
+/**
  * Named style registry.
  * Stores style bundles by name and expands style references in property objects.
  */
 export class StyleRegistry {
   /** @param {Object<string, Object>} styles - name → property bundle */
   constructor(styles = {}) {
-    this._styles = styles;
+    this._styles = { ...BUILTIN_STYLES, ...styles };
   }
 
   /** Retrieve a named style's properties (empty object if not found). */
