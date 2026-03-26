@@ -35,22 +35,10 @@
   <script type="module">
     import { render } from '../src-v2/index.js';
 
-    const wavy = {
-      type: 'random steps',
-      segmentLength: 23,
-      amplitude: 2.8,
-      roundedCorners: 4,
-      preLength: 2.8,
-      postLength: 2.8,
-    };
-
-    // Demo 1: Wavy edges
+    // Demo 1: Wavy edges — just style: 'wavy', no config needed
     render(document.getElementById('demo-edges'), {
       seed: 666,
       nodeDistance: 150,
-      styles: {
-        wavy: { decoration: wavy },
-      },
       states: {
         A: { position: [0, 0], label: 'A' },
         B: { position: { right: 'A' }, label: 'B' },
@@ -66,7 +54,7 @@
     render(document.getElementById('demo-nodes'), {
       seed: 666,
       stateStyle: {
-        decoration: { type: 'random steps', segmentLength: 6, amplitude: 1.5, roundedCorners: 3 },
+        style: 'wavy',
         fill: '#e3f2fd',
         strokeWidth: 2,
       },
@@ -88,14 +76,14 @@
           label: 'T = {0,1,...,T}',
           shape: 'ellipse', rx: 55, ry: 28,
           fill: '#ffcdd2', strokeWidth: 3,
-          decoration: wavy,
+          style: 'wavy',
         },
         infinite: {
           position: { right: 'finite' },
           label: 'T = {0,1,...,+\u221e}',
           shape: 'ellipse', rx: 55, ry: 28,
           fill: '#bbdefb', strokeWidth: 3,
-          decoration: wavy,
+          style: 'wavy',
         },
       },
       edges: [],

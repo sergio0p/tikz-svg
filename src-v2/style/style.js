@@ -30,7 +30,7 @@ export function resolveNodeStyle(nodeId, config) {
   };
   // Merge: DEFAULTS → stateStyle → group style → expanded named style + per-node
   const registry = new StyleRegistry(config.styles);
-  const stateStyle = config.stateStyle || {};
+  const stateStyle = registry.expand(config.stateStyle || {});
   const groupStyle = resolveGroupStyle(config.groups, 'nodes', nodeId, registry);
   const nodeProps = config.states?.[nodeId] || {};
   const expandedProps = registry.expand(nodeProps);
@@ -65,7 +65,7 @@ export function resolveEdgeStyle(edgeIndex, config) {
   };
   // Merge: DEFAULTS → edgeStyle → group style → expanded named style + per-edge
   const registry = new StyleRegistry(config.styles);
-  const edgeStyle = config.edgeStyle || {};
+  const edgeStyle = registry.expand(config.edgeStyle || {});
   const groupStyle = resolveGroupStyle(config.groups, 'edges', edgeIndex, registry);
   const edgeProps = config.edges?.[edgeIndex] || {};
   const expandedProps = registry.expand(edgeProps);
