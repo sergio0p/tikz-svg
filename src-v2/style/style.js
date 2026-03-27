@@ -106,6 +106,59 @@ export function resolvePlotStyle(plotIndex, config) {
 }
 
 /**
+ * Parse a TikZ arrow spec string into start/end tip names.
+ * '->'  → { start: null, end: 'stealth' }
+ * '<->' → { start: 'stealth', end: 'stealth' }
+ * '<-'  → { start: 'stealth', end: null }
+ * @param {string} [spec]
+ * @returns {{ start: string|null, end: string|null }}
+ */
+function parseArrowSpec(spec) {
+  if (!spec || spec === 'none' || spec === '-') {
+    return { start: null, end: null };
+  }
+  return {
+    start: spec.startsWith('<') ? 'stealth' : null,
+    end: spec.endsWith('>') ? 'stealth' : null,
+  };
+}
+
+/**
+ * Resolve effective style for a free-form path (\draw).
+ * Merge order: DEFAULTS → config.pathStyle → per-path properties
+ * @param {number} pathIndex
+ * @param {Object} config - full config object
+ * @returns {Object} resolved style
+ */
+export function resolvePathStyle(pathIndex, config) {
+  const base = {
+    stroke: DEFAULTS.pathColor,
+    strokeWidth: DEFAULTS.pathStrokeWidth,
+    fill: 'none',
+    dashed: false,
+    dotted: false,
+    opacity: 1,
+    className: null,
+    decoration: null,
+  };
+  const registry = new StyleRegistry(config.styles);
+  const pathStyle = registry.expand(config.pathStyle || {});
+  const pathProps = config.paths?.[pathIndex] || {};
+  const expandedProps = registry.expand(pathProps);
+  const merged = { ...base, ...pathStyle, ...expandedProps };
+
+  if (merged.thick) {
+    merged.strokeWidth = 2.4;
+  }
+
+  const arrowSpec = parseArrowSpec(merged.arrow);
+  merged.arrowStart = arrowSpec.start;
+  merged.arrowEnd = arrowSpec.end;
+
+  return merged;
+}
+
+/**
  * Collect unique shadow filter definitions from resolved node styles.
  * shadow: true → DEFAULTS.shadowDefaults
  * shadow: { dx, dy, blur, color } → use as-is

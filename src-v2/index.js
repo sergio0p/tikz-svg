@@ -26,11 +26,12 @@ import { resolvePositions } from './positioning/positioning.js';
 import { computeEdgePath } from './geometry/edges.js';
 import { getArrowDef } from './geometry/arrows.js';
 import { computeLabelNode } from './geometry/labels.js';
-import { resolveNodeStyle, resolveEdgeStyle, resolvePlotStyle, collectShadowFilters } from './style/style.js';
+import { resolveNodeStyle, resolveEdgeStyle, resolvePlotStyle, resolvePathStyle, collectShadowFilters } from './style/style.js';
 import { emitSVG } from './svg/emitter.js';
 import { DEFAULTS } from './core/constants.js';
 import { plot as computePlot } from './plotting/index.js';
 import { getMarkFillMode } from './plotting/marks.js';
+import { buildPathGeometry, computePathLabelPosition } from './geometry/paths.js';
 
 function round4(v) {
   const r = Math.round(v * 10000) / 10000;
@@ -81,8 +82,10 @@ export function render(svgEl, config) {
   const edges = config.edges || [];
   const plots = config.plots || [];
 
+  const paths = config.paths || [];
+
   const stateIds = Object.keys(states);
-  if (stateIds.length === 0 && plots.length === 0) {
+  if (stateIds.length === 0 && plots.length === 0 && paths.length === 0) {
     return { nodes: {}, edges: [], labels: [], plots: [] };
   }
 
@@ -241,8 +244,6 @@ export function render(svgEl, config) {
     resolvedArrowDefs.push(arrowDef);
   }
 
-  const arrowDefs = Array.from(arrowDefsMap.values());
-
   const edgeGeometries = [];
   const edgeLabelPositions = [];
 
@@ -353,6 +354,76 @@ export function render(svgEl, config) {
     });
   }
 
+  // ── PHASE 4.6: PROCESS FREE-FORM PATHS (\draw) ───────────────────
+  // Build path geometry, resolve arrows, compute inline label positions.
+
+  const drawPathModels = [];
+
+  for (let i = 0; i < paths.length; i++) {
+    const pathDef = paths[i];
+    const style = resolvePathStyle(i, config);
+
+    const geom = buildPathGeometry(pathDef.points || [], {
+      cycle: pathDef.cycle ?? style.cycle,
+    });
+
+    let arrowStartId = null;
+    let arrowEndId = null;
+
+    if (style.arrowEnd) {
+      const def = getArrowDef({
+        type: style.arrowEnd,
+        size: style.arrowSize ?? DEFAULTS.arrowSize,
+        color: style.stroke ?? DEFAULTS.pathColor,
+      });
+      if (def) {
+        if (!arrowDefsMap.has(def.id)) arrowDefsMap.set(def.id, def);
+        arrowEndId = def.id;
+      }
+    }
+
+    if (style.arrowStart) {
+      const def = getArrowDef({
+        type: style.arrowStart,
+        size: style.arrowSize ?? DEFAULTS.arrowSize,
+        color: style.stroke ?? DEFAULTS.pathColor,
+        id: `arrow-start-${style.arrowStart}-${style.arrowSize ?? DEFAULTS.arrowSize}-${(style.stroke ?? DEFAULTS.pathColor).replace('#', '')}`,
+      });
+      if (def) {
+        if (!arrowDefsMap.has(def.id)) arrowDefsMap.set(def.id, def);
+        arrowStartId = def.id;
+      }
+    }
+
+    const labelNodes = [];
+    if (pathDef.nodes && geom.segments.length > 0) {
+      for (const nodeDef of pathDef.nodes) {
+        const t = nodeDef.at ?? 0.5;
+        const pos = computePathLabelPosition(geom.segments, geom.totalLength, t);
+        labelNodes.push({
+          x: pos.x,
+          y: pos.y,
+          label: nodeDef.label,
+          anchor: nodeDef.anchor ?? 'right',
+          fontSize: nodeDef.fontSize ?? style.fontSize ?? DEFAULTS.fontSize,
+          fontFamily: nodeDef.fontFamily ?? style.fontFamily ?? DEFAULTS.fontFamily,
+          color: nodeDef.color ?? style.labelColor,
+        });
+      }
+    }
+
+    drawPathModels.push({
+      d: geom.d,
+      style,
+      arrowStartId,
+      arrowEndId,
+      labelNodes,
+    });
+  }
+
+  // Rebuild arrowDefs after all phases that may add markers (edges + paths)
+  const arrowDefs = Array.from(arrowDefsMap.values());
+
   // ── PHASE 5: RESOLVE STYLES ─────────────────────────────────────────
 
   const resolvedNodeStyles = Object.fromEntries(
@@ -369,6 +440,7 @@ export function render(svgEl, config) {
     arrowDefs,
     shadowFilters,
     plots: plotModels,
+    drawPaths: drawPathModels,
     seed: config.seed,
   };
 

@@ -43,4 +43,7 @@ export const DEFAULTS = {
   plotFill: 'none',
   plotHandler: 'lineto',
   markSize: 3,
+  // Path defaults (free-form \draw)
+  pathColor: '#000000',
+  pathStrokeWidth: 1.5,
 };

@@ -368,6 +368,75 @@ function emitPlot(plotModel, layer) {
 }
 
 // ────────────────────────────────────────────
+// Free-form path (\draw) emission
+// ────────────────────────────────────────────
+
+/** Anchor offsets in px for inline path labels. */
+const ANCHOR_OFFSETS = {
+  right:  { dx: 5,  dy: 0,  textAnchor: 'start',  baseline: 'central' },
+  left:   { dx: -5, dy: 0,  textAnchor: 'end',    baseline: 'central' },
+  above:  { dx: 0,  dy: -5, textAnchor: 'middle', baseline: 'auto' },
+  below:  { dx: 0,  dy: 5,  textAnchor: 'middle', baseline: 'hanging' },
+};
+
+/**
+ * Emit SVG elements for a single free-form path (\draw).
+ * @param {Object} pathModel - { d, style, arrowStartId, arrowEndId, labelNodes }
+ * @param {SVGGElement} edgeLayer
+ * @param {SVGGElement} labelLayer
+ */
+function emitDrawPath(pathModel, edgeLayer, labelLayer) {
+  const { d, style, arrowStartId, arrowEndId, labelNodes } = pathModel;
+
+  if (!d) return;
+
+  const attrs = {
+    d,
+    fill: style.fill ?? 'none',
+    stroke: style.stroke ?? '#000',
+    'stroke-width': style.strokeWidth ?? 1.5,
+    class: 'draw-path',
+  };
+
+  if (style.dotted) {
+    attrs['stroke-dasharray'] = '2 3';
+  } else if (style.dashed) {
+    attrs['stroke-dasharray'] = typeof style.dashed === 'string' ? style.dashed : '6 4';
+  }
+
+  if (style.opacity != null && style.opacity < 1) {
+    attrs.opacity = style.opacity;
+  }
+
+  if (arrowStartId) {
+    attrs['marker-start'] = `url(#${arrowStartId})`;
+  }
+  if (arrowEndId) {
+    attrs['marker-end'] = `url(#${arrowEndId})`;
+  }
+
+  edgeLayer.appendChild(createSVGElement('path', attrs));
+
+  if (labelNodes) {
+    for (const ln of labelNodes) {
+      const anchorInfo = ANCHOR_OFFSETS[ln.anchor] ?? ANCHOR_OFFSETS.right;
+      const text = createSVGElement('text', {
+        x: ln.x + anchorInfo.dx,
+        y: ln.y + anchorInfo.dy,
+        'text-anchor': anchorInfo.textAnchor,
+        'dominant-baseline': anchorInfo.baseline,
+        'font-size': ln.fontSize ?? DEFAULTS.fontSize,
+        'font-family': ln.fontFamily ?? DEFAULTS.fontFamily,
+        fill: ln.color ?? '#000',
+        class: 'draw-label',
+      });
+      text.textContent = String(ln.label);
+      labelLayer.appendChild(text);
+    }
+  }
+}
+
+// ────────────────────────────────────────────
 // Node emission
 // ────────────────────────────────────────────
 
@@ -716,6 +785,7 @@ export function emitSVG(svgEl, resolved) {
     shadowFilters = [],
     arrowDefs = [],
     plots = [],
+    drawPaths = [],
     seed,
   } = resolved;
 
@@ -765,6 +835,11 @@ export function emitSVG(svgEl, resolved) {
   // 5.5. Emit plots (in edge layer, behind nodes)
   for (const plotModel of plots) {
     emitPlot(plotModel, edgeLayer);
+  }
+
+  // 5.6. Emit free-form paths (\draw)
+  for (const pathModel of drawPaths) {
+    emitDrawPath(pathModel, edgeLayer, labelLayer);
   }
 
   // 6. Emit nodes

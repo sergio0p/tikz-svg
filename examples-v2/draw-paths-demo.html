@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Free-Form Paths Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "mathjs": "./mathjs-shim.js"
+    }
+  }
+  </script>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Free-Form Paths Demo</h1>
+  <p><code>config.paths</code> — TikZ <code>\draw</code> equivalent: axes, dotted lines, annotations.</p>
+
+  <div class="demo">
+    <h2>Economics diagram: axes + function plot + dotted guides</h2>
+    <svg id="demo1" width="500" height="400"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Simple coordinate system with labeled axes</h2>
+    <svg id="demo2" width="400" height="300"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Paths + plots + nodes together</h2>
+    <svg id="demo3" width="600" height="350"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    const S = 250;
+
+    // Demo 1: Economics-style diagram
+    render(document.getElementById('demo1'), {
+      states: {
+        ylabel: { position: { x: -80, y: 30 }, label: 'u₁(e₁,e₂|Δ)', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 11 },
+        xlabel: { position: { x: 340, y: 170 }, label: 'e₁', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 11 },
+        q1: { position: { x: 62, y: 195 }, label: '¼', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
+        q5: { position: { x: 156, y: 195 }, label: '⅝', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
+        q54: { position: { x: 312, y: 195 }, label: '⁵⁄₄', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
+        caption: { position: { x: 150, y: 340 }, label: 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¼', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 9 },
+      },
+      edges: [],
+      paths: [
+        // Y-axis
+        { points: [{ x: 0, y: 20 }, { x: 0, y: 310 }], arrow: '<->' },
+        // X-axis
+        { points: [{ x: -10, y: 170 }, { x: 330, y: 170 }], arrow: '<->' },
+        // Dotted verticals
+        { points: [{ x: 62, y: 185 }, { x: 62, y: 75 }], dotted: true },
+        { points: [{ x: 312, y: 310 }, { x: 312, y: 185 }], dotted: true },
+        { points: [{ x: 156, y: 170 }, { x: 156, y: 115 }], dotted: true },
+        // Red thick segment [0, 1/4]
+        { points: [{ x: 0, y: 170 }, { x: 62, y: 170 }], stroke: 'red', thick: true },
+      ],
+      plots: [{
+        expr: 'x^2',
+        domain: [0, 1.3],
+        samples: 100,
+        handler: 'smooth',
+        stroke: 'blue',
+        scaleX: S,
+        scaleY: -S,
+        offsetX: 0,
+        offsetY: 170,
+      }],
+    });
+
+    // Demo 2: Simple coordinate system
+    render(document.getElementById('demo2'), {
+      states: {},
+      edges: [],
+      paths: [
+        {
+          points: [{ x: 30, y: 250 }, { x: 370, y: 250 }],
+          arrow: '->',
+          nodes: [{ at: 1, label: 'x', anchor: 'right' }],
+        },
+        {
+          points: [{ x: 50, y: 270 }, { x: 50, y: 20 }],
+          arrow: '->',
+          nodes: [{ at: 1, label: 'y', anchor: 'above' }],
+        },
+        {
+          points: [{ x: 50, y: 250 }, { x: 350, y: 50 }],
+          stroke: '#2563eb',
+          nodes: [{ at: 0.5, label: 'f(x) = x', anchor: 'above' }],
+        },
+      ],
+    });
+
+    // Demo 3: Everything together
+    render(document.getElementById('demo3'), {
+      states: {
+        peak: {
+          at: { plot: 0, point: 25, above: 20 },
+          label: 'maximum',
+          shape: 'rectangle',
+          radius: 16,
+          fill: '#fef3c7',
+          stroke: '#f59e0b',
+          fontSize: 11,
+        },
+      },
+      edges: [],
+      paths: [
+        {
+          points: [{ x: 40, y: 280 }, { x: 550, y: 280 }],
+          arrow: '->',
+          nodes: [{ at: 1, label: 'x', anchor: 'right' }],
+        },
+        {
+          points: [{ x: 50, y: 300 }, { x: 50, y: 20 }],
+          arrow: '->',
+          nodes: [{ at: 1, label: 'y', anchor: 'above' }],
+        },
+        { points: [{ x: 50, y: 80 }, { x: 300, y: 80 }], dotted: true },
+      ],
+      plots: [{
+        expr: 'sin(x)',
+        domain: [0, Math.PI],
+        samples: 50,
+        handler: 'smooth',
+        stroke: '#2563eb',
+        scaleX: 150,
+        scaleY: 200,
+        offsetX: 50,
+        offsetY: 280,
+      }],
+    });
+  </script>
+</body>
+</html>
