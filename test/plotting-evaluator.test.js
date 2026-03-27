@@ -32,6 +32,25 @@ describe('compileFn', () => {
   });
 });
 
+describe('sampleFunction with JS functions', () => {
+  it('accepts a JS function instead of a string', () => {
+    const points = sampleFunction((x) => x * x, { domain: [0, 2], samples: 3 });
+    assert.strictEqual(points.length, 3);
+    assert.strictEqual(points[0].y, 0);
+    assert.strictEqual(points[1].y, 1);
+    assert.strictEqual(points[2].y, 4);
+  });
+
+  it('supports piecewise JS functions', () => {
+    const piecewise = (x) => x < 1 ? x : 2 - x;
+    const points = sampleFunction(piecewise, { domain: [0, 2], samples: 5 });
+    assert.strictEqual(points.length, 5);
+    assert.strictEqual(points[0].y, 0);    // x=0
+    assert.strictEqual(points[2].y, 1);    // x=1
+    assert.strictEqual(points[4].y, 0);    // x=2
+  });
+});
+
 describe('sampleFunction', () => {
   it('samples sin(x) over [0, pi] with 5 samples', () => {
     const points = sampleFunction('sin(x)', { domain: [0, Math.PI], samples: 5 });

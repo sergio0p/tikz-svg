@@ -62,10 +62,12 @@ export function sampleFunction(expr, opts = {}) {
     }
   }
 
-  // Compile expression(s)
+  // Compile expression(s) — or use directly if already a function
   const isParametric = !!opts.yExpr;
-  const xFn = compileFn(expr, variable);
-  const yFn = isParametric ? compileFn(opts.yExpr, variable) : null;
+  const xFn = typeof expr === 'function' ? expr : compileFn(expr, variable);
+  const yFn = isParametric
+    ? (typeof opts.yExpr === 'function' ? opts.yExpr : compileFn(opts.yExpr, variable))
+    : null;
 
   // Sample
   const points = [];
