@@ -83,9 +83,21 @@ TikZ `\draw` equivalent via `config.paths`: arbitrary point-to-point lines, arro
 
 ---
 
-## TODO: Text width / wrapping in node labels
+## ✅ DONE (src-v2): Text width / wrapping in node labels
 
-TikZ's `\node[text width=3cm] {long text...}` wraps text automatically. Our labels are single `<text>` lines with no wrapping. Need `textWidth`, `<tspan>` word-wrap, explicit `\\` line breaks.
+`textWidth` with `<tspan>` word-wrap, `align` (left/center/right), explicit `\\` line breaks.
+
+---
+
+## TODO: Auto-sizing node backgrounds from text content
+
+TikZ nodes auto-size their background shape to fit text + innerSep. Our nodes have fixed dimensions unless explicit radius/halfWidth given. When `fill: 'white'`, auto-sized backgrounds cover paths underneath (tick labels over dotted lines). Plan: `docs/superpowers/plans/2026-03-27-auto-size-nodes.md`.
+
+---
+
+## TODO: PGF-style user-configurable layers
+
+PGF has `background`, `main`, `foreground` layers. Any element can be placed on any layer via `\begin{pgfonlayer}{background}`. Our 3 layers (`edge-layer`, `label-layer`, `node-layer`) are hardcoded by element type. Need user-configurable layers so users can draw paths behind nodes, put nodes behind edges, create background shading regions, etc.
 
 ---
 

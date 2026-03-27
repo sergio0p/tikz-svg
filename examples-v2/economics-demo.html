@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Economics Diagram (from TikZ source)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "mathjs": "./mathjs-shim.js"
+    }
+  }
+  </script>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+    pre { background: #f0f0f0; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85em; }
+  </style>
+</head>
+<body>
+  <h1>Economics Diagram — TikZ Source Translation</h1>
+
+  <div class="demo">
+    <h2>Panel 1: e₂ = ¼</h2>
+    <p>Original: <code>[scale=3.5, domain=0:1.30]</code></p>
+    <svg id="panel1" width="550" height="420"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Panel 2: e₂ = ¾</h2>
+    <svg id="panel2" width="550" height="420"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    // Invisible text node helper — TikZ \draw (x,y) node[anchor]{text}
+    const txt = (x, y, label, anchor, size = 'scriptsize') => ({
+      position: { x, y: -y },  // negate y: TikZ y-up → SVG y-down
+      label,
+      shape: 'rectangle',
+      radius: 1,
+      fill: 'none',
+      stroke: 'none',
+      anchor,
+      fontSize: size,
+    });
+
+    // ── Panel 1: e2 = 1/4 ──────────────────────────────────
+    // Original TikZ:
+    //   \begin{tikzpicture}[scale=3.5,domain=0:1.30]
+    //   \draw[<->] (0,0.3)--(0,-0.7);
+    //   \draw[<->] (-0.1,0)--(1.30,0);
+    //   \draw[] (-0.4,0.38) node[right]{\scriptsize{u_1(e_1,e_2|Δ)}};
+    //   \draw[] (1.32,0) node[right]{\scriptsize{e_1}};
+    //   \draw[color=blue] plot[samples=200] (x, u1(x)) node[right]{u_1};
+    //   \draw[dotted](.25,-0.1)--(.25,0.3);
+    //   \draw[dotted](1.25,-0.55)--(1.25,-0.1);
+    //   \draw[dotted](.625,0)--(.625,0.219);
+    //   \draw[] (0.25,-0.1) node[below]{1/4};
+    //   \draw[] (0.625,0) node[below]{5/8};
+    //   \draw[] (1.25,0) node[below]{5/4};
+    //   \draw[color=red,thick] (0,0)--(.25,0);
+    //   \draw[] (.6,-.7) node[below]{caption};
+
+    const e2_panel1 = 0.25;
+    const u1_panel1 = (x) => {
+      if (x < e2_panel1) return -x * x;
+      if (x < 1.25) return 1 - (1.25 - x) ** 2 - x * x;
+      return 1 - x * x;
+    };
+
+    render(document.getElementById('panel1'), {
+      scale: 280,
+      originX: 130,
+      originY: 120,
+      states: {
+        // \draw (-0.4,0.38) node[right]{...}  — node[right] = anchor west
+        ylabel: txt(-0.4, 0.38, 'u₁(e₁,e₂|Δ)', 'west'),
+        // \draw (1.32,0) node[right]{e_1}
+        xlabel: txt(1.32, 0, 'e₁', 'west'),
+        // node[right]{u_1} at end of plot — u1(1.3) ≈ -0.69
+        u1end: txt(1.32, -0.69, 'u₁', 'west'),
+        // \draw (0.25,-0.1) node[below]{1/4}  — node[below] = anchor north
+        lbl1: txt(0.25, -0.1, '¼', 'north'),
+        // \draw (0.625,0) node[below]{5/8}
+        lbl2: txt(0.625, 0, '⅝', 'north'),
+        // \draw (1.25,0) node[below]{5/4}
+        lbl3: txt(1.25, 0, '⁵⁄₄', 'north'),
+        // \draw (.6,-.7) node[below]{caption}
+        caption: txt(0.6, -0.7, 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¼', 'north', 'tiny'),
+      },
+      edges: [],
+      paths: [
+        // \draw[<->] (0,0.3)--(0,-0.7)  — Y-axis (negate y)
+        { points: [{ x: 0, y: -0.3 }, { x: 0, y: 0.7 }], arrow: '<->' },
+        // \draw[<->] (-0.1,0)--(1.30,0) — X-axis
+        { points: [{ x: -0.1, y: 0 }, { x: 1.30, y: 0 }], arrow: '<->' },
+        // \draw[dotted] (.25,-0.1)--(.25,0.3)  — from below axis to above curve
+        { points: [{ x: 0.25, y: 0.1 }, { x: 0.25, y: -0.3 }], dotted: true },
+        // \draw[dotted] (1.25,-0.55)--(1.25,-0.1)
+        { points: [{ x: 1.25, y: 0.55 }, { x: 1.25, y: 0.1 }], dotted: true },
+        // \draw[dotted] (.625,0)--(.625,0.219)  — u1(0.625)=0.21875
+        { points: [{ x: 0.625, y: 0 }, { x: 0.625, y: -0.21875 }], dotted: true },
+        // \draw[color=red,thick] (0,0)--(.25,0)
+        { points: [{ x: 0, y: 0 }, { x: 0.25, y: 0 }], stroke: 'red', thick: true },
+      ],
+      plots: [{
+        expr: u1_panel1,
+        domain: [0, 1.3],
+        samples: 200,
+        handler: 'smooth',
+        stroke: 'blue',
+        scaleX: 1,
+        scaleY: 1,
+        offsetX: 0,
+        offsetY: 0,
+      }],
+    });
+
+    // ── Panel 2: e2 = 3/4 ──────────────────────────────────
+    // Same structure, different e2
+
+    const e2_panel2 = 0.75;
+    const u1_panel2 = (x) => {
+      if (x < e2_panel2) return -x * x;
+      if (x < 1.75) return 1 - (1.75 - x) ** 2 - x * x;
+      return 1 - x * x;
+    };
+
+    render(document.getElementById('panel2'), {
+      scale: 280,
+      originX: 130,
+      originY: 90,
+      states: {
+        ylabel: txt(-0.4, 0.26, 'u₁(e₁,e₂|Δ)', 'west'),
+        xlabel: txt(1.32, 0, 'e₁', 'west'),
+        u1end: txt(1.32, u1_panel2(1.3), 'u₁', 'west'),
+        lbl1: txt(0.75, 0.12, '¾', 'north'),
+        caption: txt(0.6, -0.9, 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¾', 'north', 'tiny'),
+      },
+      edges: [],
+      paths: [
+        // \draw[<->] (0,0.2)--(0,-0.9)
+        { points: [{ x: 0, y: -0.2 }, { x: 0, y: 0.9 }], arrow: '<->' },
+        // \draw[<->] (-0.1,0)--(1.30,0)
+        { points: [{ x: -0.1, y: 0 }, { x: 1.30, y: 0 }], arrow: '<->' },
+        // \draw[dotted] (.75,0)--(.75,-0.5625)  — u1(0.75)=-0.5625
+        { points: [{ x: 0.75, y: 0 }, { x: 0.75, y: 0.5625 }], dotted: true },
+        // \draw[color=red,thick] (0,0)--(.75,0)
+        { points: [{ x: 0, y: 0 }, { x: 0.75, y: 0 }], stroke: 'red', thick: true },
+      ],
+      plots: [{
+        expr: u1_panel2,
+        domain: [0, 1.3],
+        samples: 200,
+        handler: 'smooth',
+        stroke: 'blue',
+        scaleX: 1,
+        scaleY: 1,
+        offsetX: 0,
+        offsetY: 0,
+      }],
+    });
+  </script>
+</body>
+</html>
