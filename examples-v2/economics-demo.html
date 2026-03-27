@@ -73,52 +73,40 @@
       return 1 - x * x;
     };
 
+    // config.draw — elements in TikZ source order
     render(document.getElementById('panel1'), {
       scale: 280,
       originX: 130,
       originY: 120,
-      states: {
-        // \draw (-0.4,0.38) node[right]{...}  — node[right] = anchor west
-        ylabel: txt(-0.4, 0.38, 'u₁(e₁,e₂|Δ)', 'west'),
-        // \draw (1.32,0) node[right]{e_1}
-        xlabel: txt(1.32, 0, 'e₁', 'west'),
-        // node[right]{u_1} at end of plot — u1(1.3) ≈ -0.69
-        u1end: txt(1.32, -0.69, 'u₁', 'west'),
-        // \draw (0.25,-0.1) node[below]{1/4}  — node[below] = anchor north
-        lbl1: txt(0.25, -0.1, '¼', 'north'),
+      draw: [
+        // \draw[<->] (0,0.3)--(0,-0.7)
+        { type: 'path', points: [{x:0,y:-0.3},{x:0,y:0.7}], arrow: '<->' },
+        // \draw[<->] (-0.1,0)--(1.30,0)
+        { type: 'path', points: [{x:-0.1,y:0},{x:1.30,y:0}], arrow: '<->' },
+        // \draw (-0.4,0.38) node[right]{u1(e1,e2|Δ)}
+        { type: 'node', id: 'ylabel', ...txt(-0.4, 0.38, 'u₁(e₁,e₂|Δ)', 'west') },
+        // \draw (1.32,0) node[right]{e1}
+        { type: 'node', id: 'xlabel', ...txt(1.32, 0, 'e₁', 'west') },
+        // \draw[color=blue] plot[samples=200](...) node[right]{u1}
+        { type: 'plot', expr: u1_panel1, domain: [0,1.3], samples: 200, handler: 'smooth', stroke: 'blue', scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
+        { type: 'node', id: 'u1end', ...txt(1.32, -0.69, 'u₁', 'west') },
+        // \draw[dotted](.25,-0.1)--(.25,0.3)
+        { type: 'path', points: [{x:0.25,y:0.1},{x:0.25,y:-0.3}], dotted: true },
+        // \draw[dotted](1.25,-0.55)--(1.25,-0.1)
+        { type: 'path', points: [{x:1.25,y:0.55},{x:1.25,y:0.1}], dotted: true },
+        // \draw[dotted](.625,0)--(.625,0.219)
+        { type: 'path', points: [{x:0.625,y:0},{x:0.625,y:-0.21875}], dotted: true },
+        // \draw (0.25,-0.1) node[below]{1/4}
+        { type: 'node', id: 'lbl1', ...txt(0.25, -0.1, '¼', 'north') },
         // \draw (0.625,0) node[below]{5/8}
-        lbl2: txt(0.625, 0, '⅝', 'north'),
+        { type: 'node', id: 'lbl2', ...txt(0.625, 0, '⅝', 'north') },
         // \draw (1.25,0) node[below]{5/4}
-        lbl3: txt(1.25, 0, '⁵⁄₄', 'north'),
-        // \draw (.6,-.7) node[below]{caption}
-        caption: txt(0.6, -0.7, 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¼', 'north', 'tiny'),
-      },
-      edges: [],
-      paths: [
-        // \draw[<->] (0,0.3)--(0,-0.7)  — Y-axis (negate y)
-        { points: [{ x: 0, y: -0.3 }, { x: 0, y: 0.7 }], arrow: '<->' },
-        // \draw[<->] (-0.1,0)--(1.30,0) — X-axis
-        { points: [{ x: -0.1, y: 0 }, { x: 1.30, y: 0 }], arrow: '<->' },
-        // \draw[dotted] (.25,-0.1)--(.25,0.3)  — from below axis to above curve
-        { points: [{ x: 0.25, y: 0.1 }, { x: 0.25, y: -0.3 }], dotted: true },
-        // \draw[dotted] (1.25,-0.55)--(1.25,-0.1)
-        { points: [{ x: 1.25, y: 0.55 }, { x: 1.25, y: 0.1 }], dotted: true },
-        // \draw[dotted] (.625,0)--(.625,0.219)  — u1(0.625)=0.21875
-        { points: [{ x: 0.625, y: 0 }, { x: 0.625, y: -0.21875 }], dotted: true },
+        { type: 'node', id: 'lbl3', ...txt(1.25, 0, '⁵⁄₄', 'north') },
         // \draw[color=red,thick] (0,0)--(.25,0)
-        { points: [{ x: 0, y: 0 }, { x: 0.25, y: 0 }], stroke: 'red', thick: true },
+        { type: 'path', points: [{x:0,y:0},{x:0.25,y:0}], stroke: 'red', thick: true },
+        // \draw (.6,-.7) node[below]{caption}
+        { type: 'node', id: 'caption', ...txt(0.6, -0.7, 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¼', 'north', 'tiny') },
       ],
-      plots: [{
-        expr: u1_panel1,
-        domain: [0, 1.3],
-        samples: 200,
-        handler: 'smooth',
-        stroke: 'blue',
-        scaleX: 1,
-        scaleY: 1,
-        offsetX: 0,
-        offsetY: 0,
-      }],
     });
 
     // ── Panel 2: e2 = 3/4 ──────────────────────────────────
@@ -135,35 +123,27 @@
       scale: 280,
       originX: 130,
       originY: 90,
-      states: {
-        ylabel: txt(-0.4, 0.26, 'u₁(e₁,e₂|Δ)', 'west'),
-        xlabel: txt(1.32, 0, 'e₁', 'west'),
-        u1end: txt(1.32, u1_panel2(1.3), 'u₁', 'west'),
-        lbl1: txt(0.75, 0.12, '¾', 'north'),
-        caption: txt(0.6, -0.9, 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¾', 'north', 'tiny'),
-      },
-      edges: [],
-      paths: [
+      draw: [
         // \draw[<->] (0,0.2)--(0,-0.9)
-        { points: [{ x: 0, y: -0.2 }, { x: 0, y: 0.9 }], arrow: '<->' },
+        { type: 'path', points: [{x:0,y:-0.2},{x:0,y:0.9}], arrow: '<->' },
         // \draw[<->] (-0.1,0)--(1.30,0)
-        { points: [{ x: -0.1, y: 0 }, { x: 1.30, y: 0 }], arrow: '<->' },
-        // \draw[dotted] (.75,0)--(.75,-0.5625)  — u1(0.75)=-0.5625
-        { points: [{ x: 0.75, y: 0 }, { x: 0.75, y: 0.5625 }], dotted: true },
+        { type: 'path', points: [{x:-0.1,y:0},{x:1.30,y:0}], arrow: '<->' },
+        // \draw (-0.4,0.26) node[right]{u1(e1,e2|Δ)}
+        { type: 'node', id: 'ylabel2', ...txt(-0.4, 0.26, 'u₁(e₁,e₂|Δ)', 'west') },
+        // \draw (1.32,0) node[right]{e1}
+        { type: 'node', id: 'xlabel2', ...txt(1.32, 0, 'e₁', 'west') },
+        // \draw[color=blue] plot[samples=200](...) node[right]{u1}
+        { type: 'plot', expr: u1_panel2, domain: [0,1.3], samples: 200, handler: 'smooth', stroke: 'blue', scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
+        { type: 'node', id: 'u1end2', ...txt(1.32, u1_panel2(1.3), 'u₁', 'west') },
+        // \draw[dotted](.75,0)--(.75,-0.5625)
+        { type: 'path', points: [{x:0.75,y:0},{x:0.75,y:0.5625}], dotted: true },
+        // \draw (0.75,0.12) node[below]{3/4}
+        { type: 'node', id: 'lbl12', ...txt(0.75, 0.12, '¾', 'north') },
         // \draw[color=red,thick] (0,0)--(.75,0)
-        { points: [{ x: 0, y: 0 }, { x: 0.75, y: 0 }], stroke: 'red', thick: true },
+        { type: 'path', points: [{x:0,y:0},{x:0.75,y:0}], stroke: 'red', thick: true },
+        // \draw (.6,-.9) node[below]{caption}
+        { type: 'node', id: 'caption2', ...txt(0.6, -0.9, 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¾', 'north', 'tiny') },
       ],
-      plots: [{
-        expr: u1_panel2,
-        domain: [0, 1.3],
-        samples: 200,
-        handler: 'smooth',
-        stroke: 'blue',
-        scaleX: 1,
-        scaleY: 1,
-        offsetX: 0,
-        offsetY: 0,
-      }],
     });
   </script>
 </body>

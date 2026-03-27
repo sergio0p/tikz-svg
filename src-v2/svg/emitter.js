@@ -817,7 +817,7 @@ function computeViewBox(svgEl, padding = 40) {
   const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
 
   // Walk all direct children of layers (initial arrows are in edge-layer)
-  for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer')) {
+  for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer, .draw-layer')) {
     for (const child of layer.children) {
       expandBBoxFromElement(bbox, child);
     }
@@ -863,6 +863,7 @@ export function emitSVG(svgEl, resolved) {
     arrowDefs = [],
     plots = [],
     drawPaths = [],
+    drawOrder,
     seed,
   } = resolved;
 
@@ -877,6 +878,64 @@ export function emitSVG(svgEl, resolved) {
   // 2. Build and append <defs>
   const defs = buildDefs(arrowDefs, shadowFilters);
   svgEl.appendChild(defs);
+
+  // ── ORDERED RENDERING (TikZ-faithful paint order) ──────────
+  if (drawOrder) {
+    const drawLayer = createSVGElement('g', { class: 'draw-layer' });
+    svgEl.appendChild(drawLayer);
+
+    const refs = { nodes: {}, edges: [], labels: [], plots: [] };
+    const defaultArrowDef = arrowDefs.length > 0 ? arrowDefs[0] : null;
+    const defaultArrowId = defaultArrowDef ? defaultArrowDef.id : null;
+
+    for (const item of drawOrder) {
+      switch (item.type) {
+        case 'node': {
+          const node = nodes[item.id];
+          if (!node) break;
+          const g = emitNode(item.id, node, prng);
+          drawLayer.appendChild(g);
+          refs.nodes[item.id] = g;
+          if (node.style.initial) {
+            const arrowPath = emitInitialArrow(node, defaultArrowId, defaultArrowDef);
+            drawLayer.appendChild(arrowPath);
+          }
+          break;
+        }
+        case 'edge': {
+          const edge = edges[item.index];
+          if (!edge) break;
+          const pathEl = emitEdgePath(edge, prng);
+          drawLayer.appendChild(pathEl);
+          refs.edges.push(pathEl);
+          const labelEl = emitLabelNode(edge);
+          if (labelEl) {
+            drawLayer.appendChild(labelEl);
+            refs.labels.push(labelEl);
+          }
+          break;
+        }
+        case 'plot': {
+          const plotModel = plots[item.index];
+          if (!plotModel) break;
+          emitPlot(plotModel, drawLayer);
+          break;
+        }
+        case 'drawPath': {
+          const pathModel = drawPaths[item.index];
+          if (!pathModel) break;
+          emitDrawPath(pathModel, drawLayer, drawLayer);
+          break;
+        }
+      }
+    }
+
+    const viewBox = computeViewBox(svgEl);
+    svgEl.setAttribute('viewBox', viewBox);
+    return refs;
+  }
+
+  // ── LAYER-BASED RENDERING (backward compat) ──────────
 
   // 3. Create layer groups (paint order: edges behind nodes)
   const edgeLayer = createSVGElement('g', { class: 'edge-layer' });

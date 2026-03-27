@@ -86,6 +86,65 @@ export function render(svgEl, config) {
   const globalOriginX = config.originX ?? 0;
   const globalOriginY = config.originY ?? 0;
 
+  // ── DRAW-ORDER MODE ──────────────────────────────────────────────────
+  // When config.draw is present, split entries by type and recurse with _drawOrder.
+  if (config.draw && !config._drawOrder) {
+    const drawStates = {};
+    const drawEdges = [];
+    const drawPlots = [];
+    const drawPaths = [];
+    const drawOrderSpec = [];
+
+    for (const entry of config.draw) {
+      switch (entry.type) {
+        case 'node': {
+          const id = entry.id;
+          const props = { ...entry };
+          delete props.type;
+          delete props.id;
+          drawStates[id] = props;
+          drawOrderSpec.push({ type: 'node', id });
+          break;
+        }
+        case 'edge': {
+          const idx = drawEdges.length;
+          const props = { ...entry };
+          delete props.type;
+          drawEdges.push(props);
+          drawOrderSpec.push({ type: 'edge', index: idx });
+          break;
+        }
+        case 'plot': {
+          const idx = drawPlots.length;
+          const props = { ...entry };
+          delete props.type;
+          drawPlots.push(props);
+          drawOrderSpec.push({ type: 'plot', index: idx });
+          break;
+        }
+        case 'path': {
+          const idx = drawPaths.length;
+          const props = { ...entry };
+          delete props.type;
+          drawPaths.push(props);
+          drawOrderSpec.push({ type: 'drawPath', index: idx });
+          break;
+        }
+      }
+    }
+
+    const subConfig = {
+      ...config,
+      states: drawStates,
+      edges: drawEdges,
+      plots: drawPlots,
+      paths: drawPaths,
+      _drawOrder: drawOrderSpec,
+    };
+    delete subConfig.draw;
+    return render(svgEl, subConfig);
+  }
+
   const states = { ...(config.states || {}) };
   const edges = config.edges || [];
   const plots = config.plots || [];
@@ -93,7 +152,7 @@ export function render(svgEl, config) {
   const paths = config.paths || [];
 
   const stateIds = Object.keys(states);
-  if (stateIds.length === 0 && plots.length === 0 && paths.length === 0) {
+  if (stateIds.length === 0 && plots.length === 0 && paths.length === 0 && !config._drawOrder) {
     return { nodes: {}, edges: [], labels: [], plots: [] };
   }
 
@@ -572,6 +631,7 @@ export function render(svgEl, config) {
     shadowFilters,
     plots: plotModels,
     drawPaths: drawPathModels,
+    drawOrder: config._drawOrder,
     seed: config.seed,
   };
 
