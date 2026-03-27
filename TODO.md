@@ -51,23 +51,9 @@ Style registry (`style/registry.js`) with `config.styles` for reusable named bun
 
 ---
 
-## TODO: KaTeX math rendering in node/label content
+## ✅ DONE (src-v2): KaTeX math rendering in node/label content
 
-Replace plain `<text>` content with KaTeX SVG output for proper math typesetting. Needed for: subscripts (`q_a`), fractions (`\frac{1-p}{p}`), and any LaTeX math in labels — common in econ/game theory automata.
-
-### Architecture
-
-1. **KaTeX renders to SVG paths** — full math coverage
-2. **Inject SVG into node `<g>`** — extract KaTeX's SVG output
-3. **Styling via SVG `fill` inheritance** — color, per-element coloring
-4. **Font size via KaTeX render option** — pass `fontSize` before rendering
-5. **Transforms via SVG `transform`** — native SVG, works with `Transform` class
-6. **`getBBox()` works** — replaces character-count text estimator
-
-### Dependencies
-
-- KaTeX (~300KB) optional — loaded when math content is detected
-- Falls back to plain `<text>` when not available
+`$...$` labels rendered via KaTeX `<foreignObject>`. Optional CDN dependency — falls back to plain text with `$` stripped. Works in nodes, edge labels, path inline labels. KaTeX-aware auto-sizing.
 
 ---
 
