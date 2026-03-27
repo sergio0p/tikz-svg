@@ -307,6 +307,40 @@ describe('render() with config.paths', () => {
     assert.ok(svg.querySelector('.draw-path'));
   });
 
+  it('applies config.scale to path coordinates', () => {
+    const svg = makeSVG();
+    render(svg, {
+      scale: 100,
+      states: {}, edges: [],
+      paths: [{ points: [{ x: 0, y: 0 }, { x: 2, y: 0 }] }],
+    });
+    const path = svg.querySelector('.draw-path');
+    // 2 * 100 = 200
+    assert.strictEqual(path.getAttribute('d'), 'M 0 0 L 200 0');
+  });
+
+  it('applies config.scale to plots', () => {
+    const svg = makeSVG();
+    render(svg, {
+      scale: 50,
+      states: { origin: { position: { x: 0, y: 0 }, label: '' } },
+      edges: [],
+      plots: [{
+        expr: 'x',
+        domain: [0, 1],
+        samples: 2,
+        scaleX: 1,
+        scaleY: 1,
+        offsetX: 0,
+        offsetY: 0,
+      }],
+    });
+    const plotPath = svg.querySelector('.plot-path');
+    const d = plotPath.getAttribute('d');
+    // x=1, y=1 with plotScale 1*globalScale 50 → SVG x=50, y=-50
+    assert.ok(d.includes('50'), 'scaled x should be 50');
+  });
+
   it('renders a closed path (cycle)', () => {
     const svg = makeSVG();
     render(svg, {

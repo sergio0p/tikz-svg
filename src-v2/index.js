@@ -78,6 +78,13 @@ export function render(svgEl, config) {
   // ── PHASE 1: PARSE ──────────────────────────────────────────────────
   // Validate and normalise the incoming configuration.
 
+  // Global scale: TikZ [scale=3.5] equivalent.
+  // Multiplies all path/plot coordinates. origin shifts the coordinate system.
+  const globalScaleX = config.scaleX ?? config.scale ?? 1;
+  const globalScaleY = config.scaleY ?? config.scale ?? 1;
+  const globalOriginX = config.originX ?? 0;
+  const globalOriginY = config.originY ?? 0;
+
   const states = { ...(config.states || {}) };
   const edges = config.edges || [];
   const plots = config.plots || [];
@@ -103,10 +110,10 @@ export function render(svgEl, config) {
         coordinates: plotDef.coordinates,
         handler: plotDef.handler ?? 'lineto',
       });
-      const sx = plotDef.scaleX ?? 1;
-      const sy = plotDef.scaleY ?? 1;
-      const ox = plotDef.offsetX ?? 0;
-      const oy = plotDef.offsetY ?? 0;
+      const sx = (plotDef.scaleX ?? 1) * globalScaleX;
+      const sy = (plotDef.scaleY ?? 1) * globalScaleY;
+      const ox = (plotDef.offsetX ?? 0) * globalScaleX + globalOriginX;
+      const oy = (plotDef.offsetY ?? 0) * globalScaleY + globalOriginY;
       quickPlotPoints.push(
         result.points
           .filter(p => !p.undefined && p.y !== undefined)
@@ -166,6 +173,19 @@ export function render(svgEl, config) {
       }
 
       resolvedStates[id].position = transformed;
+    }
+  }
+
+  // ── PHASE 2.6: APPLY GLOBAL SCALE ────────────────────────────────
+  // TikZ [scale=N] equivalent — scale all node positions.
+  if (globalScaleX !== 1 || globalScaleY !== 1 || globalOriginX !== 0 || globalOriginY !== 0) {
+    for (const id of stateIds) {
+      if (!resolvedStates[id]) continue;
+      const pos = resolvedStates[id].position;
+      resolvedStates[id].position = {
+        x: pos.x * globalScaleX + globalOriginX,
+        y: pos.y * globalScaleY + globalOriginY,
+      };
     }
   }
 
@@ -330,10 +350,10 @@ export function render(svgEl, config) {
       markIndices: style.markIndices,
     });
 
-    const sx = plotDef.scaleX ?? 1;
-    const sy = plotDef.scaleY ?? 1;
-    const ox = plotDef.offsetX ?? 0;
-    const oy = plotDef.offsetY ?? 0;
+    const sx = (plotDef.scaleX ?? 1) * globalScaleX;
+    const sy = (plotDef.scaleY ?? 1) * globalScaleY;
+    const ox = (plotDef.offsetX ?? 0) * globalScaleX + globalOriginX;
+    const oy = (plotDef.offsetY ?? 0) * globalScaleY + globalOriginY;
 
     const transformedPath = transformPlotPath(result.path, sx, sy, ox, oy);
 
@@ -363,7 +383,16 @@ export function render(svgEl, config) {
     const pathDef = paths[i];
     const style = resolvePathStyle(i, config);
 
-    const geom = buildPathGeometry(pathDef.points || [], {
+    // Apply global scale to path points (TikZ scale= equivalent)
+    const rawPoints = pathDef.points || [];
+    const scaledPoints = (globalScaleX === 1 && globalScaleY === 1 && globalOriginX === 0 && globalOriginY === 0)
+      ? rawPoints
+      : rawPoints.map(p => ({
+          x: p.x * globalScaleX + globalOriginX,
+          y: p.y * globalScaleY + globalOriginY,
+        }));
+
+    const geom = buildPathGeometry(scaledPoints, {
       cycle: pathDef.cycle ?? style.cycle,
     });
 

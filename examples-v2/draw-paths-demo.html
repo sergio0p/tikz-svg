@@ -40,8 +40,6 @@
   <script type="module">
     import { render } from '../src-v2/index.js';
 
-    const S = 250;
-
     // Piecewise utility function from TikZ:
     // ifthenelse(x<.25, -x^2, ifthenelse(x>=.25 && x<1.25, 1-(1.25-x)^2-x^2, 1-x^2))
     const e2 = 0.25;
@@ -51,28 +49,33 @@
       return 1 - x * x;
     };
 
-    // Demo 1: Economics-style diagram
+    // Demo 1: Economics-style diagram using scale (TikZ-unit coordinates)
+    // Original TikZ: [scale=3.5, domain=0:1.30]
+    // With scale=250, coordinate (1,0) → 250px
     render(document.getElementById('demo1'), {
+      scale: 250,
+      originX: 40,
+      originY: 40,
       states: {
-        ylabel: { position: { x: -80, y: 30 }, label: 'u₁(e₁,e₂|Δ)', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 11 },
-        xlabel: { position: { x: 340, y: 170 }, label: 'e₁', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 11 },
-        q1: { position: { x: 62, y: 195 }, label: '¼', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
-        q5: { position: { x: 156, y: 195 }, label: '⅝', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
-        q54: { position: { x: 312, y: 195 }, label: '⁵⁄₄', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
-        caption: { position: { x: 150, y: 340 }, label: 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¼', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 9 },
+        ylabel: { position: { x: -0.32, y: 0.12 }, label: 'u₁(e₁,e₂|Δ)', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 11 },
+        xlabel: { position: { x: 1.36, y: 0.68 }, label: 'e₁', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 11 },
+        q1: { position: { x: 0.25, y: 0.78 }, label: '¼', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
+        q5: { position: { x: 0.625, y: 0.78 }, label: '⅝', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
+        q54: { position: { x: 1.25, y: 0.78 }, label: '⁵⁄₄', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 10 },
+        caption: { position: { x: 0.6, y: 1.36 }, label: 'Δ=0, c(e)=e², v₁=v₂=1, e₂=¼', shape: 'rectangle', radius: 1, fill: 'none', stroke: 'none', fontSize: 9 },
       },
       edges: [],
       paths: [
-        // Y-axis
-        { points: [{ x: 0, y: 20 }, { x: 0, y: 310 }], arrow: '<->' },
-        // X-axis
-        { points: [{ x: -10, y: 170 }, { x: 330, y: 170 }], arrow: '<->' },
+        // Y-axis: \draw[<->] (0,0.3)--(0,-0.7) — but SVG y-down, so flip
+        { points: [{ x: 0, y: 0.08 }, { x: 0, y: 1.24 }], arrow: '<->' },
+        // X-axis: \draw[<->] (-0.1,0)--(1.30,0)
+        { points: [{ x: -0.04, y: 0.68 }, { x: 1.32, y: 0.68 }], arrow: '<->' },
         // Dotted verticals
-        { points: [{ x: 62, y: 185 }, { x: 62, y: 75 }], dotted: true },
-        { points: [{ x: 312, y: 310 }, { x: 312, y: 185 }], dotted: true },
-        { points: [{ x: 156, y: 170 }, { x: 156, y: 115 }], dotted: true },
+        { points: [{ x: 0.25, y: 0.74 }, { x: 0.25, y: 0.30 }], dotted: true },
+        { points: [{ x: 1.25, y: 1.24 }, { x: 1.25, y: 0.74 }], dotted: true },
+        { points: [{ x: 0.625, y: 0.68 }, { x: 0.625, y: 0.46 }], dotted: true },
         // Red thick segment [0, 1/4]
-        { points: [{ x: 0, y: 170 }, { x: 62, y: 170 }], stroke: 'red', thick: true },
+        { points: [{ x: 0, y: 0.68 }, { x: 0.25, y: 0.68 }], stroke: 'red', thick: true },
       ],
       plots: [{
         expr: u1,
@@ -80,10 +83,10 @@
         samples: 200,
         handler: 'smooth',
         stroke: 'blue',
-        scaleX: S,
-        scaleY: S,
+        scaleX: 1,
+        scaleY: 1,
         offsetX: 0,
-        offsetY: 170,
+        offsetY: 0.68,
       }],
     });
 

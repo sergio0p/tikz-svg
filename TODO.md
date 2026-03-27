@@ -77,29 +77,15 @@ Skill at `.claude/skills/tikz-svg-builder/`. Invoked via `/tikz-svg-builder`.
 
 ---
 
-## TODO: Free-form path drawing (config.paths)
+## ✅ DONE (src-v2): Free-form path drawing (config.paths)
 
-TikZ's `\draw` is the fundamental drawing primitive — arbitrary point-to-point lines, arrows on either/both ends, dashed/dotted styles, and inline node labels at any position. Our library currently routes everything through nodes or edges, which is too rigid for general figures. Need `config.paths` array:
-
-- Arbitrary point sequences: `points: [{x,y}, {x,y}, ...]`
-- Arrow tips on start/end: `arrow: '<->'`, `'->'`, `'<-'`
-- Line styles: `dashed`, `dotted`, `thick`, color
-- Inline node labels: `nodes: [{ at: 0.5, label: 'text', anchor: 'below' }]`
-- Coordinate transform support (scaleX/Y, offsetX/Y)
-
-This unlocks: axes, dotted guidelines, colored line segments, annotated figures. Critical for economics/game theory diagrams.
+TikZ `\draw` equivalent via `config.paths`: arbitrary point-to-point lines, arrows on either/both ends (`<->`, `->`, `<-`), `dashed`/`dotted`/`thick` styles, inline node labels (`nodes: [{ at, label, anchor }]`), `cycle` (closed paths). Global `config.scale` multiplies all path/plot/node coordinates (TikZ `[scale=N]` equivalent). JS functions accepted as plot expressions for piecewise logic.
 
 ---
 
 ## TODO: Text width / wrapping in node labels
 
-TikZ's `\node[text width=3cm] {long text...}` wraps text automatically. Our labels are single `<text>` lines with no wrapping. Need:
-
-- `textWidth` property on nodes — max width before wrapping
-- SVG `<text>` with multiple `<tspan>` elements for line breaks
-- Automatic word-wrap at textWidth boundary
-- Node shape resizes to fit wrapped text (or fixed width with text clipped)
-- Explicit `\\` line breaks in label strings
+TikZ's `\node[text width=3cm] {long text...}` wraps text automatically. Our labels are single `<text>` lines with no wrapping. Need `textWidth`, `<tspan>` word-wrap, explicit `\\` line breaks.
 
 ---
 
@@ -160,6 +146,7 @@ src-v2/
   geometry/edges.js     — straight, bent, loop edges + shorten
   geometry/arrows.js    — bridges arrow-tips registry to pipeline + auto-shortening
   geometry/labels.js    — node-based label positioning with anchor selection
+  geometry/paths.js     — free-form path geometry + label position interpolation
   decorations/index.js  — morphPath() pipeline + decoration style integration
   decorations/path-utils.js  — SVG path parsing, sampling, reconstruction
   decorations/random-steps.js — random steps decoration
@@ -176,7 +163,7 @@ src-v2/
 - SVG DOM via `document.createElementNS`
 - TikZ angles: 0°=east, CCW positive; SVG: y-down
 - Style cascade: DEFAULTS → stateStyle/edgeStyle → group → named style + per-element
-- 286 tests pass: `npm test` (uses `node --test`)
+- 377 tests pass: `npm test` (uses `node --test`)
 - TikZ-reference-first: always check PGF source before fixing visual issues
 
 ---
