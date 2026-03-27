@@ -1,6 +1,12 @@
 import { DEFAULTS } from '../core/constants.js';
 import { StyleRegistry, resolveGroupStyle } from './registry.js';
 
+/** TikZ named font sizes → pixel equivalents. */
+const FONT_SIZE_MAP = {
+  tiny: 7, scriptsize: 8, footnotesize: 9, small: 10,
+  normalsize: 12, large: 14, Large: 17, LARGE: 20, huge: 24, Huge: 28,
+};
+
 /**
  * Resolve effective style for a node.
  * Merge order: DEFAULTS → config.stateStyle → config.states[id] properties
@@ -27,6 +33,16 @@ export function resolveNodeStyle(nodeId, config) {
     labelColor: '#000000',
     className: null,
     decoration: null,
+    innerSep: DEFAULTS.innerSep,
+    minimumWidth: 0,
+    minimumHeight: 0,
+    textWidth: 0,
+    align: 'center',
+    anchor: null,
+    xshift: 0,
+    yshift: 0,
+    rotate: 0,
+    nodeScale: 1,
   };
   // Merge: DEFAULTS → stateStyle → group style → expanded named style + per-node
   const registry = new StyleRegistry(config.styles);
@@ -34,7 +50,12 @@ export function resolveNodeStyle(nodeId, config) {
   const groupStyle = resolveGroupStyle(config.groups, 'nodes', nodeId, registry);
   const nodeProps = config.states?.[nodeId] || {};
   const expandedProps = registry.expand(nodeProps);
-  return { ...base, ...stateStyle, ...groupStyle, ...expandedProps };
+  const merged = { ...base, ...stateStyle, ...groupStyle, ...expandedProps };
+  // Resolve named font sizes
+  if (typeof merged.fontSize === 'string') {
+    merged.fontSize = FONT_SIZE_MAP[merged.fontSize] ?? DEFAULTS.fontSize;
+  }
+  return merged;
 }
 
 /**

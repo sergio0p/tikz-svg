@@ -441,6 +441,45 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
 // ────────────────────────────────────────────
 
 /**
+ * Break a label string into lines for SVG rendering.
+ * Handles explicit '\\\\' breaks and word-wrap at textWidth.
+ * @param {string} label
+ * @param {number} textWidth - max width in px (0 = no wrapping)
+ * @param {number} fontSize
+ * @returns {string[]} lines
+ */
+function wrapText(label, textWidth, fontSize) {
+  const explicitLines = String(label).split('\\\\');
+  if (!textWidth || textWidth <= 0) return explicitLines;
+
+  const charWidth = fontSize * 0.6;
+  const maxChars = Math.max(1, Math.floor(textWidth / charWidth));
+
+  const result = [];
+  for (const line of explicitLines) {
+    const trimmed = line.trim();
+    if (trimmed.length <= maxChars) {
+      result.push(trimmed);
+      continue;
+    }
+    const words = trimmed.split(/\s+/);
+    let current = '';
+    for (const word of words) {
+      if (current.length === 0) {
+        current = word;
+      } else if ((current + ' ' + word).length <= maxChars) {
+        current += ' ' + word;
+      } else {
+        result.push(current);
+        current = word;
+      }
+    }
+    if (current.length > 0) result.push(current);
+  }
+  return result;
+}
+
+/**
  * Emit a <g> for a single node, containing its shape element(s) and label.
  * Supports multipart shapes: per-part fills (partFills), per-part labels
  * (label as array), and part alignment (partAlign).
@@ -451,10 +490,18 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
 function emitNode(id, node, prng) {
   const { center, geom, style, label, shape } = node;
 
+  let transformStr = `translate(${center.x}, ${center.y})`;
+  if (style.rotate) {
+    transformStr += ` rotate(${style.rotate})`;
+  }
+  if (style.nodeScale && style.nodeScale !== 1) {
+    transformStr += ` scale(${style.nodeScale})`;
+  }
+
   const g = createSVGElement('g', {
     class: 'node',
     id: `node-${id}`,
-    transform: `translate(${center.x}, ${center.y})`,
+    transform: transformStr,
   });
 
   if (style.className) {
@@ -567,16 +614,46 @@ function emitNode(id, node, prng) {
       g.appendChild(text);
     }
   } else if (label != null && label !== '') {
-    // Single label centered at origin
-    const text = createSVGElement('text', {
-      'text-anchor': 'middle',
-      'dominant-baseline': 'central',
-      'font-size': style.fontSize ?? DEFAULTS.fontSize,
-      'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
-      fill: style.labelColor ?? '#000000',
-    });
-    text.textContent = String(label);
-    g.appendChild(text);
+    const fontSize = style.fontSize ?? DEFAULTS.fontSize;
+    const textWidth = style.textWidth ?? 0;
+    const lines = wrapText(label, textWidth, fontSize);
+
+    if (lines.length > 1 || textWidth > 0) {
+      const align = style.align ?? 'center';
+      const textAnchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+      const xOffset = align === 'left' ? -(textWidth / 2) : align === 'right' ? (textWidth / 2) : 0;
+
+      const text = createSVGElement('text', {
+        'text-anchor': textAnchor,
+        'font-size': fontSize,
+        'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+        fill: style.labelColor ?? '#000000',
+      });
+
+      const lineHeight = fontSize * 1.3;
+      const totalHeight = lines.length * lineHeight;
+      const startY = -(totalHeight / 2) + lineHeight / 2;
+
+      for (let i = 0; i < lines.length; i++) {
+        const tspan = createSVGElement('tspan', {
+          x: xOffset,
+          dy: i === 0 ? startY : lineHeight,
+        });
+        tspan.textContent = lines[i];
+        text.appendChild(tspan);
+      }
+      g.appendChild(text);
+    } else {
+      const text = createSVGElement('text', {
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        'font-size': fontSize,
+        'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+        fill: style.labelColor ?? '#000000',
+      });
+      text.textContent = String(label);
+      g.appendChild(text);
+    }
   }
 
   return g;

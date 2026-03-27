@@ -235,9 +235,59 @@ export function render(svgEl, config) {
         break;
     }
 
+    // Apply minimum dimensions and innerSep
+    const innerSep = style.innerSep ?? DEFAULTS.innerSep;
+    const minHalfW = (style.minimumWidth ?? 0) / 2;
+    const minHalfH = (style.minimumHeight ?? 0) / 2;
+
+    if (geomConfig.halfWidth != null) {
+      geomConfig.halfWidth = Math.max(geomConfig.halfWidth + innerSep, minHalfW);
+      geomConfig.halfHeight = Math.max(geomConfig.halfHeight + innerSep, minHalfH);
+    } else if (geomConfig.rx != null) {
+      geomConfig.rx = Math.max(geomConfig.rx + innerSep, minHalfW);
+      geomConfig.ry = Math.max(geomConfig.ry + innerSep, minHalfH);
+    } else if (geomConfig.radius != null) {
+      const minR = Math.max(minHalfW, minHalfH);
+      geomConfig.radius = Math.max(geomConfig.radius + innerSep, minR);
+    }
+
     const geom = shape.savedGeometry(geomConfig);
 
     nodeRegistry[id] = { center, shape, geom, style };
+  }
+
+  // ── PHASE 3.5: APPLY xshift, yshift, AND anchor ────────────────────
+  for (const id of stateIds) {
+    const entry = nodeRegistry[id];
+    const style = entry.style;
+    let { x, y } = entry.center;
+
+    // anchor: shift center so named anchor lands at original position
+    if (style.anchor) {
+      try {
+        const anchorPt = entry.shape.anchor(style.anchor, {
+          ...entry.geom,
+          center: { x: 0, y: 0 },
+        });
+        x -= anchorPt.x;
+        y -= anchorPt.y;
+      } catch {
+        // Unknown anchor — ignore
+      }
+    }
+
+    // xshift/yshift
+    x += (style.xshift ?? 0);
+    y += (style.yshift ?? 0);
+
+    if (x !== entry.center.x || y !== entry.center.y) {
+      entry.center = { x, y };
+      entry.geom = entry.shape.savedGeometry({
+        ...entry.geom,
+        center: { x, y },
+        outerSep: entry.geom.outerSep,
+      });
+    }
   }
 
   // ── PHASE 4: COMPUTE EDGE GEOMETRY ──────────────────────────────────

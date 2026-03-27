@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Node Properties Demo</title>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Node Properties Demo</h1>
+
+  <div class="demo">
+    <h2>Text wrapping + align</h2>
+    <svg id="demo1" width="700" height="200"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>minimumWidth, minimumHeight</h2>
+    <svg id="demo2" width="700" height="150"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>anchor positioning</h2>
+    <svg id="demo3" width="400" height="200"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>rotate + scale + xshift/yshift</h2>
+    <svg id="demo4" width="500" height="250"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Named font sizes</h2>
+    <svg id="demo5" width="700" height="120"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    // Demo 1: Text wrapping
+    render(document.getElementById('demo1'), {
+      states: {
+        left: {
+          position: { x: 100, y: 100 }, label: 'This text wraps at 100px width with left alignment',
+          shape: 'rectangle', textWidth: 100, align: 'left',
+          fill: '#dbeafe', stroke: '#2563eb',
+        },
+        center: {
+          position: { x: 300, y: 100 }, label: 'Centered\\\\multi-line\\\\label',
+          shape: 'rectangle', textWidth: 100, align: 'center',
+          fill: '#fef3c7', stroke: '#f59e0b',
+        },
+        right: {
+          position: { x: 530, y: 100 }, label: 'Right-aligned wrapping text example here',
+          shape: 'rectangle', textWidth: 120, align: 'right',
+          fill: '#d1fae5', stroke: '#059669',
+        },
+      },
+      edges: [],
+    });
+
+    // Demo 2: Minimum dimensions
+    render(document.getElementById('demo2'), {
+      states: {
+        small: { position: { x: 80, y: 75 }, label: 'A', shape: 'rectangle', minimumWidth: 80, minimumHeight: 50, fill: '#ede9fe', stroke: '#7c3aed' },
+        tall: { position: { x: 220, y: 75 }, label: 'B', shape: 'rectangle', minimumWidth: 40, minimumHeight: 80, fill: '#fce7f3', stroke: '#ec4899' },
+        circle: { position: { x: 340, y: 75 }, label: 'C', minimumWidth: 60, fill: '#dbeafe', stroke: '#2563eb' },
+      },
+      edges: [],
+    });
+
+    // Demo 3: Anchor positioning (crosshair at 200,100)
+    render(document.getElementById('demo3'), {
+      states: {
+        box: {
+          position: { x: 200, y: 100 }, label: 'anchor=north west',
+          shape: 'rectangle', anchor: 'north west',
+          fill: '#fef3c7', stroke: '#f59e0b', radius: 15, fontSize: 10,
+        },
+      },
+      edges: [],
+      paths: [
+        { points: [{ x: 190, y: 100 }, { x: 210, y: 100 }], stroke: 'red' },
+        { points: [{ x: 200, y: 90 }, { x: 200, y: 110 }], stroke: 'red' },
+      ],
+    });
+
+    // Demo 4: Rotate + scale + shift
+    render(document.getElementById('demo4'), {
+      states: {
+        normal: { position: { x: 80, y: 125 }, label: 'normal', shape: 'rectangle', fill: '#e5e7eb', stroke: '#374151' },
+        rotated: { position: { x: 220, y: 125 }, label: 'rotate=30', shape: 'rectangle', rotate: 30, fill: '#dbeafe', stroke: '#2563eb' },
+        scaled: { position: { x: 370, y: 125 }, label: 'scale=1.5', shape: 'rectangle', nodeScale: 1.5, fill: '#d1fae5', stroke: '#059669' },
+      },
+      edges: [],
+    });
+
+    // Demo 5: Named font sizes
+    render(document.getElementById('demo5'), {
+      states: {
+        t: { position: { x: 50, y: 60 }, label: 'tiny', fontSize: 'tiny', shape: 'rectangle', fill: '#f3f4f6', stroke: '#9ca3af' },
+        s: { position: { x: 140, y: 60 }, label: 'scriptsize', fontSize: 'scriptsize', shape: 'rectangle', fill: '#f3f4f6', stroke: '#9ca3af' },
+        sm: { position: { x: 260, y: 60 }, label: 'small', fontSize: 'small', shape: 'rectangle', fill: '#f3f4f6', stroke: '#9ca3af' },
+        n: { position: { x: 370, y: 60 }, label: 'normalsize', fontSize: 'normalsize', shape: 'rectangle', fill: '#f3f4f6', stroke: '#9ca3af' },
+        l: { position: { x: 500, y: 60 }, label: 'large', fontSize: 'large', shape: 'rectangle', fill: '#f3f4f6', stroke: '#9ca3af' },
+        L: { position: { x: 620, y: 60 }, label: 'Large', fontSize: 'Large', shape: 'rectangle', fill: '#f3f4f6', stroke: '#9ca3af' },
+      },
+      edges: [],
+    });
+  </script>
+</body>
+</html>
