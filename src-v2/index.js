@@ -18,6 +18,8 @@ import './shapes/dart.js';
 import './shapes/circular-sector.js';
 import './shapes/cylinder.js';
 import './shapes/rectangle-split.js';
+import './shapes/circle-split.js';
+import './shapes/ellipse-split.js';
 
 import { getShape } from './shapes/shape.js';
 import { resolvePositions } from './positioning/positioning.js';
@@ -118,8 +120,12 @@ export function render(svgEl, config) {
         geomConfig.halfHeight = style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius;
         break;
       case 'ellipse':
+      case 'ellipse split':
         geomConfig.rx = style.rx ?? style.radius ?? DEFAULTS.nodeRadius;
         geomConfig.ry = style.ry ?? style.radius ?? DEFAULTS.nodeRadius;
+        break;
+      case 'circle split':
+        geomConfig.radius = style.radius ?? DEFAULTS.nodeRadius;
         break;
       case 'diamond':
       case 'kite':

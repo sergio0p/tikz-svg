@@ -132,6 +132,11 @@ export function createShape(name, spec) {
     },
   };
 
+  // Forward optional multipart support
+  if (spec.partRegions) {
+    shape.partRegions = spec.partRegions;
+  }
+
   registerShape(name, shape);
   return shape;
 }

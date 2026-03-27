@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Split Shapes Demo — TikZ-SVG</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background: #f5f5f5;
+      gap: 2rem;
+    }
+    h1 { font-size: 1.4rem; color: #333; margin: 0; }
+    h2 { font-size: 1rem; color: #555; margin: 0; }
+    .row { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; }
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    svg { width: 220px; height: 220px; }
+    .wide svg { width: 300px; }
+    code {
+      background: #f0f0f0;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Split Shapes — circle split &amp; ellipse split</h1>
+
+  <h2>Circle Split</h2>
+  <div class="row">
+    <div class="card">
+      <code>2 parts, per-part fills</code>
+      <svg id="cs2"></svg>
+    </div>
+    <div class="card">
+      <code>3 parts, per-part fills</code>
+      <svg id="cs3"></svg>
+    </div>
+    <div class="card">
+      <code>4 parts, per-part fills</code>
+      <svg id="cs4"></svg>
+    </div>
+    <div class="card">
+      <code>2 parts, no splits</code>
+      <svg id="cs-nosplit"></svg>
+    </div>
+  </div>
+
+  <h2>Ellipse Split</h2>
+  <div class="row">
+    <div class="card wide">
+      <code>2 parts, per-part fills</code>
+      <svg id="es2"></svg>
+    </div>
+    <div class="card wide">
+      <code>3 parts, left-aligned</code>
+      <svg id="es3"></svg>
+    </div>
+    <div class="card wide">
+      <code>4 parts, per-part fills</code>
+      <svg id="es4"></svg>
+    </div>
+  </div>
+
+  <h2>Rectangle Split (with partFills)</h2>
+  <div class="row">
+    <div class="card">
+      <code>3 parts, center-aligned</code>
+      <svg id="rs3"></svg>
+    </div>
+    <div class="card">
+      <code>3 parts, left-aligned</code>
+      <svg id="rs3l"></svg>
+    </div>
+    <div class="card">
+      <code>horizontal, 3 parts</code>
+      <svg id="rsh"></svg>
+    </div>
+  </div>
+
+  <h2>Connected Nodes (edges between split shapes)</h2>
+  <div class="row">
+    <div class="card wide">
+      <code>circle split → ellipse split</code>
+      <svg id="connected" style="width: 400px; height: 200px;"></svg>
+    </div>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    // ── Circle Split: 2 parts ──
+    render(document.getElementById('cs2'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'circle split',
+          radius: 35,
+          parts: 2,
+          partFills: ['#fee2e2', '#dbeafe'],
+          label: ['GDP', 'CPI'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Circle Split: 3 parts ──
+    render(document.getElementById('cs3'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'circle split',
+          radius: 40,
+          parts: 3,
+          partFills: ['#fecaca', '#bbf7d0', '#bfdbfe'],
+          label: ['Fiscal', 'Monetary', 'Trade'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+          fontSize: 11,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Circle Split: 4 parts ──
+    render(document.getElementById('cs4'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'circle split',
+          radius: 45,
+          parts: 4,
+          partFills: ['#fef3c7', '#fee2e2', '#d1fae5', '#dbeafe'],
+          label: ['Q1', 'Q2', 'Q3', 'Q4'],
+          stroke: '#92400e',
+          strokeWidth: 1.5,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Circle Split: 2 parts, no splits ──
+    render(document.getElementById('cs-nosplit'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'circle split',
+          radius: 35,
+          parts: 2,
+          drawSplits: false,
+          partFills: ['#dc2626', '#2563eb'],
+          label: ['Hot', 'Cold'],
+          labelColor: '#fff',
+          stroke: '#333',
+          strokeWidth: 1.5,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Ellipse Split: 2 parts ──
+    render(document.getElementById('es2'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'ellipse split',
+          rx: 55,
+          ry: 35,
+          parts: 2,
+          partFills: ['#fef9c3', '#e0e7ff'],
+          label: ['Supply', 'Demand'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Ellipse Split: 3 parts, left-aligned ──
+    render(document.getElementById('es3'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'ellipse split',
+          rx: 60,
+          ry: 40,
+          parts: 3,
+          partFills: ['#fee2e2', '#ecfdf5', '#eff6ff'],
+          partAlign: 'left',
+          label: ['Revenue', 'Expenses', 'Profit'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+          fontSize: 11,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Ellipse Split: 4 parts ──
+    render(document.getElementById('es4'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'ellipse split',
+          rx: 55,
+          ry: 45,
+          parts: 4,
+          partFills: ['#fce7f3', '#fef3c7', '#d1fae5', '#dbeafe'],
+          label: ['Spring', 'Summer', 'Fall', 'Winter'],
+          stroke: '#6b21a8',
+          strokeWidth: 1.5,
+          fontSize: 11,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Rectangle Split: 3 parts, center-aligned ──
+    render(document.getElementById('rs3'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'rectangle split',
+          halfWidth: 40,
+          halfHeight: 35,
+          parts: 3,
+          partFills: ['#dbeafe', '#fef3c7', '#d1fae5'],
+          label: ['Name', 'Age', 'City'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+          fontSize: 12,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Rectangle Split: 3 parts, left-aligned ──
+    render(document.getElementById('rs3l'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'rectangle split',
+          halfWidth: 45,
+          halfHeight: 35,
+          parts: 3,
+          partFills: ['#f0fdf4', '#f0fdf4', '#f0fdf4'],
+          partAlign: 'left',
+          label: ['+ name: str', '+ age: int', '+ city: str'],
+          stroke: '#166534',
+          strokeWidth: 1.5,
+          fontSize: 11,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Rectangle Split: horizontal, 3 parts ──
+    render(document.getElementById('rsh'), {
+      states: {
+        n: {
+          position: { x: 0, y: 0 },
+          shape: 'rectangle split',
+          halfWidth: 50,
+          halfHeight: 25,
+          parts: 3,
+          horizontal: true,
+          partFills: ['#dc2626', '#fff', '#2563eb'],
+          label: ['', '', ''],
+          stroke: '#333',
+          strokeWidth: 1.5,
+        },
+      },
+      edges: [],
+    });
+
+    // ── Connected: circle split → ellipse split ──
+    render(document.getElementById('connected'), {
+      states: {
+        a: {
+          position: { x: 0, y: 0 },
+          shape: 'circle split',
+          radius: 30,
+          parts: 2,
+          partFills: ['#fee2e2', '#dbeafe'],
+          label: ['IN', 'OUT'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+        },
+        b: {
+          position: { right: 'a' },
+          shape: 'ellipse split',
+          rx: 50,
+          ry: 30,
+          parts: 2,
+          partFills: ['#d1fae5', '#fef3c7'],
+          label: ['Process', 'Result'],
+          stroke: '#333',
+          strokeWidth: 1.5,
+          fontSize: 12,
+        },
+      },
+      nodeDistance: 120,
+      edges: [
+        { from: 'a', to: 'b', label: 'flow' },
+      ],
+      edgeStyle: {
+        stroke: '#333',
+        strokeWidth: 1.5,
+      },
+    });
+  </script>
+</body>
+</html>

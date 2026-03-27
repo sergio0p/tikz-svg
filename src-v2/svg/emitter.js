@@ -13,6 +13,9 @@ import { SeededRandom } from '../core/random.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+// Module-level counter for unique clip/def IDs across multiple render() calls
+let _nextClipId = 0;
+
 // ────────────────────────────────────────────
 // Internal helpers
 // ────────────────────────────────────────────
@@ -316,8 +319,10 @@ function emitLabelNode(edge) {
 
 /**
  * Emit a <g> for a single node, containing its shape element(s) and label.
+ * Supports multipart shapes: per-part fills (partFills), per-part labels
+ * (label as array), and part alignment (partAlign).
  * @param {string} id
- * @param {Object} node - { center, geom, style, label }
+ * @param {Object} node - { center, geom, style, label, shape }
  * @returns {SVGGElement}
  */
 function emitNode(id, node, prng) {
@@ -333,12 +338,74 @@ function emitNode(id, node, prng) {
     g.classList.add(style.className);
   }
 
-  // Determine shape and create element
-  const shapeEl = createShapeElement(geom, style, { shape, prng });
-  if (style.shadow && style._shadowFilterId) {
-    shapeEl.setAttribute('filter', `url(#${style._shadowFilterId})`);
+  const isMultipart = shape && shape.partRegions && style.partFills;
+
+  if (isMultipart) {
+    // ── Multipart rendering: per-part fills clipped to shape outline ──
+    // Use geom directly (don't re-run savedGeometry — avoids double outerSep).
+    // Shift center to origin since the <g> is translated.
+    const localGeom = { ...geom, center: { x: 0, y: 0 } };
+    const os = localGeom.outerSep ?? 0;
+    const regions = shape.partRegions(localGeom);
+    const partFills = style.partFills;
+
+    // Build clipPath using native SVG elements — more robust than path-based clips
+    const clipId = `clip-${id}-${_nextClipId++}`;
+    const localDefs = createSVGElement('defs');
+    const clipPathEl = createSVGElement('clipPath', { id: clipId });
+
+    // Check ellipse (rx/ry) BEFORE circle (radius) — ellipse is more specific,
+    // and style cascade may leak a `radius` property into the geom.
+    if (localGeom.rx != null && localGeom.ry != null) {
+      clipPathEl.appendChild(createSVGElement('ellipse', {
+        cx: 0, cy: 0, rx: localGeom.rx - os, ry: localGeom.ry - os,
+      }));
+    } else if (localGeom.halfWidth != null && localGeom.halfHeight != null) {
+      const hw = localGeom.halfWidth - os;
+      const hh = localGeom.halfHeight - os;
+      clipPathEl.appendChild(createSVGElement('rect', {
+        x: -hw, y: -hh, width: hw * 2, height: hh * 2,
+      }));
+    } else if (localGeom.radius != null) {
+      clipPathEl.appendChild(createSVGElement('circle', {
+        cx: 0, cy: 0, r: localGeom.radius - os,
+      }));
+    }
+
+    localDefs.appendChild(clipPathEl);
+    g.appendChild(localDefs);
+
+    // Draw filled rectangles for each part, clipped to the shape
+    const fillGroup = createSVGElement('g', { 'clip-path': `url(#${clipId})` });
+    for (let i = 0; i < regions.length; i++) {
+      const fillColor = partFills[i] ?? style.fill ?? DEFAULTS.nodeFill;
+      const r = regions[i].clipRect;
+      fillGroup.appendChild(createSVGElement('rect', {
+        x: r.x, y: r.y, width: r.width, height: r.height,
+        fill: fillColor, stroke: 'none',
+      }));
+    }
+    g.appendChild(fillGroup);
+
+    // Draw outline + split lines (stroke only, no fill) using the same localGeom
+    const stroke = style.stroke ?? DEFAULTS.nodeStroke;
+    const strokeWidth = style.strokeWidth ?? DEFAULTS.nodeStrokeWidth;
+    const outlineEl = createSVGElement('path', {
+      d: shape.backgroundPath(localGeom),
+      fill: 'none', stroke, 'stroke-width': strokeWidth,
+    });
+    if (style.shadow && style._shadowFilterId) {
+      outlineEl.setAttribute('filter', `url(#${style._shadowFilterId})`);
+    }
+    g.appendChild(outlineEl);
+  } else {
+    // ── Standard single-fill rendering ──
+    const shapeEl = createShapeElement(geom, style, { shape, prng });
+    if (style.shadow && style._shadowFilterId) {
+      shapeEl.setAttribute('filter', `url(#${style._shadowFilterId})`);
+    }
+    g.appendChild(shapeEl);
   }
-  g.appendChild(shapeEl);
 
   // Accepting (double border) — inner shape with inset
   if (style.accepting) {
@@ -347,8 +414,46 @@ function emitNode(id, node, prng) {
     g.appendChild(innerEl);
   }
 
-  // Label
-  if (label != null && label !== '') {
+  // Labels — support array (one per part) or single string
+  if (Array.isArray(label)) {
+    // Multipart labels: one <text> per part, positioned at each part's center.
+    // Alignment follows the shape boundary at each band's y-position.
+    if (shape && shape.partRegions) {
+      const localGeom = { ...geom, center: { x: 0, y: 0 } };
+      const regions = shape.partRegions(localGeom);
+      const partAlign = style.partAlign ?? 'center';
+      const innerPad = 4; // padding from edge for left/right alignment
+
+      for (let i = 0; i < label.length && i < regions.length; i++) {
+        if (label[i] == null || label[i] === '') continue;
+        const lc = regions[i].labelCenter;
+
+        let textAnchor, tx;
+        if (partAlign === 'left') {
+          textAnchor = 'start';
+          tx = regions[i].leftEdge + innerPad;
+        } else if (partAlign === 'right') {
+          textAnchor = 'end';
+          tx = regions[i].rightEdge - innerPad;
+        } else {
+          textAnchor = 'middle';
+          tx = lc.x;
+        }
+
+        const text = createSVGElement('text', {
+          x: tx, y: lc.y,
+          'text-anchor': textAnchor,
+          'dominant-baseline': 'central',
+          'font-size': style.fontSize ?? DEFAULTS.fontSize,
+          'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+          fill: style.labelColor ?? '#000000',
+        });
+        text.textContent = String(label[i]);
+        g.appendChild(text);
+      }
+    }
+  } else if (label != null && label !== '') {
+    // Single label centered at origin
     const text = createSVGElement('text', {
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
