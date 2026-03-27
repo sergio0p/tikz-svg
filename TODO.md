@@ -20,9 +20,16 @@ All edge types. Automata default: `shortenEnd: 1`. Source: `tikz.code.tex` lines
 
 TikZ-faithful angles, looseness=8, minDistance=20. Source: `tikzlibrarytopaths.code.tex` lines 364-375.
 
-## ✅ DONE (src-v2): 14 shapes total
+## ✅ DONE (src-v2): 16 shapes total
 
-circle, rectangle, ellipse (hand-rolled) + diamond, star, regular polygon, trapezium, semicircle, isosceles triangle, kite, dart, circular sector, cylinder, rectangle split (via `createShape` factory). Source: `pgflibraryshapes.geometric.code.tex`, `pgflibraryshapes.multipart.code.tex`.
+circle, rectangle, ellipse (hand-rolled) + diamond, star, regular polygon, trapezium, semicircle, isosceles triangle, kite, dart, circular sector, cylinder, rectangle split, circle split, ellipse split (via `createShape` factory). Source: `pgflibraryshapes.geometric.code.tex`, `pgflibraryshapes.multipart.code.tex`.
+
+### Multipart shapes (rectangle split, circle split, ellipse split)
+- **partFills**: array of fill colors, one per part — uses SVG clipPath + per-part rects
+- **partAlign**: `'left'` | `'center'` | `'right'` — text alignment following shape boundary curve
+- **Array labels**: `label: ['A', 'B', ...]` renders one text per part
+- **drawSplits**: toggle chord/divider line visibility
+- Shared helpers in `shapes/split-utils.js`
 
 ## ✅ DONE (src-v2): Generic emitter fallback
 
@@ -37,6 +44,10 @@ ArrowTipRegistry with 18 built-in tips + 9 aliases from `pgflibraryarrows.meta.c
 ## ✅ DONE (src-v2): Named styles, groups, and pipeline transforms
 
 Style registry (`style/registry.js`) with `config.styles` for reusable named bundles. Node/edge groups (`config.groups`) for shared styles. Global and per-group coordinate transforms (`config.transform`). Cascade: `DEFAULTS → stateStyle/edgeStyle → group → named style + per-element`.
+
+## ✅ DONE (src-v2): Decorations (path morphing)
+
+`decorations/` module with `morphPath()` pipeline — random steps + rounded corners. Supports edges and node borders via `decoration` style property. Seeded PRNG (`core/random.js`) for determinism. Built-in named style `wavy`. Source: `pgfmoduledecorations.code.tex`, `pgflibrarydecorations.pathmorphing.code.tex`.
 
 ---
 
@@ -60,17 +71,9 @@ Replace plain `<text>` content with KaTeX SVG output for proper math typesetting
 
 ---
 
-## TODO: Skill — tikz-svg library builder
+## ✅ DONE: Skill — tikz-svg library builder
 
-Create a Claude skill for **building and improving** the tikz-svg JS library. The current skill at `.claude/agents/tikz-to-svg.md` is for **using** the existing library. The builder skill should:
-
-- Guide through TikZ-reference-first development process
-- Know where PGF/TikZ source files are (`References/` + `/usr/local/texlive/2025/`)
-- Know the architecture (pipeline, shape registry, anchor system, Transform class, createShape factory)
-- Know about `src/` (live, don't edit) vs `src-v2/` (sandbox)
-- Know the test setup (`node --test`, jsdom)
-- Know about the LECWeb symlink dependency
-- Enforce: match TikZ behavior, don't invent ad-hoc fixes
+Skill at `.claude/skills/tikz-svg-builder/`. Invoked via `/tikz-svg-builder`.
 
 ---
 
@@ -108,6 +111,7 @@ src-v2/
   core/transform.js     — 2D affine transform matrix + scoped stack
   core/arrow-tips.js    — arrow tip registry + 18 built-in tip definitions + aliases
   core/path.js          — soft-path builder with segment model + SVG serialization
+  core/random.js        — seeded PRNG for deterministic decorations
   shapes/shape.js       — shape registry + createShape factory + polygonBorderPoint
   shapes/circle.js      — circle (hand-rolled, outerSep)
   shapes/rectangle.js   — rectangle (hand-rolled, outerSep)
@@ -122,15 +126,22 @@ src-v2/
   shapes/dart.js        — arrowhead shape (factory)
   shapes/circular-sector.js — pie slice (factory)
   shapes/cylinder.js    — 3D cylinder projection (factory)
-  shapes/rectangle-split.js — N-part divided rectangle (factory)
+  shapes/split-utils.js — shared helpers for multipart shapes
+  shapes/rectangle-split.js — N-part divided rectangle (factory, multipart)
+  shapes/circle-split.js    — N-part divided circle (factory, multipart)
+  shapes/ellipse-split.js   — N-part divided ellipse (factory, multipart)
   positioning/positioning.js — topological sort + direction table positioning
   geometry/edges.js     — straight, bent, loop edges + shorten
   geometry/arrows.js    — bridges arrow-tips registry to pipeline + auto-shortening
   geometry/labels.js    — node-based label positioning with anchor selection
+  decorations/index.js  — morphPath() pipeline + decoration style integration
+  decorations/path-utils.js  — SVG path parsing, sampling, reconstruction
+  decorations/random-steps.js — random steps decoration
+  decorations/rounded-corners.js — rounded corners decoration
   style/registry.js     — named style registry + group style resolution
   style/style.js        — resolveNodeStyle, resolveEdgeStyle, collectShadowFilters
-  svg/emitter.js        — SVG DOM construction + generic shape fallback
-  index.js              — 6-phase render pipeline (14 shapes registered)
+  svg/emitter.js        — SVG DOM construction + generic shape fallback + multipart rendering
+  index.js              — 6-phase render pipeline (16 shapes registered)
   automata/automata.js  — renderAutomaton() wrapper (shortenEnd: 1)
 ```
 
@@ -139,7 +150,7 @@ src-v2/
 - SVG DOM via `document.createElementNS`
 - TikZ angles: 0°=east, CCW positive; SVG: y-down
 - Style cascade: DEFAULTS → stateStyle/edgeStyle → group → named style + per-element
-- 191 tests pass: `npm test` (uses `node --test`)
+- 286 tests pass: `npm test` (uses `node --test`)
 - TikZ-reference-first: always check PGF source before fixing visual issues
 
 ---
