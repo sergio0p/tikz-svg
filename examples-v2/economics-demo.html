@@ -37,16 +37,16 @@
     import { render } from '../src-v2/index.js';
 
     // Invisible text node helper — TikZ \draw (x,y) node[anchor]{text}
-    // TikZ nodes have white fill by default — covers paths underneath
+    // Invisible text node — no fill, no stroke, auto-sized to text
     const txt = (x, y, label, anchor, size = 'scriptsize') => ({
       position: { x, y: -y },  // negate y: TikZ y-up → SVG y-down
       label,
       shape: 'rectangle',
-      fill: 'white',
+      fill: 'none',
       stroke: 'none',
       anchor,
       fontSize: size,
-      innerSep: 2,
+      innerSep: 1,
     });
 
     // ── Panel 1: e2 = 1/4 ──────────────────────────────────
