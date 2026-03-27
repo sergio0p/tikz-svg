@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: KaTeX Math Rendering Demo</title>
+  <!-- KaTeX CSS + JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <!-- mathjs for plot expressions -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "mathjs": "./mathjs-shim.js"
+    }
+  }
+  </script>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>KaTeX Math Rendering Demo</h1>
+  <p>Labels with <code>$...$</code> are rendered as LaTeX math via KaTeX.</p>
+
+  <div class="demo">
+    <h2>Math in nodes</h2>
+    <svg id="demo1" width="700" height="200"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Economics diagram with proper fractions</h2>
+    <svg id="demo2" width="500" height="400"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Mixed text and math</h2>
+    <svg id="demo3" width="600" height="150"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    // Demo 1: Math in nodes
+    render(document.getElementById('demo1'), {
+      states: {
+        frac: { position: { x: 80, y: 100 }, label: '$\\frac{1}{4}$', shape: 'circle', fill: '#dbeafe', stroke: '#2563eb' },
+        sub: { position: { x: 220, y: 100 }, label: '$e_1$', shape: 'circle', fill: '#d1fae5', stroke: '#059669' },
+        greek: { position: { x: 360, y: 100 }, label: '$\\alpha + \\beta$', shape: 'circle', fill: '#fef3c7', stroke: '#f59e0b' },
+        complex: { position: { x: 540, y: 100 }, label: '$\\frac{1-p}{p} \\cdot v$', shape: 'rectangle', fill: '#ede9fe', stroke: '#7c3aed' },
+      },
+      edges: [],
+    });
+
+    // Demo 2: Economics diagram with KaTeX fractions
+    const txt = (x, y, label, anchor, size = 12) => ({
+      position: { x, y: -y },
+      label,
+      shape: 'rectangle',
+      fill: 'none',
+      stroke: 'none',
+      anchor,
+      fontSize: size,
+      innerSep: 1,
+    });
+
+    const u1 = (x) => {
+      if (x < 0.25) return -x * x;
+      if (x < 1.25) return 1 - (1.25 - x) ** 2 - x * x;
+      return 1 - x * x;
+    };
+
+    render(document.getElementById('demo2'), {
+      scale: 200,
+      originX: 100,
+      originY: 90,
+      draw: [
+        { type: 'path', points: [{x:0,y:-0.3},{x:0,y:0.7}], arrow: '<->' },
+        { type: 'path', points: [{x:-0.1,y:0},{x:1.30,y:0}], arrow: '<->' },
+        { type: 'node', id: 'ylabel', ...txt(-0.4, 0.38, '$u_1(e_1,e_2|\\Delta)$', 'west') },
+        { type: 'node', id: 'xlabel', ...txt(1.32, 0, '$e_1$', 'west') },
+        { type: 'plot', expr: u1, domain: [0,1.3], samples: 200, handler: 'smooth', stroke: 'blue', scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 },
+        { type: 'node', id: 'u1end', ...txt(1.32, -0.69, '$u_1$', 'west') },
+        { type: 'path', points: [{x:0.25,y:0.1},{x:0.25,y:-0.3}], dotted: true },
+        { type: 'path', points: [{x:1.25,y:0.55},{x:1.25,y:0.1}], dotted: true },
+        { type: 'path', points: [{x:0.625,y:0},{x:0.625,y:-0.21875}], dotted: true },
+        { type: 'node', id: 'lbl1', ...txt(0.25, -0.1, '$\\frac{1}{4}$', 'north') },
+        { type: 'node', id: 'lbl2', ...txt(0.625, 0, '$\\frac{5}{8}$', 'north') },
+        { type: 'node', id: 'lbl3', ...txt(1.25, 0, '$\\frac{5}{4}$', 'north') },
+        { type: 'path', points: [{x:0,y:0},{x:0.25,y:0}], stroke: 'red', thick: true },
+        { type: 'node', id: 'caption', ...txt(0.6, -0.7, '$\\Delta=0,\\, c(e)=e^2,\\, v_1=v_2=1,\\, e_2=\\frac{1}{4}$', 'north', 10) },
+      ],
+    });
+
+    // Demo 3: Mixed text and math
+    render(document.getElementById('demo3'), {
+      states: {
+        a: { position: { x: 150, y: 75 }, label: 'Payoff: $\\frac{1-p}{p}$', shape: 'rectangle', fill: '#f3f4f6', stroke: '#374151' },
+        b: { position: { x: 430, y: 75 }, label: 'Cost: $c(e) = e^2$', shape: 'rectangle', fill: '#f3f4f6', stroke: '#374151' },
+      },
+      edges: [],
+    });
+  </script>
+</body>
+</html>

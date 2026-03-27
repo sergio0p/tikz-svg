@@ -1,18 +1,19 @@
 /**
  * Text dimension estimation for auto-sizing nodes.
  *
- * TikZ uses TeX's typesetting engine to measure exact text dimensions.
- * We use a character-width heuristic: 0.6 × fontSize per character.
- * This is sufficient for layout — exact glyph metrics require KaTeX (future).
+ * Uses KaTeX rendered dimensions when available, otherwise falls back
+ * to character-width heuristic (0.6 × fontSize per character).
  *
  * Source: pgfmoduleshapes.code.tex lines 938–972
  *   x = max(\wd\pgfnodeparttextbox + 2*innerSep, minimumWidth)
  */
 
+import { isMathLabel, stripMath, isKaTeXAvailable, createLabelContent } from './katex-renderer.js';
+
 /**
  * Estimate the pixel dimensions of a text label.
  *
- * @param {string|null} label - text content (supports '\\\\' line breaks)
+ * @param {string|null} label - text content (supports '\\\\' line breaks and $...$ math)
  * @param {number} fontSize - font size in px
  * @param {number} [textWidth=0] - if > 0, wrap text at this width
  * @returns {{ width: number, height: number }}
@@ -23,11 +24,20 @@ export function estimateTextDimensions(label, fontSize, textWidth = 0) {
   }
 
   const str = String(label);
+
+  // If math label and KaTeX available, use actual rendered dimensions
+  if (isMathLabel(str) && isKaTeXAvailable()) {
+    const content = createLabelContent(str, { fontSize, fontFamily: 'serif', color: '#000' });
+    return { width: content.width, height: content.height };
+  }
+
+  // Strip $ delimiters for character-count estimation
+  const measured = isMathLabel(str) ? stripMath(str) : str;
   const charWidth = fontSize * 0.6;
   const lineHeight = fontSize * 1.2;
 
   // Split on explicit line breaks
-  const explicitLines = str.split('\\\\');
+  const explicitLines = measured.split('\\\\');
 
   if (textWidth > 0) {
     // With textWidth: wrap lines and use textWidth as the box width

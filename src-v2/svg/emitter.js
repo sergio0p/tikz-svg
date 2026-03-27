@@ -10,6 +10,7 @@ import { DEFAULTS, DIRECTIONS } from '../core/constants.js';
 import { Transform } from '../core/transform.js';
 import { morphPath, shapeToSVGPath } from '../decorations/index.js';
 import { SeededRandom } from '../core/random.js';
+import { createLabelContent, createMathForeignObject } from '../core/katex-renderer.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -299,16 +300,30 @@ function emitLabelNode(edge) {
   });
   g.appendChild(rect);
 
-  // Text centered in rect
-  const text = createSVGElement('text', {
-    'text-anchor': 'middle',
-    'dominant-baseline': 'central',
-    'font-size': style.fontSize ?? DEFAULTS.fontSize,
-    'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
-    fill: style.labelColor ?? '#000000',
+  // Text or math centered in rect
+  const edgeFontSize = style.fontSize ?? DEFAULTS.fontSize;
+  const edgeLabelContent = createLabelContent(String(label), {
+    fontSize: edgeFontSize,
+    fontFamily: style.fontFamily ?? DEFAULTS.fontFamily,
+    color: style.labelColor ?? '#000000',
   });
-  text.textContent = String(label);
-  g.appendChild(text);
+
+  if (edgeLabelContent.type === 'math') {
+    g.appendChild(createMathForeignObject(edgeLabelContent.html, edgeLabelContent.width, edgeLabelContent.height, {
+      fontSize: edgeFontSize,
+      color: style.labelColor ?? '#000000',
+    }));
+  } else {
+    const textEl = createSVGElement('text', {
+      'text-anchor': 'middle',
+      'dominant-baseline': 'central',
+      'font-size': edgeFontSize,
+      'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+      fill: style.labelColor ?? '#000000',
+    });
+    textEl.textContent = edgeLabelContent.content;
+    g.appendChild(textEl);
+  }
 
   return g;
 }
@@ -420,18 +435,37 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
   if (labelNodes) {
     for (const ln of labelNodes) {
       const anchorInfo = ANCHOR_OFFSETS[ln.anchor] ?? ANCHOR_OFFSETS.right;
-      const text = createSVGElement('text', {
-        x: ln.x + anchorInfo.dx,
-        y: ln.y + anchorInfo.dy,
-        'text-anchor': anchorInfo.textAnchor,
-        'dominant-baseline': anchorInfo.baseline,
-        'font-size': ln.fontSize ?? DEFAULTS.fontSize,
-        'font-family': ln.fontFamily ?? DEFAULTS.fontFamily,
-        fill: ln.color ?? '#000',
-        class: 'draw-label',
+      const lnFontSize = ln.fontSize ?? DEFAULTS.fontSize;
+      const lnLabelContent = createLabelContent(String(ln.label), {
+        fontSize: lnFontSize,
+        fontFamily: ln.fontFamily ?? DEFAULTS.fontFamily,
+        color: ln.color ?? '#000',
       });
-      text.textContent = String(ln.label);
-      labelLayer.appendChild(text);
+
+      if (lnLabelContent.type === 'math') {
+        const mathG = createSVGElement('g', {
+          class: 'draw-label',
+          transform: `translate(${ln.x + anchorInfo.dx},${ln.y + anchorInfo.dy})`,
+        });
+        mathG.appendChild(createMathForeignObject(lnLabelContent.html, lnLabelContent.width, lnLabelContent.height, {
+          fontSize: lnFontSize,
+          color: ln.color ?? '#000',
+        }));
+        labelLayer.appendChild(mathG);
+      } else {
+        const text = createSVGElement('text', {
+          x: ln.x + anchorInfo.dx,
+          y: ln.y + anchorInfo.dy,
+          'text-anchor': anchorInfo.textAnchor,
+          'dominant-baseline': anchorInfo.baseline,
+          'font-size': lnFontSize,
+          'font-family': ln.fontFamily ?? DEFAULTS.fontFamily,
+          fill: ln.color ?? '#000',
+          class: 'draw-label',
+        });
+        text.textContent = lnLabelContent.content;
+        labelLayer.appendChild(text);
+      }
     }
   }
 }
@@ -616,43 +650,58 @@ function emitNode(id, node, prng) {
   } else if (label != null && label !== '') {
     const fontSize = style.fontSize ?? DEFAULTS.fontSize;
     const textWidth = style.textWidth ?? 0;
-    const lines = wrapText(label, textWidth, fontSize);
+    const labelStr = String(label);
+    const nodeLabelContent = createLabelContent(labelStr, {
+      fontSize,
+      fontFamily: style.fontFamily ?? DEFAULTS.fontFamily,
+      color: style.labelColor ?? '#000000',
+    });
 
-    if (lines.length > 1 || textWidth > 0) {
-      const align = style.align ?? 'center';
-      const textAnchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-      const xOffset = align === 'left' ? -(textWidth / 2) : align === 'right' ? (textWidth / 2) : 0;
-
-      const text = createSVGElement('text', {
-        'text-anchor': textAnchor,
-        'font-size': fontSize,
-        'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
-        fill: style.labelColor ?? '#000000',
-      });
-
-      const lineHeight = fontSize * 1.3;
-      const totalHeight = lines.length * lineHeight;
-      const startY = -(totalHeight / 2) + lineHeight / 2;
-
-      for (let i = 0; i < lines.length; i++) {
-        const tspan = createSVGElement('tspan', {
-          x: xOffset,
-          dy: i === 0 ? startY : lineHeight,
-        });
-        tspan.textContent = lines[i];
-        text.appendChild(tspan);
-      }
-      g.appendChild(text);
+    if (nodeLabelContent.type === 'math') {
+      g.appendChild(createMathForeignObject(nodeLabelContent.html, nodeLabelContent.width, nodeLabelContent.height, {
+        fontSize,
+        color: style.labelColor ?? '#000000',
+      }));
     } else {
-      const text = createSVGElement('text', {
-        'text-anchor': 'middle',
-        'dominant-baseline': 'central',
-        'font-size': fontSize,
-        'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
-        fill: style.labelColor ?? '#000000',
-      });
-      text.textContent = String(label);
-      g.appendChild(text);
+      const plainText = nodeLabelContent.content;
+      const lines = wrapText(plainText, textWidth, fontSize);
+
+      if (lines.length > 1 || textWidth > 0) {
+        const align = style.align ?? 'center';
+        const textAnchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+        const xOffset = align === 'left' ? -(textWidth / 2) : align === 'right' ? (textWidth / 2) : 0;
+
+        const text = createSVGElement('text', {
+          'text-anchor': textAnchor,
+          'font-size': fontSize,
+          'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+          fill: style.labelColor ?? '#000000',
+        });
+
+        const lineHeight = fontSize * 1.3;
+        const totalHeight = lines.length * lineHeight;
+        const startY = -(totalHeight / 2) + lineHeight / 2;
+
+        for (let i = 0; i < lines.length; i++) {
+          const tspan = createSVGElement('tspan', {
+            x: xOffset,
+            dy: i === 0 ? startY : lineHeight,
+          });
+          tspan.textContent = lines[i];
+          text.appendChild(tspan);
+        }
+        g.appendChild(text);
+      } else {
+        const text = createSVGElement('text', {
+          'text-anchor': 'middle',
+          'dominant-baseline': 'central',
+          'font-size': fontSize,
+          'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+          fill: style.labelColor ?? '#000000',
+        });
+        text.textContent = plainText;
+        g.appendChild(text);
+      }
     }
   }
 
