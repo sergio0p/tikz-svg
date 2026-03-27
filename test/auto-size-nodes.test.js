@@ -92,7 +92,7 @@ describe('auto-size nodes from text', () => {
     assert.ok(r > 25, `circle radius ${r} should auto-size`);
   });
 
-  it('explicit radius overrides auto-sizing', () => {
+  it('explicit radius grows to fit long text (no overflow)', () => {
     const svg = makeSVG();
     render(svg, {
       states: {
@@ -102,7 +102,20 @@ describe('auto-size nodes from text', () => {
     });
     const circle = svg.querySelector('#node-a circle');
     const r = parseFloat(circle.getAttribute('r'));
-    assert.ok(r < 25, `circle radius ${r} should respect explicit radius`);
+    assert.ok(r > 20, `circle radius ${r} should grow to fit text`);
+  });
+
+  it('explicit radius used when text is short', () => {
+    const svg = makeSVG();
+    render(svg, {
+      states: {
+        a: { position: { x: 100, y: 100 }, label: 'A', radius: 20, fill: 'white' },
+      },
+      edges: [],
+    });
+    const circle = svg.querySelector('#node-a circle');
+    const r = parseFloat(circle.getAttribute('r'));
+    assert.ok(r >= 20, `circle radius ${r} should use explicit radius for short text`);
   });
 
   it('auto-sized node with fill covers paths underneath', () => {
@@ -121,6 +134,28 @@ describe('auto-size nodes from text', () => {
     assert.strictEqual(rect.getAttribute('fill'), 'white');
     const w = parseFloat(rect.getAttribute('width'));
     assert.ok(w > 5, `rect width ${w} should cover text`);
+  });
+
+  it('explicit halfWidth grows to fit tall wrapped text', () => {
+    const svg = makeSVG();
+    render(svg, {
+      states: {
+        a: {
+          position: { x: 100, y: 100 },
+          label: 'Line one\\\\Line two\\\\Line three\\\\Line four',
+          shape: 'rectangle',
+          halfWidth: 30,
+          halfHeight: 10,
+          textWidth: 60,
+          fill: 'white',
+        },
+      },
+      edges: [],
+    });
+    const rect = svg.querySelector('#node-a rect');
+    const h = parseFloat(rect.getAttribute('height'));
+    // 4 lines at ~14*1.2 = 67.2 total, halfHeight should be > 10
+    assert.ok(h > 40, `rect height ${h} should grow to fit wrapped text`);
   });
 
   it('minimumWidth still works as floor with auto-sizing', () => {

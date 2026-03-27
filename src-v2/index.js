@@ -267,11 +267,18 @@ export function render(svgEl, config) {
     // Spread all style properties so any shape can pick what it needs.
     const geomConfig = { ...style, center, outerSep };
 
-    // Auto-size from text when no explicit dimensions given (TikZ default behavior)
+    // Compute text dimensions for auto-sizing / overflow prevention
     const label = states[id].label ?? id;
     const fontSize = style.fontSize ?? DEFAULTS.fontSize;
-    // Check if user explicitly set any dimension (not just inherited from defaults).
-    // We check the raw per-node + stateStyle props, not the resolved style which always has defaults.
+    const textDim = estimateTextDimensions(
+      Array.isArray(label) ? label.join(' ') : label,
+      fontSize,
+      style.textWidth ?? 0
+    );
+    const textHalfW = textDim.width / 2;
+    const textHalfH = textDim.height / 2;
+
+    // Check if user explicitly set any dimension
     const nodeProps = states[id] || {};
     const stateStyleProps = config.stateStyle || {};
     const hasExplicitSize = nodeProps.halfWidth != null || nodeProps.halfHeight != null
@@ -279,68 +286,41 @@ export function render(svgEl, config) {
       || stateStyleProps.halfWidth != null || stateStyleProps.halfHeight != null
       || stateStyleProps.rx != null || stateStyleProps.ry != null || stateStyleProps.radius != null;
 
-    if (hasExplicitSize) {
-      // Explicit dimensions: existing behavior
-      switch (shapeName) {
-        case 'rectangle':
-        case 'rectangle split':
-          geomConfig.halfWidth = style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius;
-          geomConfig.halfHeight = style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius;
-          break;
-        case 'ellipse':
-        case 'ellipse split':
-          geomConfig.rx = style.rx ?? style.radius ?? DEFAULTS.nodeRadius;
-          geomConfig.ry = style.ry ?? style.radius ?? DEFAULTS.nodeRadius;
-          break;
-        case 'diamond':
-        case 'kite':
-        case 'isosceles triangle':
-        case 'trapezium':
-          geomConfig.halfWidth = style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius;
-          geomConfig.halfHeight = style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius;
-          break;
-        case 'circle':
-        case 'circle split':
-        case 'semicircle':
-        case 'regular polygon':
-        case 'circular sector':
-        default:
-          geomConfig.radius = style.radius ?? DEFAULTS.nodeRadius;
-          break;
-      }
-    } else {
-      // Auto-size from text content (pgfmoduleshapes.code.tex lines 938–972)
-      const textDim = estimateTextDimensions(
-        Array.isArray(label) ? label.join(' ') : label,
-        fontSize,
-        style.textWidth ?? 0
-      );
-      const autoHalfW = textDim.width / 2;
-      const autoHalfH = textDim.height / 2;
-
-      switch (shapeName) {
-        case 'rectangle':
-        case 'rectangle split':
-        case 'diamond':
-        case 'kite':
-        case 'isosceles triangle':
-        case 'trapezium':
-          geomConfig.halfWidth = autoHalfW;
-          geomConfig.halfHeight = autoHalfH;
-          break;
-        case 'ellipse':
-        case 'ellipse split':
-          geomConfig.rx = autoHalfW;
-          geomConfig.ry = autoHalfH;
-          break;
-        case 'circle':
-        case 'circle split':
-        case 'semicircle':
-        case 'regular polygon':
-        case 'circular sector':
-        default:
-          geomConfig.radius = Math.max(autoHalfW, autoHalfH);
-          break;
+    // Set base dimensions: explicit or text-based
+    switch (shapeName) {
+      case 'rectangle':
+      case 'rectangle split':
+      case 'diamond':
+      case 'kite':
+      case 'isosceles triangle':
+      case 'trapezium':
+        geomConfig.halfWidth = hasExplicitSize
+          ? Math.max(style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
+          : textHalfW;
+        geomConfig.halfHeight = hasExplicitSize
+          ? Math.max(style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius, textHalfH)
+          : textHalfH;
+        break;
+      case 'ellipse':
+      case 'ellipse split':
+        geomConfig.rx = hasExplicitSize
+          ? Math.max(style.rx ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
+          : textHalfW;
+        geomConfig.ry = hasExplicitSize
+          ? Math.max(style.ry ?? style.radius ?? DEFAULTS.nodeRadius, textHalfH)
+          : textHalfH;
+        break;
+      case 'circle':
+      case 'circle split':
+      case 'semicircle':
+      case 'regular polygon':
+      case 'circular sector':
+      default: {
+        const textR = Math.max(textHalfW, textHalfH);
+        geomConfig.radius = hasExplicitSize
+          ? Math.max(style.radius ?? DEFAULTS.nodeRadius, textR)
+          : textR;
+        break;
       }
     }
 
