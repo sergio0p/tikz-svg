@@ -314,6 +314,60 @@ function emitLabelNode(edge) {
 }
 
 // ────────────────────────────────────────────
+// Plot emission
+// ────────────────────────────────────────────
+
+/**
+ * Emit SVG elements for a single plot (path + marks).
+ * @param {Object} plotModel - { path, style, marks, markPath, markFillMode }
+ * @param {SVGGElement} layer - target layer to append to
+ */
+function emitPlot(plotModel, layer) {
+  const { path, style, marks, markPath, markFillMode } = plotModel;
+
+  // Plot path
+  if (path) {
+    const attrs = {
+      d: path,
+      fill: style.fill ?? 'none',
+      stroke: style.stroke ?? '#2563eb',
+      'stroke-width': style.strokeWidth ?? 2,
+      class: 'plot-path',
+      'stroke-linejoin': 'round',
+    };
+    if (style.dashed) {
+      attrs['stroke-dasharray'] = typeof style.dashed === 'string' ? style.dashed : '6 4';
+    }
+    if (style.opacity != null && style.opacity < 1) {
+      attrs.opacity = style.opacity;
+    }
+    layer.appendChild(createSVGElement('path', attrs));
+  }
+
+  // Plot marks
+  if (marks && markPath) {
+    const markStroke = style.markStroke ?? style.stroke ?? '#2563eb';
+    const markFill = markFillMode === 'filled'
+      ? (style.markFill ?? style.stroke ?? '#2563eb')
+      : 'none';
+
+    for (const pt of marks) {
+      const g = createSVGElement('g', {
+        class: 'plot-mark',
+        transform: `translate(${pt.x},${pt.y})`,
+      });
+      g.appendChild(createSVGElement('path', {
+        d: markPath,
+        stroke: markStroke,
+        'stroke-width': 1.5,
+        fill: markFill,
+      }));
+      layer.appendChild(g);
+    }
+  }
+}
+
+// ────────────────────────────────────────────
 // Node emission
 // ────────────────────────────────────────────
 
@@ -339,15 +393,12 @@ function emitNode(id, node, prng) {
   }
 
   const isMultipart = shape && shape.partRegions && style.partFills;
+  // Compute localGeom and regions once for both fills and labels
+  const localGeom = isMultipart ? { ...geom, center: { x: 0, y: 0 } } : null;
+  const regions = isMultipart ? shape.partRegions(localGeom) : null;
 
   if (isMultipart) {
-    // ── Multipart rendering: per-part fills clipped to shape outline ──
-    // Use geom directly (don't re-run savedGeometry — avoids double outerSep).
-    // Shift center to origin since the <g> is translated.
-    const localGeom = { ...geom, center: { x: 0, y: 0 } };
     const os = localGeom.outerSep ?? 0;
-    const regions = shape.partRegions(localGeom);
-    const partFills = style.partFills;
 
     // Build clipPath using native SVG elements — more robust than path-based clips
     const clipId = `clip-${id}-${_nextClipId++}`;
@@ -378,7 +429,7 @@ function emitNode(id, node, prng) {
     // Draw filled rectangles for each part, clipped to the shape
     const fillGroup = createSVGElement('g', { 'clip-path': `url(#${clipId})` });
     for (let i = 0; i < regions.length; i++) {
-      const fillColor = partFills[i] ?? style.fill ?? DEFAULTS.nodeFill;
+      const fillColor = style.partFills[i] ?? style.fill ?? DEFAULTS.nodeFill;
       const r = regions[i].clipRect;
       fillGroup.appendChild(createSVGElement('rect', {
         x: r.x, y: r.y, width: r.width, height: r.height,
@@ -414,43 +465,37 @@ function emitNode(id, node, prng) {
     g.appendChild(innerEl);
   }
 
-  // Labels — support array (one per part) or single string
-  if (Array.isArray(label)) {
-    // Multipart labels: one <text> per part, positioned at each part's center.
-    // Alignment follows the shape boundary at each band's y-position.
-    if (shape && shape.partRegions) {
-      const localGeom = { ...geom, center: { x: 0, y: 0 } };
-      const regions = shape.partRegions(localGeom);
-      const partAlign = style.partAlign ?? 'center';
-      const innerPad = 4; // padding from edge for left/right alignment
+  if (Array.isArray(label) && regions) {
+    // Multipart labels: one <text> per part, aligned to the shape boundary
+    const partAlign = style.partAlign ?? 'center';
+    const innerPad = 4;
 
-      for (let i = 0; i < label.length && i < regions.length; i++) {
-        if (label[i] == null || label[i] === '') continue;
-        const lc = regions[i].labelCenter;
+    for (let i = 0; i < label.length && i < regions.length; i++) {
+      if (label[i] == null || label[i] === '') continue;
+      const lc = regions[i].labelCenter;
 
-        let textAnchor, tx;
-        if (partAlign === 'left') {
-          textAnchor = 'start';
-          tx = regions[i].leftEdge + innerPad;
-        } else if (partAlign === 'right') {
-          textAnchor = 'end';
-          tx = regions[i].rightEdge - innerPad;
-        } else {
-          textAnchor = 'middle';
-          tx = lc.x;
-        }
-
-        const text = createSVGElement('text', {
-          x: tx, y: lc.y,
-          'text-anchor': textAnchor,
-          'dominant-baseline': 'central',
-          'font-size': style.fontSize ?? DEFAULTS.fontSize,
-          'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
-          fill: style.labelColor ?? '#000000',
-        });
-        text.textContent = String(label[i]);
-        g.appendChild(text);
+      let textAnchor, tx;
+      if (partAlign === 'left') {
+        textAnchor = 'start';
+        tx = regions[i].leftEdge + innerPad;
+      } else if (partAlign === 'right') {
+        textAnchor = 'end';
+        tx = regions[i].rightEdge - innerPad;
+      } else {
+        textAnchor = 'middle';
+        tx = lc.x;
       }
+
+      const text = createSVGElement('text', {
+        x: tx, y: lc.y,
+        'text-anchor': textAnchor,
+        'dominant-baseline': 'central',
+        'font-size': style.fontSize ?? DEFAULTS.fontSize,
+        'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+        fill: style.labelColor ?? '#000000',
+      });
+      text.textContent = String(label[i]);
+      g.appendChild(text);
     }
   } else if (label != null && label !== '') {
     // Single label centered at origin
@@ -670,6 +715,7 @@ export function emitSVG(svgEl, resolved) {
     edges = [],
     shadowFilters = [],
     arrowDefs = [],
+    plots = [],
     seed,
   } = resolved;
 
@@ -699,6 +745,7 @@ export function emitSVG(svgEl, resolved) {
     nodes: {},
     edges: [],
     labels: [],
+    plots: [],
   };
 
   // 4. Emit edges
@@ -713,6 +760,11 @@ export function emitSVG(svgEl, resolved) {
       labelLayer.appendChild(labelEl);
       refs.labels.push(labelEl);
     }
+  }
+
+  // 5.5. Emit plots (in edge layer, behind nodes)
+  for (const plotModel of plots) {
+    emitPlot(plotModel, edgeLayer);
   }
 
   // 6. Emit nodes

@@ -73,6 +73,39 @@ export function resolveEdgeStyle(edgeIndex, config) {
 }
 
 /**
+ * Resolve effective style for a plot.
+ * Merge order: DEFAULTS → config.plotStyle → per-plot properties
+ * @param {number} plotIndex
+ * @param {Object} config - full config object
+ * @returns {Object} resolved style
+ */
+export function resolvePlotStyle(plotIndex, config) {
+  const base = {
+    stroke: DEFAULTS.plotColor,
+    strokeWidth: DEFAULTS.plotStrokeWidth,
+    fill: DEFAULTS.plotFill,
+    handler: DEFAULTS.plotHandler,
+    tension: undefined,
+    barWidth: undefined,
+    barShift: undefined,
+    baseline: undefined,
+    mark: undefined,
+    markSize: DEFAULTS.markSize,
+    markRepeat: undefined,
+    markPhase: undefined,
+    markIndices: undefined,
+    dashed: false,
+    opacity: 1,
+    className: null,
+  };
+  const registry = new StyleRegistry(config.styles);
+  const plotStyle = registry.expand(config.plotStyle || {});
+  const plotProps = config.plots?.[plotIndex] || {};
+  const expandedProps = registry.expand(plotProps);
+  return { ...base, ...plotStyle, ...expandedProps };
+}
+
+/**
  * Collect unique shadow filter definitions from resolved node styles.
  * shadow: true → DEFAULTS.shadowDefaults
  * shadow: { dx, dy, blur, color } → use as-is

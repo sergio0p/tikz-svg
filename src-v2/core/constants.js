@@ -37,4 +37,10 @@ export const DEFAULTS = {
   labelDistance: 0,
   shortenStart: 0,
   shortenEnd: 0,
+  // Plot defaults
+  plotColor: '#2563eb',
+  plotStrokeWidth: 2,
+  plotFill: 'none',
+  plotHandler: 'lineto',
+  markSize: 3,
 };

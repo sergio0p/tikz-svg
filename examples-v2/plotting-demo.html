@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Plotting Module Demo</title>
+  <!-- math.js loaded as global via UMD bundle, evaluator uses it via importmap shim -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "mathjs": "./mathjs-shim.js"
+    }
+  }
+  </script>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+    .tikz-equiv { color: #666; font-style: italic; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Plotting Module Demo</h1>
+  <p>TikZ-compatible function plotting: evaluator + handlers + marks.</p>
+
+  <!-- 1. Smooth sin(x) -->
+  <div class="demo">
+    <h2>Smooth sin(x) with marks</h2>
+    <p class="tikz-equiv">TikZ: <code>\draw plot[smooth, mark=*] function {sin(x)};</code></p>
+    <svg id="demo-sin" width="600" height="250"></svg>
+  </div>
+
+  <!-- 2. Sharp x^2 -->
+  <div class="demo">
+    <h2>Sharp plot: x² parabola</h2>
+    <p class="tikz-equiv">TikZ: <code>\draw plot[domain=-2:2, samples=25] (\x, {\x*\x});</code></p>
+    <svg id="demo-parabola" width="600" height="300"></svg>
+  </div>
+
+  <!-- 3. Const plot (staircase) -->
+  <div class="demo">
+    <h2>Const plot (staircase)</h2>
+    <p class="tikz-equiv">TikZ: <code>\draw plot[const plot] coordinates {...};</code></p>
+    <svg id="demo-staircase" width="600" height="250"></svg>
+  </div>
+
+  <!-- 4. Y-comb -->
+  <div class="demo">
+    <h2>Y-comb (stem plot)</h2>
+    <p class="tikz-equiv">TikZ: <code>\draw plot[ycomb, mark=*] function {sin(x)};</code></p>
+    <svg id="demo-ycomb" width="600" height="250"></svg>
+  </div>
+
+  <!-- 5. Y-bar -->
+  <div class="demo">
+    <h2>Y-bar chart</h2>
+    <p class="tikz-equiv">TikZ: <code>\draw plot[ybar] coordinates {...};</code></p>
+    <svg id="demo-ybar" width="600" height="250"></svg>
+  </div>
+
+  <!-- 6. Parametric circle -->
+  <div class="demo">
+    <h2>Parametric: circle</h2>
+    <p class="tikz-equiv">TikZ: <code>\draw plot[smooth, variable=\t, domain=0:360] ({cos(\t)},{sin(\t)});</code></p>
+    <svg id="demo-parametric" width="300" height="300"></svg>
+  </div>
+
+  <!-- 7. Multiple handlers comparison -->
+  <div class="demo">
+    <h2>Handler comparison: same data, different handlers</h2>
+    <svg id="demo-compare" width="600" height="300"></svg>
+  </div>
+
+  <script type="module">
+    import { plot } from '../src-v2/plotting/index.js';
+    import { getMarkFillMode } from '../src-v2/plotting/marks.js';
+
+    // ── Rendering helpers ────────────────────────────────
+    // The plot module returns Paths in math coords (y-up).
+    // For SVG (y-down), we flip y and apply scale+translate.
+
+    function renderPlot(svgEl, result, opts = {}) {
+      const {
+        stroke = '#2563eb',
+        fill = 'none',
+        strokeWidth = 2,
+        scaleX = 1,
+        scaleY = 1,
+        offsetX = 0,
+        offsetY = 0,
+        markStroke = '#2563eb',
+        markFill = '#2563eb',
+        markSize = 3,
+      } = opts;
+
+      const ns = 'http://www.w3.org/2000/svg';
+
+      // Draw the path
+      if (result.path && !result.path.isEmpty()) {
+        const pathEl = document.createElementNS(ns, 'path');
+        // Transform: scale x, flip and scale y, then translate
+        const transformed = transformPath(result.path, scaleX, scaleY, offsetX, offsetY);
+        pathEl.setAttribute('d', transformed);
+        pathEl.setAttribute('stroke', stroke);
+        pathEl.setAttribute('fill', fill);
+        pathEl.setAttribute('stroke-width', strokeWidth);
+        pathEl.setAttribute('stroke-linejoin', 'round');
+        svgEl.appendChild(pathEl);
+      }
+
+      // Draw marks
+      if (result.marks && result.markPath) {
+        const fillMode = opts.markName ? getMarkFillMode(opts.markName) : 'filled';
+        for (const pt of result.marks) {
+          const g = document.createElementNS(ns, 'g');
+          const sx = pt.x * scaleX + offsetX;
+          const sy = -pt.y * scaleY + offsetY;
+          g.setAttribute('transform', `translate(${sx},${sy})`);
+
+          const markEl = document.createElementNS(ns, 'path');
+          markEl.setAttribute('d', result.markPath.toSVGPath());
+          markEl.setAttribute('stroke', markStroke);
+          markEl.setAttribute('stroke-width', 1.5);
+          markEl.setAttribute('fill', fillMode === 'filled' ? markFill : 'none');
+          g.appendChild(markEl);
+          svgEl.appendChild(g);
+        }
+      }
+    }
+
+    function transformPath(path, sx, sy, ox, oy) {
+      // Transform each segment: x' = x*sx + ox, y' = -y*sy + oy
+      const parts = [];
+      for (const seg of path.segments) {
+        if (seg.type === 'Z') {
+          parts.push('Z');
+        } else if (seg.type === 'M' || seg.type === 'L') {
+          const x = seg.args[0] * sx + ox;
+          const y = -seg.args[1] * sy + oy;
+          parts.push(`${seg.type} ${r(x)} ${r(y)}`);
+        } else if (seg.type === 'C') {
+          const x1 = seg.args[0] * sx + ox, y1 = -seg.args[1] * sy + oy;
+          const x2 = seg.args[2] * sx + ox, y2 = -seg.args[3] * sy + oy;
+          const x3 = seg.args[4] * sx + ox, y3 = -seg.args[5] * sy + oy;
+          parts.push(`C ${r(x1)} ${r(y1)} ${r(x2)} ${r(y2)} ${r(x3)} ${r(y3)}`);
+        }
+      }
+      return parts.join(' ');
+    }
+
+    function r(v) { return Math.round(v * 100) / 100; }
+
+    function drawAxes(svgEl, opts) {
+      const { ox, oy, xLen, yLen, stroke = '#ccc', strokeWidth = 1 } = opts;
+      const ns = 'http://www.w3.org/2000/svg';
+      // X axis
+      const xAxis = document.createElementNS(ns, 'line');
+      xAxis.setAttribute('x1', ox - 10); xAxis.setAttribute('y1', oy);
+      xAxis.setAttribute('x2', ox + xLen); xAxis.setAttribute('y2', oy);
+      xAxis.setAttribute('stroke', stroke); xAxis.setAttribute('stroke-width', strokeWidth);
+      svgEl.appendChild(xAxis);
+      // Y axis
+      const yAxis = document.createElementNS(ns, 'line');
+      yAxis.setAttribute('x1', ox); yAxis.setAttribute('y1', oy + 10);
+      yAxis.setAttribute('x2', ox); yAxis.setAttribute('y2', oy - yLen);
+      yAxis.setAttribute('stroke', stroke); yAxis.setAttribute('stroke-width', strokeWidth);
+      svgEl.appendChild(yAxis);
+    }
+
+    // ── Demo 1: Smooth sin(x) with marks ──────────────
+    {
+      const svg = document.getElementById('demo-sin');
+      const result = plot('sin(x)', {
+        domain: [0, 2 * Math.PI],
+        samples: 50,
+        handler: 'smooth',
+        mark: '*',
+        markSize: 2.5,
+        markRepeat: 5,
+      });
+      drawAxes(svg, { ox: 40, oy: 125, xLen: 530, yLen: 110 });
+      renderPlot(svg, result, {
+        scaleX: 80, scaleY: 80, offsetX: 40, offsetY: 125,
+        markName: '*',
+      });
+    }
+
+    // ── Demo 2: Parabola ──────────────────────────────
+    {
+      const svg = document.getElementById('demo-parabola');
+      const result = plot('x^2', {
+        domain: [-2, 2],
+        samples: 41,
+        handler: 'lineto',
+      });
+      drawAxes(svg, { ox: 300, oy: 270, xLen: 260, yLen: 260 });
+      renderPlot(svg, result, {
+        scaleX: 120, scaleY: 60, offsetX: 300, offsetY: 270,
+        stroke: '#dc2626',
+      });
+    }
+
+    // ── Demo 3: Staircase ─────────────────────────────
+    {
+      const svg = document.getElementById('demo-staircase');
+      const result = plot(null, {
+        coordinates: [
+          { x: 0, y: 1 }, { x: 1, y: 3 }, { x: 2, y: 2 },
+          { x: 3, y: 5 }, { x: 4, y: 4 }, { x: 5, y: 2 },
+          { x: 6, y: 6 }, { x: 7, y: 3 },
+        ],
+        handler: 'constlineto',
+      });
+      // Also plot marks at data points
+      const withMarks = plot(null, {
+        coordinates: result.points,
+        handler: 'lineto',
+        mark: 'o',
+        markSize: 3,
+      });
+      drawAxes(svg, { ox: 50, oy: 210, xLen: 520, yLen: 200 });
+      renderPlot(svg, result, {
+        scaleX: 70, scaleY: 30, offsetX: 50, offsetY: 210,
+        stroke: '#059669',
+      });
+      // Overlay marks only
+      renderPlot(svg, withMarks, {
+        scaleX: 70, scaleY: 30, offsetX: 50, offsetY: 210,
+        stroke: 'transparent', markStroke: '#059669', markFill: 'white',
+        markName: 'o',
+      });
+    }
+
+    // ── Demo 4: Y-comb ────────────────────────────────
+    {
+      const svg = document.getElementById('demo-ycomb');
+      const result = plot('sin(x)', {
+        domain: [0, 2 * Math.PI],
+        samples: 20,
+        handler: 'ycomb',
+        mark: '*',
+        markSize: 3,
+      });
+      drawAxes(svg, { ox: 40, oy: 150, xLen: 530, yLen: 130 });
+      renderPlot(svg, result, {
+        scaleX: 80, scaleY: 80, offsetX: 40, offsetY: 150,
+        stroke: '#7c3aed', markStroke: '#7c3aed', markFill: '#7c3aed',
+        markName: '*',
+      });
+    }
+
+    // ── Demo 5: Y-bar ─────────────────────────────────
+    {
+      const svg = document.getElementById('demo-ybar');
+      const data = [
+        { x: 1, y: 3 }, { x: 2, y: 5 }, { x: 3, y: 2 },
+        { x: 4, y: 7 }, { x: 5, y: 4 }, { x: 6, y: 6 },
+      ];
+      const result = plot(null, {
+        coordinates: data,
+        handler: 'ybar',
+        barWidth: 0.6,
+      });
+      drawAxes(svg, { ox: 40, oy: 220, xLen: 530, yLen: 200 });
+      renderPlot(svg, result, {
+        scaleX: 70, scaleY: 28, offsetX: 40, offsetY: 220,
+        stroke: '#2563eb', fill: 'rgba(37,99,235,0.3)',
+      });
+    }
+
+    // ── Demo 6: Parametric circle ─────────────────────
+    {
+      const svg = document.getElementById('demo-parametric');
+      const result = plot('cos(t)', {
+        yExpr: 'sin(t)',
+        variable: 't',
+        domain: [0, 2 * Math.PI],
+        samples: 60,
+        handler: 'smooth',
+        mark: '+',
+        markSize: 3,
+        markRepeat: 6,
+      });
+      renderPlot(svg, result, {
+        scaleX: 100, scaleY: 100, offsetX: 150, offsetY: 150,
+        stroke: '#ea580c', markStroke: '#ea580c',
+        markName: '+',
+      });
+    }
+
+    // ── Demo 7: Handler comparison ────────────────────
+    {
+      const svg = document.getElementById('demo-compare');
+      const data = [
+        { x: 0, y: 0 }, { x: 1, y: 3 }, { x: 2, y: 1 },
+        { x: 3, y: 4 }, { x: 4, y: 2 }, { x: 5, y: 5 }, { x: 6, y: 1 },
+      ];
+      const handlers = [
+        { name: 'lineto', color: '#2563eb', label: 'sharp plot' },
+        { name: 'curveto', color: '#dc2626', label: 'smooth' },
+        { name: 'constlineto', color: '#059669', label: 'const plot' },
+      ];
+
+      drawAxes(svg, { ox: 50, oy: 260, xLen: 500, yLen: 240 });
+
+      // Legend
+      const ns = 'http://www.w3.org/2000/svg';
+      handlers.forEach((h, i) => {
+        const line = document.createElementNS(ns, 'line');
+        line.setAttribute('x1', 420); line.setAttribute('y1', 20 + i * 22);
+        line.setAttribute('x2', 450); line.setAttribute('y2', 20 + i * 22);
+        line.setAttribute('stroke', h.color); line.setAttribute('stroke-width', 2);
+        svg.appendChild(line);
+        const text = document.createElementNS(ns, 'text');
+        text.setAttribute('x', 455); text.setAttribute('y', 25 + i * 22);
+        text.setAttribute('font-size', '13'); text.setAttribute('fill', '#333');
+        text.textContent = h.label;
+        svg.appendChild(text);
+      });
+
+      for (const h of handlers) {
+        const result = plot(null, { coordinates: data, handler: h.name });
+        renderPlot(svg, result, {
+          scaleX: 70, scaleY: 40, offsetX: 50, offsetY: 260,
+          stroke: h.color,
+        });
+      }
+    }
+  </script>
+</body>
+</html>

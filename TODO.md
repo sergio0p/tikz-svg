@@ -77,6 +77,32 @@ Skill at `.claude/skills/tikz-svg-builder/`. Invoked via `/tikz-svg-builder`.
 
 ---
 
+## TODO: Free-form path drawing (config.paths)
+
+TikZ's `\draw` is the fundamental drawing primitive — arbitrary point-to-point lines, arrows on either/both ends, dashed/dotted styles, and inline node labels at any position. Our library currently routes everything through nodes or edges, which is too rigid for general figures. Need `config.paths` array:
+
+- Arbitrary point sequences: `points: [{x,y}, {x,y}, ...]`
+- Arrow tips on start/end: `arrow: '<->'`, `'->'`, `'<-'`
+- Line styles: `dashed`, `dotted`, `thick`, color
+- Inline node labels: `nodes: [{ at: 0.5, label: 'text', anchor: 'below' }]`
+- Coordinate transform support (scaleX/Y, offsetX/Y)
+
+This unlocks: axes, dotted guidelines, colored line segments, annotated figures. Critical for economics/game theory diagrams.
+
+---
+
+## TODO: Text width / wrapping in node labels
+
+TikZ's `\node[text width=3cm] {long text...}` wraps text automatically. Our labels are single `<text>` lines with no wrapping. Need:
+
+- `textWidth` property on nodes — max width before wrapping
+- SVG `<text>` with multiple `<tspan>` elements for line breaks
+- Automatic word-wrap at textWidth boundary
+- Node shape resizes to fit wrapped text (or fixed width with text clipped)
+- Explicit `\\` line breaks in label strings
+
+---
+
 ## TODO: Visual QA of new shapes
 
 Open demos with new shapes (diamond, star, polygon, etc.) in browser and verify rendering. Create demo HTML pages for the new shapes in `examples-v2/`.

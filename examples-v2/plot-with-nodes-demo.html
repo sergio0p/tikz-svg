@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Plot with Nodes Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "mathjs": "./mathjs-shim.js"
+    }
+  }
+  </script>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Plot + Nodes Integration Demo</h1>
+  <p>Function plots with labeled nodes placed at specific data points via <code>at: { plot, point }</code>.</p>
+
+  <div class="demo">
+    <h2>sin(x) with annotated peak and zero-crossing</h2>
+    <svg id="demo1" width="700" height="300"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Parabola with vertex and roots</h2>
+    <svg id="demo2" width="700" height="350"></svg>
+  </div>
+
+  <div class="demo">
+    <h2>Data coordinates with labeled points</h2>
+    <svg id="demo3" width="700" height="300"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    // Demo 1: sin(x) with annotations
+    render(document.getElementById('demo1'), {
+      states: {
+        peak: {
+          at: { plot: 0, point: 12 },
+          label: 'peak',
+          shape: 'rectangle',
+          radius: 12,
+          fill: '#fef3c7',
+          stroke: '#f59e0b',
+        },
+        zero: {
+          at: { plot: 0, point: 24 },
+          label: 'π',
+          shape: 'circle',
+          radius: 10,
+          fill: '#dbeafe',
+          stroke: '#2563eb',
+        },
+      },
+      edges: [],
+      plots: [{
+        expr: 'sin(x)',
+        domain: [0, 2 * Math.PI],
+        samples: 49,
+        handler: 'smooth',
+        stroke: '#2563eb',
+        mark: 'o',
+        markSize: 2,
+        markRepeat: 8,
+        scaleX: 80,
+        scaleY: 80,
+        offsetX: 80,
+        offsetY: 150,
+      }],
+    });
+
+    // Demo 2: Parabola x^2 - 4 with vertex and roots
+    render(document.getElementById('demo2'), {
+      states: {
+        vertex: {
+          at: { plot: 0, point: 10 },
+          label: 'vertex',
+          shape: 'rectangle',
+          radius: 14,
+          fill: '#fce7f3',
+          stroke: '#ec4899',
+        },
+        root1: {
+          at: { plot: 0, point: 0 },
+          label: 'x=-2',
+          shape: 'rectangle',
+          radius: 12,
+          fill: '#d1fae5',
+          stroke: '#059669',
+        },
+        root2: {
+          at: { plot: 0, point: 20 },
+          label: 'x=2',
+          shape: 'rectangle',
+          radius: 12,
+          fill: '#d1fae5',
+          stroke: '#059669',
+        },
+      },
+      edges: [],
+      plots: [{
+        expr: 'x^2 - 4',
+        domain: [-2, 2],
+        samples: 21,
+        handler: 'smooth',
+        stroke: '#dc2626',
+        scaleX: 120,
+        scaleY: 40,
+        offsetX: 350,
+        offsetY: 200,
+      }],
+    });
+
+    // Demo 3: Inline coordinates with labels
+    render(document.getElementById('demo3'), {
+      states: {
+        a: { at: { plot: 0, point: 0 }, label: 'Jan', shape: 'rectangle', radius: 12, fill: '#ede9fe', stroke: '#7c3aed' },
+        b: { at: { plot: 0, point: 2 }, label: 'Mar', shape: 'rectangle', radius: 12, fill: '#ede9fe', stroke: '#7c3aed' },
+        c: { at: { plot: 0, point: 5 }, label: 'Jun', shape: 'rectangle', radius: 12, fill: '#fef3c7', stroke: '#f59e0b' },
+      },
+      edges: [],
+      plots: [{
+        coordinates: [
+          { x: 0, y: 2 }, { x: 1, y: 3 }, { x: 2, y: 1 },
+          { x: 3, y: 4 }, { x: 4, y: 3 }, { x: 5, y: 5 },
+        ],
+        handler: 'smooth',
+        stroke: '#7c3aed',
+        mark: '*',
+        markSize: 3,
+        scaleX: 100,
+        scaleY: 40,
+        offsetX: 80,
+        offsetY: 250,
+      }],
+    });
+  </script>
+</body>
+</html>

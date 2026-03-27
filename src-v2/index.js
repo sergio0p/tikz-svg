@@ -26,9 +26,37 @@ import { resolvePositions } from './positioning/positioning.js';
 import { computeEdgePath } from './geometry/edges.js';
 import { getArrowDef } from './geometry/arrows.js';
 import { computeLabelNode } from './geometry/labels.js';
-import { resolveNodeStyle, resolveEdgeStyle, collectShadowFilters } from './style/style.js';
+import { resolveNodeStyle, resolveEdgeStyle, resolvePlotStyle, collectShadowFilters } from './style/style.js';
 import { emitSVG } from './svg/emitter.js';
 import { DEFAULTS } from './core/constants.js';
+import { plot as computePlot } from './plotting/index.js';
+import { getMarkFillMode } from './plotting/marks.js';
+
+function round4(v) {
+  const r = Math.round(v * 10000) / 10000;
+  return Object.is(r, -0) ? 0 : r;
+}
+
+/**
+ * Transform a Path's coordinates from math (y-up) to SVG (y-down) with scale+offset.
+ */
+function transformPlotPath(path, sx, sy, ox, oy) {
+  if (!path || path.isEmpty()) return '';
+  const parts = [];
+  for (const seg of path.segments) {
+    if (seg.type === 'Z') {
+      parts.push('Z');
+    } else if (seg.type === 'M' || seg.type === 'L') {
+      parts.push(`${seg.type} ${round4(seg.args[0] * sx + ox)} ${round4(-seg.args[1] * sy + oy)}`);
+    } else if (seg.type === 'C') {
+      const x1 = round4(seg.args[0] * sx + ox), y1 = round4(-seg.args[1] * sy + oy);
+      const x2 = round4(seg.args[2] * sx + ox), y2 = round4(-seg.args[3] * sy + oy);
+      const x3 = round4(seg.args[4] * sx + ox), y3 = round4(-seg.args[5] * sy + oy);
+      parts.push(`C ${x1} ${y1} ${x2} ${y2} ${x3} ${y3}`);
+    }
+  }
+  return parts.join(' ');
+}
 
 /**
  * Main render function. Orchestrates the full pipeline.
@@ -49,12 +77,55 @@ export function render(svgEl, config) {
   // ── PHASE 1: PARSE ──────────────────────────────────────────────────
   // Validate and normalise the incoming configuration.
 
-  const states = config.states || {};
+  const states = { ...(config.states || {}) };
   const edges = config.edges || [];
+  const plots = config.plots || [];
 
   const stateIds = Object.keys(states);
-  if (stateIds.length === 0) {
-    return { nodes: {}, edges: [], labels: [] };
+  if (stateIds.length === 0 && plots.length === 0) {
+    return { nodes: {}, edges: [], labels: [], plots: [] };
+  }
+
+  // Pre-resolve plot-based positions: nodes with at: { plot, point }
+  if (plots.length > 0) {
+    const quickPlotPoints = [];
+    for (const plotDef of plots) {
+      const result = computePlot(plotDef.expr ?? null, {
+        domain: plotDef.domain,
+        samples: plotDef.samples,
+        samplesAt: plotDef.samplesAt,
+        variable: plotDef.variable,
+        yExpr: plotDef.yExpr,
+        yRange: plotDef.yRange,
+        coordinates: plotDef.coordinates,
+        handler: plotDef.handler ?? 'lineto',
+      });
+      const sx = plotDef.scaleX ?? 1;
+      const sy = plotDef.scaleY ?? 1;
+      const ox = plotDef.offsetX ?? 0;
+      const oy = plotDef.offsetY ?? 0;
+      quickPlotPoints.push(
+        result.points
+          .filter(p => !p.undefined && p.y !== undefined)
+          .map(p => ({ x: p.x * sx + ox, y: -p.y * sy + oy }))
+      );
+    }
+
+    for (const id of stateIds) {
+      const at = states[id].at;
+      if (at && typeof at === 'object' && 'plot' in at && 'point' in at) {
+        const pts = quickPlotPoints[at.plot];
+        if (pts && pts[at.point] != null) {
+          const pos = { ...pts[at.point] };
+          // Directional offsets: above/below shift y, left/right shift x
+          if (at.above) pos.y -= at.above;
+          if (at.below) pos.y += at.below;
+          if (at.left) pos.x -= at.left;
+          if (at.right) pos.x += at.right;
+          states[id] = { ...states[id], position: pos };
+        }
+      }
+    }
   }
 
   // ── PHASE 2: RESOLVE POSITIONS ──────────────────────────────────────
@@ -124,9 +195,6 @@ export function render(svgEl, config) {
         geomConfig.rx = style.rx ?? style.radius ?? DEFAULTS.nodeRadius;
         geomConfig.ry = style.ry ?? style.radius ?? DEFAULTS.nodeRadius;
         break;
-      case 'circle split':
-        geomConfig.radius = style.radius ?? DEFAULTS.nodeRadius;
-        break;
       case 'diamond':
       case 'kite':
       case 'isosceles triangle':
@@ -135,6 +203,7 @@ export function render(svgEl, config) {
         geomConfig.halfHeight = style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius;
         break;
       case 'circle':
+      case 'circle split':
       case 'semicircle':
       case 'regular polygon':
       case 'circular sector':
@@ -231,6 +300,59 @@ export function render(svgEl, config) {
     }
   }
 
+  // ── PHASE 4.5: PROCESS PLOTS ──────────────────────────────────────
+  // Evaluate plot expressions, apply handlers, transform to SVG coords.
+
+  const plotModels = [];
+
+  for (let i = 0; i < plots.length; i++) {
+    const plotDef = plots[i];
+    const style = resolvePlotStyle(i, config);
+
+    const result = computePlot(plotDef.expr ?? null, {
+      domain: plotDef.domain,
+      samples: plotDef.samples,
+      samplesAt: plotDef.samplesAt,
+      variable: plotDef.variable,
+      yExpr: plotDef.yExpr,
+      yRange: plotDef.yRange,
+      coordinates: plotDef.coordinates,
+      handler: style.handler,
+      tension: style.tension,
+      barWidth: style.barWidth ?? plotDef.barWidth,
+      barShift: style.barShift ?? plotDef.barShift,
+      baseline: style.baseline ?? plotDef.baseline,
+      mark: style.mark,
+      markSize: style.markSize,
+      markRepeat: style.markRepeat,
+      markPhase: style.markPhase,
+      markIndices: style.markIndices,
+    });
+
+    const sx = plotDef.scaleX ?? 1;
+    const sy = plotDef.scaleY ?? 1;
+    const ox = plotDef.offsetX ?? 0;
+    const oy = plotDef.offsetY ?? 0;
+
+    const transformedPath = transformPlotPath(result.path, sx, sy, ox, oy);
+
+    let svgMarks = null;
+    if (result.marks) {
+      svgMarks = result.marks.map(pt => ({
+        x: pt.x * sx + ox,
+        y: -pt.y * sy + oy,
+      }));
+    }
+
+    plotModels.push({
+      path: transformedPath,
+      style,
+      marks: svgMarks,
+      markPath: result.markPath ? result.markPath.toSVGPath() : null,
+      markFillMode: style.mark ? getMarkFillMode(style.mark) : 'stroke',
+    });
+  }
+
   // ── PHASE 5: RESOLVE STYLES ─────────────────────────────────────────
 
   const resolvedNodeStyles = Object.fromEntries(
@@ -246,6 +368,7 @@ export function render(svgEl, config) {
     edges: [],
     arrowDefs,
     shadowFilters,
+    plots: plotModels,
     seed: config.seed,
   };
 
