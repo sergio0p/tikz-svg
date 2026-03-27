@@ -122,12 +122,18 @@ export function createLabelContent(label, opts) {
   if (isMathLabel(str) && isKaTeXAvailable()) {
     const html = renderMathToHTML(str);
     const dim = measureKaTeXHTML(html, fontSize);
+    // Estimate from TeX content length if measurement fails (e.g. hidden element)
+    const texContent = stripMath(str);
+    const estWidth = texContent.length * fontSize * 0.7;
+    const estHeight = fontSize * 1.8;
+    // Add padding to prevent clipping at foreignObject boundaries
+    const pad = fontSize * 0.4;
     return {
       type: 'math',
       content: str,
       html,
-      width: dim.width || fontSize * str.length * 0.5,
-      height: dim.height || fontSize * 1.2,
+      width: (dim.width > 0 ? dim.width : estWidth) + pad,
+      height: (dim.height > 0 ? dim.height : estHeight) + pad,
     };
   }
 
@@ -159,6 +165,7 @@ export function createMathForeignObject(html, width, height, opts) {
   fo.setAttribute('y', -height / 2);
   fo.setAttribute('width', width);
   fo.setAttribute('height', height);
+  fo.setAttribute('overflow', 'visible');
 
   const div = document.createElementNS(XHTML_NS, 'div');
   div.setAttribute('xmlns', XHTML_NS);
