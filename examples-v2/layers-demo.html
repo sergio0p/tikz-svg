@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>tikz-svg: Named Layers Demo</title>
+  <style>
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
+    .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+    .row { display: flex; gap: 2rem; }
+    svg { border: 1px solid #eee; display: block; margin: 0.5rem 0; }
+    h2 { color: #333; margin-top: 0; }
+    h3 { color: #555; margin-top: 0; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <h1>Named Layers Demo</h1>
+  <p>Same three overlapping circles — different layer assignments change which is on top.</p>
+
+  <div class="demo">
+    <h2>Three overlapping circles, different layer orders</h2>
+    <div class="row">
+      <div>
+        <h3>Red on top</h3>
+        <svg id="demo1" width="220" height="200"></svg>
+      </div>
+      <div>
+        <h3>Green on top</h3>
+        <svg id="demo2" width="220" height="200"></svg>
+      </div>
+      <div>
+        <h3>Blue on top</h3>
+        <svg id="demo3" width="220" height="200"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo">
+    <h2>Background shading behind a diagram</h2>
+    <svg id="demo4" width="400" height="250"></svg>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    function makeDemo(topName) {
+      const colors = { red: '#ef4444', green: '#22c55e', blue: '#3b82f6' };
+      const positions = { red: { x: 80, y: 80 }, green: { x: 130, y: 80 }, blue: { x: 105, y: 120 } };
+      const names = ['red', 'green', 'blue'];
+      const layerAssign = {};
+      const others = names.filter(n => n !== topName);
+      layerAssign[topName] = 'front';
+      layerAssign[others[0]] = 'back';
+      layerAssign[others[1]] = 'mid';
+
+      return {
+        layers: ['back', 'mid', 'front'],
+        draw: names.map(name => ({
+          type: 'node',
+          id: name,
+          layer: layerAssign[name],
+          position: positions[name],
+          label: name,
+          fill: colors[name],
+          stroke: 'white',
+          strokeWidth: 2,
+          radius: 40,
+          labelColor: 'white',
+          fontSize: 12,
+        })),
+      };
+    }
+
+    render(document.getElementById('demo1'), makeDemo('red'));
+    render(document.getElementById('demo2'), makeDemo('green'));
+    render(document.getElementById('demo3'), makeDemo('blue'));
+
+    // Demo 4: Background shading behind diagram
+    render(document.getElementById('demo4'), {
+      layers: ['background', 'main', 'labels'],
+      draw: [
+        { type: 'path', layer: 'background',
+          points: [{x:20,y:20},{x:380,y:20},{x:380,y:230},{x:20,y:230}],
+          cycle: true, fill: '#fef9c3', stroke: '#eab308' },
+        { type: 'path', points: [{x:50,y:200},{x:350,y:200}], arrow: '->' },
+        { type: 'path', points: [{x:50,y:220},{x:50,y:40}], arrow: '->' },
+        { type: 'node', id: 'xl', layer: 'labels', position: {x:355,y:200}, label: 'x', anchor: 'west' },
+        { type: 'node', id: 'yl', layer: 'labels', position: {x:50,y:35}, label: 'y', anchor: 'south' },
+        { type: 'node', id: 'title', layer: 'labels', position: {x:200,y:30}, label: 'Shaded background', fontSize: 16 },
+      ],
+    });
+  </script>
+</body>
+</html>

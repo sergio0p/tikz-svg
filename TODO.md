@@ -75,9 +75,9 @@ TikZ `\draw` equivalent via `config.paths`: arbitrary point-to-point lines, arro
 
 ---
 
-## TODO: Auto-sizing node backgrounds from text content
+## ✅ DONE (src-v2): Auto-sizing node backgrounds from text content
 
-TikZ nodes auto-size their background shape to fit text + innerSep. Our nodes have fixed dimensions unless explicit radius/halfWidth given. When `fill: 'white'`, auto-sized backgrounds cover paths underneath (tick labels over dotted lines). Plan: `docs/superpowers/plans/2026-03-27-auto-size-nodes.md`.
+Nodes auto-size to fit text + innerSep. Explicit dimensions serve as floor, not cap — shapes always grow to fit text (no overflow). Plan: `docs/superpowers/plans/2026-03-27-auto-size-nodes.md`.
 
 ---
 

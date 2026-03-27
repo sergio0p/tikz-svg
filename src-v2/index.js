@@ -103,7 +103,7 @@ export function render(svgEl, config) {
           delete props.type;
           delete props.id;
           drawStates[id] = props;
-          drawOrderSpec.push({ type: 'node', id });
+          drawOrderSpec.push({ type: 'node', id, layer: entry.layer });
           break;
         }
         case 'edge': {
@@ -111,7 +111,7 @@ export function render(svgEl, config) {
           const props = { ...entry };
           delete props.type;
           drawEdges.push(props);
-          drawOrderSpec.push({ type: 'edge', index: idx });
+          drawOrderSpec.push({ type: 'edge', index: idx, layer: entry.layer });
           break;
         }
         case 'plot': {
@@ -119,7 +119,7 @@ export function render(svgEl, config) {
           const props = { ...entry };
           delete props.type;
           drawPlots.push(props);
-          drawOrderSpec.push({ type: 'plot', index: idx });
+          drawOrderSpec.push({ type: 'plot', index: idx, layer: entry.layer });
           break;
         }
         case 'path': {
@@ -127,7 +127,7 @@ export function render(svgEl, config) {
           const props = { ...entry };
           delete props.type;
           drawPaths.push(props);
-          drawOrderSpec.push({ type: 'drawPath', index: idx });
+          drawOrderSpec.push({ type: 'drawPath', index: idx, layer: entry.layer });
           break;
         }
       }
@@ -140,6 +140,7 @@ export function render(svgEl, config) {
       plots: drawPlots,
       paths: drawPaths,
       _drawOrder: drawOrderSpec,
+      _layers: config.layers,
     };
     delete subConfig.draw;
     return render(svgEl, subConfig);
@@ -612,6 +613,7 @@ export function render(svgEl, config) {
     plots: plotModels,
     drawPaths: drawPathModels,
     drawOrder: config._drawOrder,
+    layers: config._layers,
     seed: config.seed,
   };
 

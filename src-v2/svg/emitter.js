@@ -866,7 +866,7 @@ function computeViewBox(svgEl, padding = 40) {
   const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
 
   // Walk all direct children of layers (initial arrows are in edge-layer)
-  for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer, .draw-layer')) {
+  for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer, .draw-layer, g[class^="layer-"]')) {
     for (const child of layer.children) {
       expandBBoxFromElement(bbox, child);
     }
@@ -913,6 +913,7 @@ export function emitSVG(svgEl, resolved) {
     plots = [],
     drawPaths = [],
     drawOrder,
+    layers,
     seed,
   } = resolved;
 
@@ -930,24 +931,21 @@ export function emitSVG(svgEl, resolved) {
 
   // ── ORDERED RENDERING (TikZ-faithful paint order) ──────────
   if (drawOrder) {
-    const drawLayer = createSVGElement('g', { class: 'draw-layer' });
-    svgEl.appendChild(drawLayer);
-
     const refs = { nodes: {}, edges: [], labels: [], plots: [] };
     const defaultArrowDef = arrowDefs.length > 0 ? arrowDefs[0] : null;
     const defaultArrowId = defaultArrowDef ? defaultArrowDef.id : null;
 
-    for (const item of drawOrder) {
+    /** Emit a single draw-order item into a target group. */
+    const emitItem = (item, target) => {
       switch (item.type) {
         case 'node': {
           const node = nodes[item.id];
           if (!node) break;
           const g = emitNode(item.id, node, prng);
-          drawLayer.appendChild(g);
+          target.appendChild(g);
           refs.nodes[item.id] = g;
           if (node.style.initial) {
-            const arrowPath = emitInitialArrow(node, defaultArrowId, defaultArrowDef);
-            drawLayer.appendChild(arrowPath);
+            target.appendChild(emitInitialArrow(node, defaultArrowId, defaultArrowDef));
           }
           break;
         }
@@ -955,11 +953,11 @@ export function emitSVG(svgEl, resolved) {
           const edge = edges[item.index];
           if (!edge) break;
           const pathEl = emitEdgePath(edge, prng);
-          drawLayer.appendChild(pathEl);
+          target.appendChild(pathEl);
           refs.edges.push(pathEl);
           const labelEl = emitLabelNode(edge);
           if (labelEl) {
-            drawLayer.appendChild(labelEl);
+            target.appendChild(labelEl);
             refs.labels.push(labelEl);
           }
           break;
@@ -967,15 +965,36 @@ export function emitSVG(svgEl, resolved) {
         case 'plot': {
           const plotModel = plots[item.index];
           if (!plotModel) break;
-          emitPlot(plotModel, drawLayer);
+          emitPlot(plotModel, target);
           break;
         }
         case 'drawPath': {
           const pathModel = drawPaths[item.index];
           if (!pathModel) break;
-          emitDrawPath(pathModel, drawLayer, drawLayer);
+          emitDrawPath(pathModel, target, target);
           break;
         }
+      }
+    };
+
+    if (layers && layers.length > 0) {
+      // ── NAMED LAYERS: per-layer <g> groups in declared order ──
+      const layerGroups = {};
+      for (const name of layers) {
+        const g = createSVGElement('g', { class: `layer-${name}` });
+        svgEl.appendChild(g);
+        layerGroups[name] = g;
+      }
+      for (const item of drawOrder) {
+        const target = layerGroups[item.layer ?? 'main'] ?? layerGroups[layers[0]];
+        emitItem(item, target);
+      }
+    } else {
+      // ── SINGLE DRAW-LAYER: declaration order, no named layers ──
+      const drawLayer = createSVGElement('g', { class: 'draw-layer' });
+      svgEl.appendChild(drawLayer);
+      for (const item of drawOrder) {
+        emitItem(item, drawLayer);
       }
     }
 
