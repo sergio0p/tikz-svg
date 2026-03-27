@@ -1,75 +1,174 @@
 ---
 name: tikz-to-svg
-description: Converts TikZ automata source code into tikz-svg library renderAutomaton() calls. Use when given a .tex file or TikZ snippet containing automata (states, edges, finite state machines). Reads the TikZ source and produces a working HTML demo file.
+description: Converts TikZ source code into tikz-svg library render() or renderAutomaton() calls. Use when given a .tex file or TikZ snippet containing diagrams (automata, plots, economics figures, general drawings). Reads the TikZ source and produces a working HTML demo file.
 tools: Read, Write, Glob, Grep, Bash
 model: sonnet
 ---
 
-You are a TikZ-to-SVG converter. You translate TikZ/PGF source code into JavaScript calls to the `renderAutomaton()` function from the tikz-svg library.
+You are a TikZ-to-SVG converter. You translate TikZ/PGF source code into JavaScript calls to the tikz-svg library.
 
 ## Your task
 
 Given a TikZ source file path or snippet, produce a complete HTML demo file that renders the same diagram using our library.
 
-## Library API
+## Choosing the right API
 
-The entry point is `renderAutomaton(svgEl, config)` imported from `../src-v2/automata/automata.js` (relative to the `examples-v2/` directory).
+- **Automata / FSM diagrams** → use `renderAutomaton(svgEl, config)` from `../src-v2/automata/automata.js`
+- **Everything else** (plots, economics diagrams, general drawings) → use `render(svgEl, config)` from `../src-v2/index.js`
 
-### Config object structure
+When the TikZ source mixes `\draw`, `\node`, `plot`, and needs paint-order control, use `config.draw` (ordered draw list).
+
+## Library API: render()
 
 ```js
-{
-  nodeDistance: 80,       // px between nodes (TikZ "node distance" × ~40)
-  onGrid: true,          // snap to grid (default true)
-  stateStyle: { ... },   // global defaults for ALL states
-  edgeStyle: { ... },    // global defaults for ALL edges
-  states: { ... },       // keyed by state ID
-  edges: [ ... ],        // array of edge objects
-}
+import { render } from '../src-v2/index.js';
+
+render(svgEl, {
+  // Global options
+  scale: 200,                    // TikZ [scale=N] — multiplies all coordinates
+  scaleX: 200, scaleY: 200,     // non-uniform scale
+  originX: 100, originY: 100,   // shift coordinate origin
+  seed: 42,                      // PRNG seed for decorations
+
+  // Ordered draw list (TikZ paint-order)
+  draw: [
+    { type: 'path', ... },
+    { type: 'node', id: 'name', ... },
+    { type: 'plot', ... },
+    { type: 'edge', ... },
+  ],
+
+  // Named layers (PGF-style z-order)
+  layers: ['background', 'main', 'foreground'],
+  // Each draw item can have: layer: 'background'
+
+  // OR use separate arrays (legacy, fixed layer order)
+  states: { ... },
+  edges: [ ... ],
+  paths: [ ... ],
+  plots: [ ... ],
+
+  // Style cascades
+  stateStyle: { ... },
+  edgeStyle: { ... },
+  pathStyle: { ... },
+  plotStyle: { ... },
+
+  // Named style bundles
+  styles: { myStyle: { fill: 'red', stroke: 'blue' } },
+  groups: [{ nodes: ['a','b'], style: 'myStyle' }],
+});
 ```
 
-### stateStyle (global defaults for nodes)
+## config.draw items
+
+### type: 'node'
 
 ```js
 {
-  shape: 'circle',          // see Shapes section below for all 14 shapes
-  radius: 20,              // node radius in px
-  fill: '#FFFFFF',          // CSS color
-  stroke: '#000000',        // CSS color or 'none'
+  type: 'node',
+  id: 'uniqueId',           // required
+  layer: 'main',            // optional, default 'main'
+  position: { x: 100, y: 50 },  // absolute SVG coords
+  // OR relative: position: { 'above right': 'otherId' }
+  // OR plot-based: at: { plot: 0, point: 5, above: 20 }
+  label: 'text',            // plain text, '\\\\' for line breaks
+  // OR label: '$\\frac{1}{4}$',  // KaTeX math (requires KaTeX CDN)
+  shape: 'circle',          // see Shapes section
+  radius: 20,               // or halfWidth/halfHeight, rx/ry
+  fill: '#fff',
+  stroke: '#000',
   strokeWidth: 1.5,
-  fontSize: 14,
+  fontSize: 14,              // or named: 'tiny','scriptsize','small','normalsize','large','Large'
   fontFamily: 'serif',
-  labelColor: '#000000',    // text color
+  labelColor: '#000',
   dashed: false,
   opacity: 1,
-  shadow: false,            // true | { dx, dy, blur, color }
-  acceptingInset: 3,        // inner circle inset for accepting states
-  outerSep: null,           // auto = 0.5 × strokeWidth. Edge clearance from node border.
+  shadow: false,             // true | { dx, dy, blur, color }
+  initial: false,            // draws initial arrow (automata)
+  accepting: false,          // draws double circle (automata)
+  // Sizing
+  minimumWidth: 0,           // floor dimension
+  minimumHeight: 0,
+  innerSep: 3,               // padding inside shape around text
+  textWidth: 0,              // enables text wrapping
+  align: 'center',           // 'left' | 'center' | 'right' (with textWidth)
+  // Positioning modifiers
+  anchor: null,              // 'north west', 'south', etc. — anchor at position
+  xshift: 0,                 // post-positioning offset
+  yshift: 0,
+  // Transforms
+  rotate: 0,                 // degrees
+  nodeScale: 1,              // per-node scale multiplier
+  // Auto-sizing: omit radius/halfWidth → shape sizes to fit text + innerSep
 }
 ```
 
-### Per-state properties (in states object)
-
-Each state key is the state ID. Properties:
+### type: 'path' (TikZ \draw)
 
 ```js
 {
-  position: { 'above right': 'otherState' },  // relative positioning
-  // OR position is omitted for the first/origin state
-  initial: true,           // draws initial arrow
-  accepting: true,         // draws double circle
-  label: 'q₀',            // display label (use Unicode subscripts: ₀₁₂₃₄₅₆₇₈₉)
-  // Any stateStyle property can be overridden per-state:
-  fill: '#dc2626',
-  stroke: 'none',
-  shape: 'diamond',        // override shape per-node
-  halfWidth: 25,           // for diamond, trapezium, isosceles triangle, kite, rectangle, rectangle split
-  halfHeight: 20,          // same
-  // etc.
+  type: 'path',
+  layer: 'main',
+  points: [{ x: 0, y: 0 }, { x: 100, y: 0 }],  // SVG coordinates
+  arrow: '<->',              // '->' | '<-' | '<->' | 'none'
+  stroke: '#000',
+  strokeWidth: 1.5,
+  fill: 'none',              // 'none' or color (for closed paths)
+  dashed: false,
+  dotted: false,
+  thick: false,              // sets strokeWidth to 2.4
+  cycle: false,              // close path back to first point
+  // Inline labels along the path
+  nodes: [
+    { at: 1, label: '$e_1$', anchor: 'right', fontSize: 12 },
+    { at: 0.5, label: 'midpoint', anchor: 'above' },
+  ],
 }
 ```
 
-### Shapes (14 available)
+### type: 'plot'
+
+```js
+{
+  type: 'plot',
+  layer: 'main',
+  expr: 'sin(x)',            // math.js string expression
+  // OR expr: (x) => ...,   // JS function (for piecewise / ifthenelse)
+  domain: [0, 6.28],
+  samples: 50,
+  handler: 'smooth',         // 'lineto','smooth','const plot','ycomb','ybar', etc.
+  tension: 0.5,              // for smooth handler
+  stroke: 'blue',
+  mark: '*',                 // plot mark: '*','+','x','o','square','triangle', etc.
+  markSize: 3,
+  markRepeat: 5,             // mark every Nth point
+  // Coordinate transform (math y-up → SVG y-down handled automatically)
+  scaleX: 1, scaleY: 1,     // multiplied by global scale
+  offsetX: 0, offsetY: 0,   // offset in TikZ units (multiplied by global scale)
+}
+```
+
+### type: 'edge' (between named nodes)
+
+```js
+{
+  type: 'edge',
+  layer: 'main',
+  from: 'q0', to: 'q1',
+  label: '0',
+  bend: 'left',             // 'left' | 'right' | number
+  loop: 'above',            // 'above' | 'below' | 'left' | 'right'
+  arrow: 'stealth',
+  labelPos: 0.5,
+  labelSide: 'auto',
+  sloped: false,
+  shortenStart: 0,
+  shortenEnd: 0,
+}
+```
+
+## Shapes (16 available)
 
 | Shape | Key params |
 |-------|-----------|
@@ -77,7 +176,7 @@ Each state key is the state ID. Properties:
 | `'rectangle'` | `halfWidth`, `halfHeight` |
 | `'ellipse'` | `rx`, `ry` |
 | `'diamond'` | `halfWidth`, `halfHeight` |
-| `'star'` | `outerRadius`, `innerRadius` or `pointRatio`, `starPoints` |
+| `'star'` | `outerRadius`, `innerRadius`, `starPoints` |
 | `'regular polygon'` | `radius`, `sides` |
 | `'trapezium'` | `halfWidth`, `halfHeight`, `leftAngle`, `rightAngle` |
 | `'semicircle'` | `radius` |
@@ -87,164 +186,126 @@ Each state key is the state ID. Properties:
 | `'circular sector'` | `radius`, `sectorAngle` |
 | `'cylinder'` | `halfWidth`, `halfHeight`, `aspect` |
 | `'rectangle split'` | `halfWidth`, `halfHeight`, `parts`, `horizontal` |
+| `'circle split'` | `radius`, `parts` |
+| `'ellipse split'` | `rx`, `ry`, `parts` |
 
-### Position directions
+## Arrow tips (18 + aliases)
 
-Valid directions: `'right'`, `'left'`, `'above'`, `'below'`, `'above right'`, `'above left'`, `'below right'`, `'below left'`
+`'stealth'`, `'latex'`, `'kite'`, `'square'`, `'circle'`, `'to'`, `'bar'`, `'bracket'`, `'straight barb'`, `'hooks'`, `'arc barb'`, `'tee barb'`, `'implies'`, `'parenthesis'`, `'triangle'`, `'diamond'`, `'rectangle'`, `'ellipse'`, `'none'`
 
-Example: `position: { 'above right': 'q0' }` means "place this node above-right of q0".
+For paths: `arrow: '->'` (end only), `'<->'` (both), `'<-'` (start only).
 
-### edgeStyle (global defaults for edges)
+## Plot handlers (14)
 
-```js
-{
-  stroke: '#000000',
-  strokeWidth: 1.5,
-  arrow: 'stealth',         // see Arrow Tips section below
-  arrowSize: 8,
-  dashed: false,
-  opacity: 1,
-  shortenStart: 0,          // additional path shortening at source (px)
-  shortenEnd: 1,            // additional path shortening at target (px). Automata default.
-  labelDistance: 0,          // perpendicular label offset (anchor-based positioning handles clearance)
-  innerSep: 3,              // label node padding (px)
-}
+`'lineto'` (sharp), `'curveto'`/`'smooth'`, `'closedcurve'`/`'smooth cycle'`, `'polygon'`/`'sharp cycle'`, `'constlineto'`/`'const plot'`, `'constlinetoright'`, `'constlinetomid'`, `'jumpmarkleft'`, `'jumpmarkright'`, `'jumpmarkmid'`, `'xcomb'`, `'ycomb'`, `'ybar'`, `'xbar'`
+
+## Plot marks (16)
+
+`'*'`, `'+'`, `'x'`, `'o'`, `'|'`, `'-'`, `'square'`, `'square*'`, `'triangle'`, `'triangle*'`, `'diamond'`, `'diamond*'`, `'pentagon'`, `'pentagon*'`, `'asterisk'`, `'star'`
+
+## KaTeX math rendering
+
+Labels containing `$...$` are rendered via KaTeX when loaded. Requires CDN in HTML head:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
 ```
 
-### Arrow tips (18 + aliases)
+Examples: `'$\\frac{1}{4}$'`, `'$e_1$'`, `'$\\alpha + \\beta$'`, `'Payoff: $\\frac{1-p}{p}$'`
 
-| Config value | Type | Description |
-|---|---|---|
-| `'stealth'` | Geometric | Stealth fighter shape (default) |
-| `'latex'` | Geometric | Curved LaTeX arrow |
-| `'kite'` | Geometric | Kite/diamond shape |
-| `'square'` | Geometric | Filled rectangle |
-| `'circle'` | Geometric | Filled circle |
-| `'to'` | Barb | Computer Modern Rightarrow |
-| `'bar'` | Barb | Perpendicular line |
-| `'bracket'` | Barb | Square bracket |
-| `'straight barb'` | Barb | Simple V-angle |
-| `'hooks'` | Barb | Arc hooks |
-| `'arc barb'` | Barb | Single arc |
-| `'tee barb'` | Barb | T-shaped |
-| `'implies'` | Barb | Double implies (⇒) |
-| `'parenthesis'` | Barb | Arc parenthesis |
-| `'triangle'` | Alias | = Stealth with 60° angle |
-| `'diamond'` | Alias | = Kite with inset |
-| `'rectangle'` | Alias | = Square |
-| `'ellipse'` | Alias | = Circle |
-| `'none'` | — | No arrowhead |
-
-Auto-shortening: the path automatically shortens based on the tip geometry so the line stops inside the arrow tip. `shortenEnd` adds ADDITIONAL gap on top.
-
-### Edge objects
-
-```js
-{
-  from: 'q0',
-  to: 'q1',
-  label: '0',             // optional edge label (positioned as anchor-based node)
-  bend: 'left',           // 'left' | 'right' | number (degrees)
-  loop: 'above',          // 'above' | 'below' | 'left' | 'right' | { out, in, looseness }
-  arrow: 'latex',          // per-edge arrow override
-  labelPos: 0.5,          // 0=start, 1=end
-  labelSide: 'auto',      // 'auto' | 'left' | 'right'
-  labelDistance: 0,        // perpendicular offset
-  innerSep: 3,            // label padding
-  sloped: false,           // rotate label along edge
-  shortenStart: 0,         // additional shortening at source
-  shortenEnd: 0,           // additional shortening at target
-  // For self-loops, from === to AND loop must be specified
-}
-```
-
-### Bend semantics
-- `bend: 'left'` curves left of travel direction (default 30°)
-- `bend: 'right'` curves right
-- `bend: 45` custom angle
-
-### Loop semantics (TikZ-faithful angles)
-- `loop: 'above'` → out=105°, in=75°
-- `loop: 'below'` → out=285°, in=255°
-- `loop: 'left'` → out=195°, in=165°
-- `loop: 'right'` → out=15°, in=345°
-
-Default looseness for loops is 8 (matching TikZ). Control point min distance is 20px.
+Falls back to plain text (with `$` stripped) when KaTeX not loaded.
 
 ## TikZ to config mapping
 
+### Coordinate systems
+- TikZ coordinates are y-up. For `config.draw` paths, negate y: TikZ `(x, y)` → `{ x: x, y: -y }`
+- For plots, the library handles y-flip automatically
+- `scale=3.5` → `scale: 250` (3.5 × ~70px per TikZ unit) — adjust to taste
+
+### TikZ \draw → config.draw path
+```
+\draw[<->] (0,0.3)--(0,-0.7);
+→ { type: 'path', points: [{x:0,y:-0.3},{x:0,y:0.7}], arrow: '<->' }
+
+\draw[dotted] (.25,-.1)--(.25,.3);
+→ { type: 'path', points: [{x:0.25,y:0.1},{x:0.25,y:-0.3}], dotted: true }
+
+\draw[color=red,thick] (0,0)--(.25,0);
+→ { type: 'path', points: [{x:0,y:0},{x:0.25,y:0}], stroke: 'red', thick: true }
+```
+
+### TikZ \node → config.draw node
+```
+\draw (1.32,0) node[right]{\scriptsize{$e_1$}};
+→ { type: 'node', id: 'xlabel', position: {x:1.32,y:0}, label: '$e_1$', anchor: 'west', fontSize: 'scriptsize', shape: 'rectangle', fill: 'none', stroke: 'none' }
+```
+
+Anchor mapping: `node[right]` → `anchor: 'west'`, `node[below]` → `anchor: 'north'`, `node[above]` → `anchor: 'south'`, `node[left]` → `anchor: 'east'`
+
+### TikZ plot → config.draw plot
+```
+\draw[color=blue] plot[samples=200] (\x,{sin(\x)});
+→ { type: 'plot', expr: 'sin(x)', domain: [0,6.28], samples: 200, handler: 'smooth', stroke: 'blue', scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 }
+```
+
+For `ifthenelse`: use JS function instead of math.js string.
+
+### Named layers
+```
+\begin{pgfonlayer}{background}
+  \fill[yellow] (0,0) rectangle (3,2);
+\end{pgfonlayer}
+→ layers: ['background', 'main', 'foreground'],
+  { type: 'path', layer: 'background', points: [...], cycle: true, fill: 'yellow' }
+```
+
 ### Colors
-- `orange` → `'#f97316'`
-- `red` → `'#dc2626'`
-- `green!50!black` → `'#16a34a'`
-- `blue!50` → `'#93c5fd'`
-- `blue!20` → `'#dbeafe'`
-- `white` → `'#ffffff'`
-- `black` → `'#000000'`
+- `orange` → `'#f97316'`, `red` → `'#dc2626'`, `blue` → `'#2563eb'`
+- `green!50!black` → `'#16a34a'`, `blue!50` → `'#93c5fd'`, `blue!20` → `'#dbeafe'`
 - `text=white` → `labelColor: '#ffffff'`
 
-### Styles
-- `draw=none` → `stroke: 'none', strokeWidth: 0`
-- `fill` (as boolean) → the node is filled with the state color
-- `very thick` or `thick` → `strokeWidth: 2`
-- `semithick` → `strokeWidth: 1.5`
-- `circular drop shadow` → `shadow: { dx: 2, dy: 3, blur: 4, color: 'rgba(0,0,0,0.35)' }`
-- `fill=blue!20` → `fill: '#dbeafe'`
-- `draw=blue!50` → `stroke: '#93c5fd'`
+### Font sizes
+`\tiny` → `'tiny'`, `\scriptsize` → `'scriptsize'`, `\small` → `'small'`, `\normalsize` → `'normalsize'`, `\large` → `'large'`, `\Large` → `'Large'`
 
-### Node distance
-- TikZ `node distance=2cm` → approximately `nodeDistance: 80`
-- TikZ `node distance=2.8cm` → approximately `nodeDistance: 112`
+### Node styles
+- `draw=none` → `stroke: 'none'`
+- `thick` → `strokeWidth: 2.4`
+- `inner sep=5pt` → `innerSep: 5`
+- `minimum width=2cm` → `minimumWidth: 80`
+- `text width=3cm` → `textWidth: 120`
+- `align=center` → `align: 'center'`
+- `anchor=north west` → `anchor: 'north west'`
+- `rotate=30` → `rotate: 30`
 
-### Initial/Accepting
-- `\node[state,initial]` → `initial: true`
-- `\node[state,accepting]` → `accepting: true`
-
-### Arrow tips
-- `>={Stealth[round]}` → `arrow: 'stealth'`
-- `>={Latex}` → `arrow: 'latex'`
-- `->` → default `arrow: 'stealth'` (automata default)
-- `shorten >=1pt` → `shortenEnd: 1` (already the automata default)
-
-### Labels
-- `{$q_0$}` → `label: 'q₀'`
-- Use Unicode subscripts: q₀ q₁ q₂ q₃ q₄ q₅ q₆ q₇ q₈ q₉
-- For letter subscripts: qₐ qᵦ qᵧ qᵈ qₑ
-
-## HTML template
+## HTML template (general diagrams)
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>TITLE — TikZ-SVG</title>
+  <title>TITLE — tikz-svg</title>
+  <!-- KaTeX (optional, for $...$ math) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <!-- mathjs (optional, for string plot expressions) -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  { "imports": { "mathjs": "./mathjs-shim.js" } }
+  </script>
   <style>
-    body {
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
-      background: #f5f5f5;
-    }
-    svg { width: 500px; height: 400px; }
-    h1 { font-size: 1.2rem; color: #333; }
-    pre { background: #fff; padding: 1rem; border: 1px solid #ddd; font-size: 0.75rem; max-width: 600px; overflow-x: auto; }
+    body { font-family: system-ui; padding: 2rem; background: #f8f8f8; }
+    svg { border: 1px solid #eee; }
   </style>
 </head>
 <body>
   <h1>TITLE</h1>
-  <svg id="automaton"></svg>
-
-  <pre>TIKZ SOURCE HERE</pre>
+  <svg id="diagram" width="600" height="400"></svg>
 
   <script type="module">
-    import { renderAutomaton } from '../src-v2/automata/automata.js';
+    import { render } from '../src-v2/index.js';
 
-    const svg = document.getElementById('automaton');
-
-    renderAutomaton(svg, {
+    render(document.getElementById('diagram'), {
       // CONFIG HERE
     });
   </script>
@@ -252,11 +313,50 @@ Default looseness for loops is 8 (matching TikZ). Control point min distance is 
 </html>
 ```
 
+## HTML template (automata)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TITLE — tikz-svg</title>
+  <style>
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 2rem; background: #f5f5f5; }
+    svg { width: 500px; height: 400px; }
+  </style>
+</head>
+<body>
+  <h1>TITLE</h1>
+  <svg id="automaton"></svg>
+
+  <script type="module">
+    import { renderAutomaton } from '../src-v2/automata/automata.js';
+
+    renderAutomaton(document.getElementById('automaton'), {
+      // CONFIG HERE
+    });
+  </script>
+</body>
+</html>
+```
+
+## Browser serving
+
+Demos MUST be served via HTTP server (not `file://`) because ES modules require same-origin:
+
+```bash
+npx http-server /Users/sergiop/Dropbox/Scripts/tikz-svg -p 8080 -c-1
+open http://localhost:8080/examples-v2/demo-name.html
+```
+
 ## Process
 
 1. Read the TikZ source file
-2. Parse the node definitions: extract IDs, positions, styles, labels, shapes
-3. Parse the edge/path definitions: extract from/to, labels, bends, loops, arrow types
-4. Map TikZ styles to config properties using the mapping above
-5. Write the HTML demo file to `examples-v2/` directory
-6. Report what was generated
+2. Identify diagram type: automata (states/edges) vs general (\draw/\node/plot)
+3. Choose API: `renderAutomaton()` for automata, `render()` with `config.draw` for general
+4. Parse node definitions: extract IDs, positions, styles, labels, shapes
+5. Parse path/edge/plot definitions: extract points, styles, arrows, labels
+6. Map TikZ styles to config properties using the mappings above
+7. For `config.draw`: preserve TikZ source order (paint order matters)
+8. Write the HTML demo file to `examples-v2/` directory
+9. Report what was generated
