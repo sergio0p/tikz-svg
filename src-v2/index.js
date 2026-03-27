@@ -390,6 +390,8 @@ export function render(svgEl, config) {
         id: `arrow-start-${style.arrowStart}-${style.arrowSize ?? DEFAULTS.arrowSize}-${(style.stroke ?? DEFAULTS.pathColor).replace('#', '')}`,
       });
       if (def) {
+        // SVG marker-start needs auto-start-reverse to point backward
+        def.orient = 'auto-start-reverse';
         if (!arrowDefsMap.has(def.id)) arrowDefsMap.set(def.id, def);
         arrowStartId = def.id;
       }
