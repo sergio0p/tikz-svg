@@ -101,3 +101,15 @@ Every visual bug was solved by reading PGF source code, not by guessing:
 The final adjustment was not a library bug at all: `nodeDistance: 90` (from 80) matched TikZ's ratio of `radius / nodeDistance = 22%`. Native TikZ uses `node distance=2cm` (~56.7pt) with state radius ~12.5pt. Our `radius=20 / nodeDistance=80 = 25%` was proportionally too cramped.
 
 **Lesson:** After fixing all library bugs, the remaining visual mismatch may be a demo configuration issue, not a code defect.
+
+---
+
+## Likely to reappear
+
+These issues are not bugs in the current code but traps that will bite again in future development:
+
+1. **mathjs shim on new demos** — Every new `examples-v2/*.html` needs the importmap. Silent failure (blank page). Will bite every time someone creates a demo.
+2. **KaTeX CDN on demos using `$...$`** — Same pattern. Easy to forget, no error message.
+3. **SVG y-down in new geometry code** — Any future rotation, cross product, or perpendicular computation could get the sign wrong. The convention is non-obvious.
+4. **New shapes missing innerSep pattern** — If a new shape type is added to the `index.js` switch, someone might write `radius + innerSep` instead of `max(radius, textR + innerSep)`.
+5. **nodeDistance proportions in demos** — Future demos might use 80 and get cramped. The 22% ratio lesson lives only in the spec doc.
