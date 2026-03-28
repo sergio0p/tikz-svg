@@ -15,7 +15,7 @@ export const DIRECTIONS = {
 };
 
 export const DEFAULTS = {
-  nodeDistance: 60,
+  nodeDistance: 90,   // TikZ: 2cm with radius ~12.5pt ≈ 22% ratio; 20/90 ≈ 22%
   onGrid: true,
   nodeRadius: 20,
   fontSize: 14,
