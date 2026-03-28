@@ -112,4 +112,27 @@ These issues are not bugs in the current code but traps that will bite again in 
 2. **KaTeX CDN on demos using `$...$`** — Same pattern. Easy to forget, no error message.
 3. **SVG y-down in new geometry code** — Any future rotation, cross product, or perpendicular computation could get the sign wrong. The convention is non-obvious.
 4. **New shapes missing innerSep pattern** — If a new shape type is added to the `index.js` switch, someone might write `radius + innerSep` instead of `max(radius, textR + innerSep)`.
-5. **nodeDistance proportions in demos** — Future demos might use 80 and get cramped. The 22% ratio lesson lives only in the spec doc.
+5. **~~nodeDistance proportions~~** — ~~Future demos might use 80 and get cramped.~~ **Resolved:** `DEFAULTS.nodeDistance` changed from 60 to 90 in `constants.js` (commit `50355ec`). Now baked into the library default.
+
+---
+
+## Changes made (2026-03-27)
+
+Summary of all code changes from this QA session:
+
+| File | Change |
+|------|--------|
+| `src-v2/core/math.js` | Fix `perpendicularOffset` rotation sign for SVG y-down |
+| `src-v2/geometry/labels.js` | Fix `resolveAutoSide` cross product sign; use `.raw` (unshortened) geometry for label positioning |
+| `src-v2/geometry/edges.js` | Store original geometry as `.raw` on shortened edge result |
+| `src-v2/index.js` | Fix innerSep: `max(radius, textR + innerSep)` instead of `radius + innerSep` |
+| `src-v2/svg/emitter.js` | Add "start" text label on initial arrows |
+| `src-v2/core/constants.js` | Change `nodeDistance` default from 60 to 90 (TikZ 22% ratio) |
+| `examples-v2/*.html` (9 files) | Add mathjs importmap shim to all demos broken by plotting module |
+| `examples-v2/shapes-demo.html` | New: all 10 geometric shapes with parameter variants |
+| `examples-v2/turing-compare.html` | New: blind native TikZ vs tikz-svg comparison page |
+| `test/labels-node.test.js` | Update distance offset test for corrected perpendicular direction |
+| `test/node-properties.test.js` | Update innerSep test for new max-based sizing |
+| `TODO.md` | Mark layers and visual QA as done, update test count |
+
+**No impact** on `sergio0p.github.io/E510/Apps/510-information-partition-app.html` — that app uses native SVG DOM, not the tikz-svg library.
