@@ -112,7 +112,8 @@ These issues are not bugs in the current code but traps that will bite again in 
 2. **KaTeX CDN on demos using `$...$`** — Same pattern. Easy to forget, no error message.
 3. **SVG y-down in new geometry code** — Any future rotation, cross product, or perpendicular computation could get the sign wrong. The convention is non-obvious.
 4. **New shapes missing innerSep pattern** — If a new shape type is added to the `index.js` switch, someone might write `radius + innerSep` instead of `max(radius, textR + innerSep)`.
-5. **~~nodeDistance proportions~~** — ~~Future demos might use 80 and get cramped.~~ **Resolved:** `DEFAULTS.nodeDistance` changed from 60 to 90 in `constants.js` (commit `50355ec`). Now baked into the library default.
+5. **~~nodeDistance proportions~~** — **Resolved:** `DEFAULTS.nodeDistance` changed from 60 to 90 (commit `50355ec`).
+6. **~~foreignObject missing from viewBox~~** — **Resolved:** `expandBBoxFromElement` now handles `foreignObject` elements. Previously, KaTeX math labels were invisible to viewBox computation, causing graphs with `$...$` labels to collapse or clip. Silent failure — graph renders but viewBox is wrong.
 
 ---
 
