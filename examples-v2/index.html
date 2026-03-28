@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>TikZ-SVG Demo Library</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
   <style>
     body {
       font-family: sans-serif;
@@ -50,6 +52,21 @@
     <li>
       <a href="tikz-diamond.html">TikZ Diamond (original)
         <span class="desc">Original gold-standard demo</span>
+      </a>
+    </li>
+    <li>
+      <a href="shapes-demo.html">Geometric Shapes
+        <span class="desc">All 10 shapes: diamond, star, polygon, trapezium, semicircle, triangle, kite, dart, sector, cylinder</span>
+      </a>
+    </li>
+    <li>
+      <a href="split-shapes-demo.html">Split Shapes
+        <span class="desc">circle split, ellipse split, rectangle split with partFills and array labels</span>
+      </a>
+    </li>
+    <li>
+      <a href="layers-demo.html">Named Layers
+        <span class="desc">PGF-style z-order control with config.layers</span>
       </a>
     </li>
   </ul>

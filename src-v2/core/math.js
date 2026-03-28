@@ -103,9 +103,10 @@ export function tangentOnCubicBezier(p0, p1, p2, p3, t) {
 /** Offset a point perpendicular to the tangent direction by `distance`. Positive = left of tangent. */
 export function perpendicularOffset(point, tangent, distance) {
   const norm = vecNormalize(tangent);
-  // Perpendicular (rotated 90° CCW in screen coords, which is left of direction)
+  // Perpendicular: visual LEFT of walking direction in SVG y-down coords.
+  // In SVG (y-down), visual CCW rotation is (y, -x), not math CCW (-y, x).
   return {
-    x: point.x - norm.y * distance,
-    y: point.y + norm.x * distance,
+    x: point.x + norm.y * distance,
+    y: point.y - norm.x * distance,
   };
 }

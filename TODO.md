@@ -81,15 +81,15 @@ Nodes auto-size to fit text + innerSep. Explicit dimensions serve as floor, not 
 
 ---
 
-## TODO: PGF-style user-configurable layers
+## ✅ DONE (src-v2): PGF-style user-configurable layers
 
-PGF has `background`, `main`, `foreground` layers. Any element can be placed on any layer via `\begin{pgfonlayer}{background}`. Our 3 layers (`edge-layer`, `label-layer`, `node-layer`) are hardcoded by element type. Need user-configurable layers so users can draw paths behind nodes, put nodes behind edges, create background shading regions, etc.
+`config.layers` declares layer order, draw items get `layer` property. Items route to their assigned layer's `<g>` group. Within a layer, declaration order preserved. Default layer: `'main'`. 447 tests passing.
 
 ---
 
-## TODO: Visual QA of new shapes
+## ✅ DONE (src-v2): Visual QA of new shapes
 
-Open demos with new shapes (diamond, star, polygon, etc.) in browser and verify rendering. Create demo HTML pages for the new shapes in `examples-v2/`.
+All 10 geometric shapes verified in browser. Demo at `examples-v2/shapes-demo.html`.
 
 ---
 
@@ -161,7 +161,7 @@ src-v2/
 - SVG DOM via `document.createElementNS`
 - TikZ angles: 0°=east, CCW positive; SVG: y-down
 - Style cascade: DEFAULTS → stateStyle/edgeStyle → group → named style + per-element
-- 377 tests pass: `npm test` (uses `node --test`)
+- 447 tests pass: `npm test` (uses `node --test`)
 - TikZ-reference-first: always check PGF source before fixing visual issues
 
 ---

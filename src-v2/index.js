@@ -325,20 +325,24 @@ export function render(svgEl, config) {
       }
     }
 
-    // Apply minimum dimensions and innerSep
+    // Apply minimum dimensions and innerSep.
+    // TikZ: innerSep is padding between text and border. Explicit dimensions
+    // (radius, halfWidth, etc.) act as a floor — innerSep only grows the node
+    // if text + innerSep exceeds the explicit size.
     const innerSep = style.innerSep ?? DEFAULTS.innerSep;
     const minHalfW = (style.minimumWidth ?? 0) / 2;
     const minHalfH = (style.minimumHeight ?? 0) / 2;
 
     if (geomConfig.halfWidth != null) {
-      geomConfig.halfWidth = Math.max(geomConfig.halfWidth + innerSep, minHalfW);
-      geomConfig.halfHeight = Math.max(geomConfig.halfHeight + innerSep, minHalfH);
+      geomConfig.halfWidth = Math.max(geomConfig.halfWidth, textHalfW + innerSep, minHalfW);
+      geomConfig.halfHeight = Math.max(geomConfig.halfHeight, textHalfH + innerSep, minHalfH);
     } else if (geomConfig.rx != null) {
-      geomConfig.rx = Math.max(geomConfig.rx + innerSep, minHalfW);
-      geomConfig.ry = Math.max(geomConfig.ry + innerSep, minHalfH);
+      geomConfig.rx = Math.max(geomConfig.rx, textHalfW + innerSep, minHalfW);
+      geomConfig.ry = Math.max(geomConfig.ry, textHalfH + innerSep, minHalfH);
     } else if (geomConfig.radius != null) {
+      const textR = Math.max(textHalfW, textHalfH);
       const minR = Math.max(minHalfW, minHalfH);
-      geomConfig.radius = Math.max(geomConfig.radius + innerSep, minR);
+      geomConfig.radius = Math.max(geomConfig.radius, textR + innerSep, minR);
     }
 
     const geom = shape.savedGeometry(geomConfig);

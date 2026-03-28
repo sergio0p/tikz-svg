@@ -315,7 +315,11 @@ export function computeEdgePath(sourceNode, targetNode, edgeConfig = {}, default
   }
 
   // Apply path shortening (TikZ shorten < / shorten >)
+  // Preserve original geometry for label positioning (TikZ places labels
+  // on the unshortened path — shortening is a drawing-stage operation).
   const shortenStart = edgeConfig.shortenStart ?? defaults.shortenStart ?? 0;
   const shortenEnd = edgeConfig.shortenEnd ?? defaults.shortenEnd ?? 0;
-  return shortenEdge(geom, shortenStart, shortenEnd);
+  const shortened = shortenEdge(geom, shortenStart, shortenEnd);
+  shortened.raw = geom;
+  return shortened;
 }

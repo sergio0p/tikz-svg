@@ -2,6 +2,15 @@
 <html>
 <head>
   <title>tikz-svg: Named Layers Demo</title>
+  <!-- mathjs for plot expressions -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "mathjs": "./mathjs-shim.js"
+    }
+  }
+  </script>
   <style>
     body { font-family: system-ui; padding: 2rem; background: #f8f8f8; max-width: 900px; margin: 0 auto; }
     .demo { margin: 2rem 0; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }

@@ -163,12 +163,12 @@ describe('computeLabelNode', () => {
     });
 
     // perpendicularOffset with tangent (1,0) and distance 5:
-    //   x = 50 - 0*5 = 50, y = 0 + 1*5 = 5 (positive = down in SVG = left of rightward travel)
+    //   x = 50 + 0*5 = 50, y = 0 - 1*5 = -5 (up in SVG = visual LEFT of rightward travel)
     // Anchor is still 'south'. halfHeight = 10.
-    // center.y = 5 - 10 = -5
+    // center.y = -5 - 10 = -15
     assert.strictEqual(result.anchor, 'south');
     assert.strictEqual(result.center.x, 50);
-    assert.strictEqual(result.center.y, -5);
+    assert.strictEqual(result.center.y, -15);
   });
 
   it('returns null angle when sloped is false', () => {

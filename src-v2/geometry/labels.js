@@ -130,7 +130,9 @@ function resolveAutoSide(point, tangent, startPoint, endPoint) {
   const baseDir = vecNormalize(diff);
   const left = perpendicularOffset(point, tangent, 1);
   const dLeft = crossMag(baseDir, vecSub(left, startPoint));
-  return dLeft >= 0 ? 'left' : 'right';
+  // In SVG y-down, positive cross = visual RIGHT, negative = visual LEFT.
+  // If the left-offset point is on the visual LEFT (negative cross), LEFT is the outer side.
+  return dLeft >= 0 ? 'right' : 'left';
 }
 
 // ────────────────────────────────────────────
@@ -160,20 +162,23 @@ export function computeLabelNode(edgeGeometry, labelText, opts = {}) {
   const fontSize = opts.fontSize ?? 14;
   const sloped = opts.sloped ?? false;
 
-  const { startPoint, endPoint, type } = edgeGeometry;
+  // Use the unshortened (raw) geometry for label positioning.
+  // TikZ places labels on the original path; shortening only affects drawing.
+  const labelGeom = edgeGeometry.raw ?? edgeGeometry;
+  const { startPoint, endPoint, type } = labelGeom;
 
   // 1. Compute point and tangent on curve at pos
   let point, tangent;
 
   switch (type) {
     case 'quadratic': {
-      const cp = edgeGeometry.controlPoint;
+      const cp = labelGeom.controlPoint;
       point = pointOnQuadBezier(startPoint, cp, endPoint, pos);
       tangent = tangentOnQuadBezier(startPoint, cp, endPoint, pos);
       break;
     }
     case 'cubic': {
-      const { cp1, cp2 } = edgeGeometry;
+      const { cp1, cp2 } = labelGeom;
       point = pointOnCubicBezier(startPoint, cp1, cp2, endPoint, pos);
       tangent = tangentOnCubicBezier(startPoint, cp1, cp2, endPoint, pos);
       break;

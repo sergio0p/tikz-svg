@@ -103,7 +103,8 @@ describe('minimumWidth and minimumHeight', () => {
     const node = svg.querySelector('#node-a');
     const rect = node.querySelector('rect');
     const w = parseFloat(rect.getAttribute('width'));
-    assert.ok(w >= 48, `rect width ${w} should reflect innerSep`);
+    // innerSep grows node to fit text+padding: max(10, textHalfW+15) × 2
+    assert.ok(w >= 46, `rect width ${w} should reflect innerSep`);
   });
 });
 

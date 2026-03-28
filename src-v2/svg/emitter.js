@@ -836,19 +836,44 @@ function emitInitialArrow(node, arrowMarkerId, arrowDef) {
   const startX = tip.x + reverseApproach.x * length;
   const startY = tip.y + reverseApproach.y * length;
 
-  const attrs = {
+  const g = createSVGElement('g', { class: 'initial-arrow' });
+
+  const pathAttrs = {
     d: `M ${startX} ${startY} L ${tip.x} ${tip.y}`,
     fill: 'none',
     stroke: style.stroke ?? DEFAULTS.nodeStroke,
     'stroke-width': style.strokeWidth ?? DEFAULTS.nodeStrokeWidth,
-    class: 'initial-arrow',
   };
 
   if (arrowMarkerId) {
-    attrs['marker-end'] = `url(#${arrowMarkerId})`;
+    pathAttrs['marker-end'] = `url(#${arrowMarkerId})`;
   }
 
-  return createSVGElement('path', attrs);
+  g.appendChild(createSVGElement('path', pathAttrs));
+
+  // TikZ initial text label (default: "start") — placed at arrow start, offset away
+  const initialText = style.initialText ?? 'start';
+  if (initialText !== '' && initialText !== false) {
+    const fontSize = style.fontSize ?? DEFAULTS.fontSize;
+    const textAttrs = {
+      x: startX + reverseApproach.x * 3,
+      y: startY,
+      'font-size': fontSize,
+      'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
+      fill: style.stroke ?? DEFAULTS.nodeStroke,
+      'dominant-baseline': 'central',
+    };
+    // Anchor text away from the arrow
+    if (reverseApproach.x < -0.1) textAttrs['text-anchor'] = 'end';
+    else if (reverseApproach.x > 0.1) textAttrs['text-anchor'] = 'start';
+    else textAttrs['text-anchor'] = 'middle';
+
+    const text = createSVGElement('text', textAttrs);
+    text.textContent = initialText;
+    g.appendChild(text);
+  }
+
+  return g;
 }
 
 // ────────────────────────────────────────────

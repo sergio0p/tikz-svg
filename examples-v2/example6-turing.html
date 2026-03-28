@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>Turing Machine Automaton — TikZ-SVG</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
   <style>
     body {
       font-family: sans-serif;
@@ -65,23 +69,23 @@
       states: {
         A: {
           initial: true,
-          label: 'qₐ',
+          label: '$q_a$',
         },
         B: {
           position: { 'above right': 'A' },
-          label: 'q_b',
+          label: '$q_b$',
         },
         D: {
           position: { 'below right': 'A' },
-          label: 'q_d',
+          label: '$q_d$',
         },
         C: {
           position: { 'below right': 'B' },
-          label: 'q_c',
+          label: '$q_c$',
         },
         E: {
           position: { 'below': 'D' },
-          label: 'q_e',
+          label: '$q_e$',
         },
       },
       edges: [

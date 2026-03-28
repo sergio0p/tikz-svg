@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Geometric Shapes Demo — TikZ-SVG</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      background: #f5f5f5;
+      gap: 2rem;
+    }
+    h1 { font-size: 1.4rem; color: #333; margin: 0; }
+    h2 { font-size: 1rem; color: #555; margin: 0 0 0.5rem 0; }
+    .row { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    svg { width: 160px; height: 160px; display: block; }
+    code {
+      background: #f0f0f0;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Geometric Shapes — TikZ-SVG</h1>
+
+  <h2>Diamond</h2>
+  <div class="row">
+    <div class="card"><code>halfWidth:20, halfHeight:20</code><svg id="d1"></svg></div>
+    <div class="card"><code>halfWidth:35, halfHeight:15</code><svg id="d2"></svg></div>
+    <div class="card"><code>halfWidth:15, halfHeight:35</code><svg id="d3"></svg></div>
+  </div>
+
+  <h2>Star</h2>
+  <div class="row">
+    <div class="card"><code>starPoints:5, outerRadius:35</code><svg id="st1"></svg></div>
+    <div class="card"><code>starPoints:6, outerRadius:35</code><svg id="st2"></svg></div>
+    <div class="card"><code>starPoints:8, pointRatio:2.5</code><svg id="st3"></svg></div>
+  </div>
+
+  <h2>Regular Polygon</h2>
+  <div class="row">
+    <div class="card"><code>sides:3 (triangle)</code><svg id="rp1"></svg></div>
+    <div class="card"><code>sides:5 (pentagon)</code><svg id="rp2"></svg></div>
+    <div class="card"><code>sides:6 (hexagon)</code><svg id="rp3"></svg></div>
+    <div class="card"><code>sides:8 (octagon)</code><svg id="rp4"></svg></div>
+  </div>
+
+  <h2>Trapezium</h2>
+  <div class="row">
+    <div class="card"><code>leftAngle:75, rightAngle:75</code><svg id="tr1"></svg></div>
+    <div class="card"><code>leftAngle:60, rightAngle:90</code><svg id="tr2"></svg></div>
+    <div class="card"><code>leftAngle:45, rightAngle:45</code><svg id="tr3"></svg></div>
+  </div>
+
+  <h2>Semicircle</h2>
+  <div class="row">
+    <div class="card"><code>radius:35 vs radius:55 (same scale)</code><svg id="sc1" style="width:260px;height:160px;"></svg></div>
+  </div>
+
+  <h2>Isosceles Triangle</h2>
+  <div class="row">
+    <div class="card"><code>halfWidth:30, halfHeight:40</code><svg id="it1"></svg></div>
+    <div class="card"><code>halfWidth:50, halfHeight:25</code><svg id="it2"></svg></div>
+    <div class="card"><code>halfWidth:20, halfHeight:55</code><svg id="it3"></svg></div>
+  </div>
+
+  <h2>Kite</h2>
+  <div class="row">
+    <div class="card"><code>halfWidth:25, upper:25, lower:25</code><svg id="k1"></svg></div>
+    <div class="card"><code>halfWidth:25, upper:10, lower:40</code><svg id="k2"></svg></div>
+    <div class="card"><code>halfWidth:40, upper:30, lower:15</code><svg id="k3"></svg></div>
+  </div>
+
+  <h2>Dart</h2>
+  <div class="row">
+    <div class="card"><code>halfWidth:20, tipLength:40, tailIndent:10</code><svg id="da1"></svg></div>
+    <div class="card"><code>halfWidth:30, tipLength:50, tailIndent:20</code><svg id="da2"></svg></div>
+  </div>
+
+  <h2>Circular Sector</h2>
+  <div class="row">
+    <div class="card"><code>sectorAngle:60°</code><svg id="cs1"></svg></div>
+    <div class="card"><code>sectorAngle:120°</code><svg id="cs2"></svg></div>
+    <div class="card"><code>sectorAngle:180°</code><svg id="cs3"></svg></div>
+    <div class="card"><code>sectorAngle:270°</code><svg id="cs4"></svg></div>
+  </div>
+
+  <h2>Cylinder</h2>
+  <div class="row">
+    <div class="card"><code>aspect:0.25 (default)</code><svg id="cy1"></svg></div>
+    <div class="card"><code>aspect:0.5 (taller ellipse)</code><svg id="cy2"></svg></div>
+    <div class="card"><code>halfWidth:40, halfHeight:25</code><svg id="cy3"></svg></div>
+  </div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    const FILL = '#dbeafe';
+    const STROKE = '#2563eb';
+    const SW = 1.5;
+
+    function node(shape, extra = {}) {
+      return {
+        states: { n: { position: { x: 0, y: 0 }, shape, fill: FILL, stroke: STROKE, strokeWidth: SW, ...extra } },
+        edges: [],
+      };
+    }
+
+    // ── Diamond ──
+    render(document.getElementById('d1'), node('diamond', { halfWidth: 20, halfHeight: 20, label: 'D' }));
+    render(document.getElementById('d2'), node('diamond', { halfWidth: 35, halfHeight: 15, label: 'D' }));
+    render(document.getElementById('d3'), node('diamond', { halfWidth: 15, halfHeight: 35, label: 'D' }));
+
+    // ── Star ──
+    render(document.getElementById('st1'), node('star', { outerRadius: 35, starPoints: 5, fill: '#fef3c7', stroke: '#d97706' }));
+    render(document.getElementById('st2'), node('star', { outerRadius: 35, starPoints: 6, fill: '#d1fae5', stroke: '#059669' }));
+    render(document.getElementById('st3'), node('star', { outerRadius: 35, starPoints: 8, pointRatio: 2.5, fill: '#fce7f3', stroke: '#db2777' }));
+
+    // ── Regular Polygon ──
+    render(document.getElementById('rp1'), node('regular polygon', { radius: 40, sides: 3, fill: '#fee2e2', stroke: '#dc2626' }));
+    render(document.getElementById('rp2'), node('regular polygon', { radius: 35, sides: 5, fill: '#ede9fe', stroke: '#7c3aed' }));
+    render(document.getElementById('rp3'), node('regular polygon', { radius: 35, sides: 6, fill: '#d1fae5', stroke: '#059669' }));
+    render(document.getElementById('rp4'), node('regular polygon', { radius: 35, sides: 8, fill: '#fef3c7', stroke: '#d97706' }));
+
+    // ── Trapezium ──
+    render(document.getElementById('tr1'), node('trapezium', { halfWidth: 35, halfHeight: 20, leftAngle: 75, rightAngle: 75, label: 'T' }));
+    render(document.getElementById('tr2'), node('trapezium', { halfWidth: 35, halfHeight: 20, leftAngle: 60, rightAngle: 90, label: 'T' }));
+    render(document.getElementById('tr3'), node('trapezium', { halfWidth: 35, halfHeight: 20, leftAngle: 45, rightAngle: 45, label: 'T' }));
+
+    // ── Semicircle ──
+    render(document.getElementById('sc1'), {
+      states: {
+        s1: { position: { x: -65, y: 0 }, shape: 'semicircle', radius: 35, fill: '#fce7f3', stroke: '#db2777', strokeWidth: SW, label: 'r=35', fontSize: 11 },
+        s2: { position: { x:  65, y: 0 }, shape: 'semicircle', radius: 55, fill: '#fce7f3', stroke: '#db2777', strokeWidth: SW, label: 'r=55', fontSize: 11 },
+      },
+      edges: [],
+    });
+
+    // ── Isosceles Triangle ──
+    render(document.getElementById('it1'), node('isosceles triangle', { halfWidth: 30, halfHeight: 40, fill: '#fee2e2', stroke: '#dc2626' }));
+    render(document.getElementById('it2'), node('isosceles triangle', { halfWidth: 50, halfHeight: 25, fill: '#fee2e2', stroke: '#dc2626' }));
+    render(document.getElementById('it3'), node('isosceles triangle', { halfWidth: 20, halfHeight: 55, fill: '#fee2e2', stroke: '#dc2626' }));
+
+    // ── Kite ──
+    render(document.getElementById('k1'), node('kite', { halfWidth: 25, upperHeight: 25, lowerHeight: 25, fill: '#d1fae5', stroke: '#059669' }));
+    render(document.getElementById('k2'), node('kite', { halfWidth: 25, upperHeight: 10, lowerHeight: 40, fill: '#d1fae5', stroke: '#059669' }));
+    render(document.getElementById('k3'), node('kite', { halfWidth: 40, upperHeight: 30, lowerHeight: 15, fill: '#d1fae5', stroke: '#059669' }));
+
+    // ── Dart ──
+    render(document.getElementById('da1'), node('dart', { halfWidth: 20, tipLength: 40, tailIndent: 10, fill: '#ede9fe', stroke: '#7c3aed' }));
+    render(document.getElementById('da2'), node('dart', { halfWidth: 30, tipLength: 50, tailIndent: 20, fill: '#ede9fe', stroke: '#7c3aed' }));
+
+    // ── Circular Sector ──
+    render(document.getElementById('cs1'), node('circular sector', { radius: 45, sectorAngle: 60, fill: '#fef9c3', stroke: '#ca8a04' }));
+    render(document.getElementById('cs2'), node('circular sector', { radius: 45, sectorAngle: 120, fill: '#fef9c3', stroke: '#ca8a04' }));
+    render(document.getElementById('cs3'), node('circular sector', { radius: 45, sectorAngle: 180, fill: '#fef9c3', stroke: '#ca8a04' }));
+    render(document.getElementById('cs4'), node('circular sector', { radius: 45, sectorAngle: 270, fill: '#fef9c3', stroke: '#ca8a04' }));
+
+    // ── Cylinder ──
+    render(document.getElementById('cy1'), node('cylinder', { halfWidth: 25, halfHeight: 40, aspect: 0.25, fill: '#e0f2fe', stroke: '#0284c7' }));
+    render(document.getElementById('cy2'), node('cylinder', { halfWidth: 25, halfHeight: 40, aspect: 0.5, fill: '#e0f2fe', stroke: '#0284c7' }));
+    render(document.getElementById('cy3'), node('cylinder', { halfWidth: 40, halfHeight: 25, aspect: 0.25, fill: '#e0f2fe', stroke: '#0284c7' }));
+  </script>
+</body>
+</html>
