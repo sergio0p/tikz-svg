@@ -15,6 +15,7 @@
 
 import { createShape } from './shape.js';
 import { vecNormalize } from '../core/math.js';
+import { PART_NAMES } from './split-utils.js';
 
 /**
  * Compute the Y offsets of each split line (top-to-bottom layout).
@@ -38,9 +39,6 @@ function computeSplitPositions(cy, hh, parts, partHeights) {
   }
   return positions;
 }
-
-const PART_NAMES = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'];
 
 // PGF aliases: text→one, second→two, third→three, fourth→four
 const PART_ALIASES = {

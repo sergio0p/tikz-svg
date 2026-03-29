@@ -17,44 +17,7 @@
  */
 
 import { createShape } from './shape.js';
-
-const PART_NAMES = ['one', 'two', 'three', 'four'];
-
-/**
- * Compute normalized chord offsets that divide into N equal-area bands.
- * Returns values in [-1, 1]; multiply by ry for actual y-offsets.
- * See circle-split.js for the derivation.
- */
-function computeChordOffsets(parts) {
-  if (parts <= 1) return [];
-  if (parts === 2) return [0];
-
-  const offsets = [];
-  for (let k = 1; k < parts; k++) {
-    const target = k * Math.PI / parts;
-    let lo = -1, hi = 1;
-    for (let iter = 0; iter < 60; iter++) {
-      const mid = (lo + hi) / 2;
-      const f = Math.PI - Math.acos(mid) + mid * Math.sqrt(1 - mid * mid);
-      if (f < target) lo = mid;
-      else hi = mid;
-    }
-    offsets.push(-((lo + hi) / 2));
-  }
-  // Sort top-to-bottom (most negative first) — area formula counts from bottom
-  offsets.sort((a, b) => a - b);
-  return offsets;
-}
-
-/**
- * Chord half-width at y-offset dy from center of an ellipse with semi-axes (rx, ry).
- *   half-width = rx * sqrt(1 - (dy/ry)^2)
- */
-function chordHalfWidth(rx, ry, yOffset) {
-  const u = yOffset / ry;
-  const val = 1 - u * u;
-  return val > 0 ? rx * Math.sqrt(val) : 0;
-}
+import { PART_NAMES, computeChordOffsets, chordHalfWidth } from './split-utils.js';
 
 export default createShape('ellipse split', {
   savedGeometry(config) {
@@ -73,7 +36,6 @@ export default createShape('ellipse split', {
     const { center: c, rx, ry, parts } = geom;
     const chordYs = computeChordOffsets(parts).map(u => u * ry);
 
-    // Compass anchors on the ellipse boundary
     const anchors = {
       north: { x: c.x, y: c.y - ry },
       south: { x: c.x, y: c.y + ry },
@@ -95,18 +57,15 @@ export default createShape('ellipse split', {
       };
     }
 
-    // Per-part anchors: center of each band
     const boundaries = [-ry, ...chordYs, ry];
     for (let i = 0; i < parts && i < PART_NAMES.length; i++) {
       const bandCenter = (boundaries[i] + boundaries[i + 1]) / 2;
       anchors[PART_NAMES[i]] = { x: c.x, y: c.y + bandCenter };
     }
 
-    // Aliases: text→one, lower→two
     if (anchors.one) anchors.text = { ...anchors.one };
     if (anchors.two) anchors.lower = { ...anchors.two };
 
-    // Split anchors
     for (let i = 0; i < chordYs.length; i++) {
       const cy = chordYs[i];
       const hw = chordHalfWidth(rx, ry, cy);
@@ -138,13 +97,11 @@ export default createShape('ellipse split', {
     const vrx = rx - outerSep;
     const vry = ry - outerSep;
 
-    // Ellipse outline
     let d = `M ${cx - vrx} ${cy}` +
             ` A ${vrx} ${vry} 0 1 0 ${cx + vrx} ${cy}` +
             ` A ${vrx} ${vry} 0 1 0 ${cx - vrx} ${cy}` +
             ` Z`;
 
-    // Chord lines
     if (drawSplits && parts > 1) {
       const chordYs = computeChordOffsets(parts).map(u => u * vry);
       for (const chordY of chordYs) {
@@ -156,10 +113,6 @@ export default createShape('ellipse split', {
     return d;
   },
 
-  /**
-   * Return per-part regions for fill and label placement.
-   * clipRect covers each horizontal band; the emitter clips to the ellipse outline.
-   */
   partRegions(geom) {
     const { center: c, rx, ry, parts, outerSep } = geom;
     const vrx = rx - outerSep;
@@ -172,7 +125,6 @@ export default createShape('ellipse split', {
       const top = boundaries[i];
       const bottom = boundaries[i + 1];
       const bandCenter = (top + bottom) / 2;
-      // Left/right edges follow the ellipse at the band's center y-position
       const hw = chordHalfWidth(vrx, vry, bandCenter);
       regions.push({
         clipRect: { x: c.x - vrx, y: c.y + top, width: vrx * 2, height: bottom - top },
