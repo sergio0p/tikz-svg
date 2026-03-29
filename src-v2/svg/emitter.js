@@ -91,20 +91,13 @@ function expandBBoxFromElement(bbox, el) {
           const ry = parseFloat(child.getAttribute('ry')) || 0;
           expandBBox(bbox, cx - rx, cy - ry);
           expandBBox(bbox, cx + rx, cy + ry);
-        } else if (tag === 'rect') {
+        } else if (tag === 'rect' || tag === 'foreignObject') {
           const x = parseFloat(child.getAttribute('x')) || 0;
           const y = parseFloat(child.getAttribute('y')) || 0;
           const w = parseFloat(child.getAttribute('width')) || 0;
           const h = parseFloat(child.getAttribute('height')) || 0;
           expandBBox(bbox, cx + x, cy + y);
           expandBBox(bbox, cx + x + w, cy + y + h);
-        } else if (tag === 'foreignObject') {
-          const fx = parseFloat(child.getAttribute('x')) || 0;
-          const fy = parseFloat(child.getAttribute('y')) || 0;
-          const fw = parseFloat(child.getAttribute('width')) || 0;
-          const fh = parseFloat(child.getAttribute('height')) || 0;
-          expandBBox(bbox, cx + fx, cy + fy);
-          expandBBox(bbox, cx + fx + fw, cy + fy + fh);
         } else if (tag === 'path') {
           // Generic shape rendered as <path> — parse d-attribute coordinates
           const d = child.getAttribute('d');
