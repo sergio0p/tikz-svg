@@ -25,12 +25,12 @@
   <div class="demo">
     <h2>Panel 1: e₂ = ¼</h2>
     <p>Original: <code>[scale=3.5, domain=0:1.30]</code></p>
-    <svg id="panel1" width="550" height="420"></svg>
+    <svg id="panel1" width="420" height="320"></svg>
   </div>
 
   <div class="demo">
     <h2>Panel 2: e₂ = ¾</h2>
-    <svg id="panel2" width="550" height="420"></svg>
+    <svg id="panel2" width="420" height="320"></svg>
   </div>
 
   <script type="module">
@@ -75,9 +75,9 @@
 
     // config.draw — elements in TikZ source order
     render(document.getElementById('panel1'), {
-      scale: 280,
-      originX: 130,
-      originY: 120,
+      scale: 200,
+      originX: 100,
+      originY: 90,
       draw: [
         // \draw[<->] (0,0.3)--(0,-0.7)
         { type: 'path', points: [{x:0,y:-0.3},{x:0,y:0.7}], arrow: '<->' },
@@ -120,9 +120,9 @@
     };
 
     render(document.getElementById('panel2'), {
-      scale: 280,
-      originX: 130,
-      originY: 90,
+      scale: 200,
+      originX: 100,
+      originY: 70,
       draw: [
         // \draw[<->] (0,0.2)--(0,-0.9)
         { type: 'path', points: [{x:0,y:-0.2},{x:0,y:0.9}], arrow: '<->' },
