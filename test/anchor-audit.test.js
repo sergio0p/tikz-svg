@@ -281,3 +281,43 @@ describe('corner N / side N anchors on preparation', () => {
     assert.throws(() => shape.anchor('corner 7', geom));
   });
 });
+
+describe('trapezium shape-specific anchors', () => {
+  it('has corner anchors', async () => {
+    await import('../src-v2/shapes/trapezium.js');
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('trapezium');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 30, halfHeight: 15, outerSep: 0,
+    });
+    for (const name of ['bottom left corner', 'top left corner', 'top right corner', 'bottom right corner']) {
+      const pt = shape.anchor(name, geom);
+      assert.ok(pt, `${name} should exist`);
+    }
+  });
+
+  it('has side anchors (midpoints)', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('trapezium');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 30, halfHeight: 15, outerSep: 0,
+    });
+    for (const name of ['left side', 'right side', 'top side', 'bottom side']) {
+      const pt = shape.anchor(name, geom);
+      assert.ok(pt, `${name} should exist`);
+    }
+  });
+
+  it('top side is midpoint of top left and top right corners', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('trapezium');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 30, halfHeight: 15, outerSep: 0,
+    });
+    const tl = shape.anchor('top left corner', geom);
+    const tr = shape.anchor('top right corner', geom);
+    const ts = shape.anchor('top side', geom);
+    assert.ok(Math.abs(ts.x - (tl.x + tr.x) / 2) < 0.01);
+    assert.ok(Math.abs(ts.y - (tl.y + tr.y) / 2) < 0.01);
+  });
+});

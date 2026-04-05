@@ -31,11 +31,18 @@ export default createShape('trapezium', {
   namedAnchors(geom) {
     const { center: c, halfWidth: hw, halfHeight: hh, leftAngle, rightAngle } = geom;
     const verts = trapeziumVertices(c.x, c.y, hw, hh, leftAngle, rightAngle);
+    // verts: [0]=bottom left, [1]=top left, [2]=top right, [3]=bottom right
     return {
       north:       { x: c.x, y: c.y - hh }, south: { x: c.x, y: c.y + hh },
       east:        { x: c.x + hw, y: c.y }, west:  { x: c.x - hw, y: c.y },
       'north east': verts[2], 'north west': verts[1],
       'south east': verts[3], 'south west': verts[0],
+      'bottom left corner': verts[0], 'top left corner': verts[1],
+      'top right corner': verts[2], 'bottom right corner': verts[3],
+      'left side':   { x: (verts[0].x + verts[1].x) / 2, y: (verts[0].y + verts[1].y) / 2 },
+      'right side':  { x: (verts[2].x + verts[3].x) / 2, y: (verts[2].y + verts[3].y) / 2 },
+      'top side':    { x: (verts[1].x + verts[2].x) / 2, y: (verts[1].y + verts[2].y) / 2 },
+      'bottom side': { x: (verts[0].x + verts[3].x) / 2, y: (verts[0].y + verts[3].y) / 2 },
     };
   },
 
