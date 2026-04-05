@@ -903,6 +903,148 @@ function emitInitialArrow(node, arrowMarkerId, arrowDef) {
 }
 
 // ────────────────────────────────────────────
+// Backgrounds (TikZ backgrounds library)
+// ────────────────────────────────────────────
+
+/**
+ * Compute the bounding box of all rendered content layers.
+ * Same logic as computeViewBox but returns raw bbox without padding.
+ */
+function computeContentBBox(svgEl) {
+  const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer, .draw-layer, g[class^="layer-"]')) {
+    for (const child of layer.children) {
+      expandBBoxFromElement(bbox, child);
+    }
+  }
+  return bbox;
+}
+
+/**
+ * Emit TikZ backgrounds library elements (rectangle, border lines, grid).
+ *
+ * Mirrors tikzlibrarybackgrounds.code.tex:
+ * - Computes inner frame rect = content bbox ± innerFrameSep
+ * - Computes outer frame rect = inner frame rect ± outerFrameSep
+ * - Rectangle and grid use inner frame rect
+ * - Top/bottom lines span outer frame x-range, at inner frame y
+ * - Left/right lines span outer frame y-range, at inner frame x
+ *
+ * The background <g> is prepended before all content layers so it
+ * paints behind everything (SVG painter's model).
+ *
+ * @param {SVGElement} svgEl - The SVG element with content already rendered
+ * @param {Object} bg - Background config object
+ */
+function emitBackground(svgEl, bg) {
+  if (!bg) return;
+
+  const contentBBox = computeContentBBox(svgEl);
+  if (!isFinite(contentBBox.minX)) return; // empty scene
+
+  const innerSep = bg.innerFrameSep ?? 10;
+  const outerSep = bg.outerFrameSep ?? 0;
+
+  // Inner frame rect (for rectangle, grid)
+  const ix0 = contentBBox.minX - innerSep;
+  const iy0 = contentBBox.minY - innerSep;
+  const ix1 = contentBBox.maxX + innerSep;
+  const iy1 = contentBBox.maxY + innerSep;
+
+  // Outer frame rect (for border lines)
+  const ox0 = ix0 - outerSep;
+  const oy0 = iy0 - outerSep;
+  const ox1 = ix1 + outerSep;
+  const oy1 = iy1 + outerSep;
+
+  const g = createSVGElement('g', { class: 'background-layer' });
+
+  // Grid (behind rectangle so rect fill covers grid if both present)
+  if (bg.grid) {
+    const gs = bg.gridStyle || {};
+    const step = bg.gridStep ?? 10;
+    const stroke = gs.stroke ?? '#ccc';
+    const strokeWidth = gs.strokeWidth ?? 0.4;
+
+    const gridParts = [];
+    // Vertical lines
+    const xStart = Math.ceil(ix0 / step) * step;
+    for (let x = xStart; x <= ix1; x += step) {
+      gridParts.push(`M ${x} ${iy0} L ${x} ${iy1}`);
+    }
+    // Horizontal lines
+    const yStart = Math.ceil(iy0 / step) * step;
+    for (let y = yStart; y <= iy1; y += step) {
+      gridParts.push(`M ${ix0} ${y} L ${ix1} ${y}`);
+    }
+    if (gridParts.length > 0) {
+      g.appendChild(createSVGElement('path', {
+        d: gridParts.join(' '),
+        stroke,
+        'stroke-width': strokeWidth,
+        fill: 'none',
+      }));
+    }
+  }
+
+  // Background rectangle
+  if (bg.rectangle) {
+    const rs = bg.rectangleStyle || {};
+    g.appendChild(createSVGElement('rect', {
+      x: ix0,
+      y: iy0,
+      width: ix1 - ix0,
+      height: iy1 - iy0,
+      stroke: rs.stroke ?? '#000',
+      'stroke-width': rs.strokeWidth ?? 0.8,
+      fill: rs.fill ?? 'none',
+    }));
+  }
+
+  // Border lines (top, bottom use outer x-range at inner y; left, right use outer y-range at inner x)
+  if (bg.top) {
+    const s = bg.topStyle || {};
+    g.appendChild(createSVGElement('line', {
+      x1: ox0, y1: iy0, x2: ox1, y2: iy0,
+      stroke: s.stroke ?? '#000',
+      'stroke-width': s.strokeWidth ?? 0.8,
+    }));
+  }
+  if (bg.bottom) {
+    const s = bg.bottomStyle || {};
+    g.appendChild(createSVGElement('line', {
+      x1: ox0, y1: iy1, x2: ox1, y2: iy1,
+      stroke: s.stroke ?? '#000',
+      'stroke-width': s.strokeWidth ?? 0.8,
+    }));
+  }
+  if (bg.left) {
+    const s = bg.leftStyle || {};
+    g.appendChild(createSVGElement('line', {
+      x1: ix0, y1: oy0, x2: ix0, y2: oy1,
+      stroke: s.stroke ?? '#000',
+      'stroke-width': s.strokeWidth ?? 0.8,
+    }));
+  }
+  if (bg.right) {
+    const s = bg.rightStyle || {};
+    g.appendChild(createSVGElement('line', {
+      x1: ix1, y1: oy0, x2: ix1, y2: oy1,
+      stroke: s.stroke ?? '#000',
+      'stroke-width': s.strokeWidth ?? 0.8,
+    }));
+  }
+
+  // Prepend background layer before all content (after <defs>)
+  const firstContent = svgEl.querySelector('defs');
+  if (firstContent && firstContent.nextSibling) {
+    svgEl.insertBefore(g, firstContent.nextSibling);
+  } else {
+    svgEl.appendChild(g);
+  }
+}
+
+// ────────────────────────────────────────────
 // ViewBox computation
 // ────────────────────────────────────────────
 
@@ -917,7 +1059,7 @@ function computeViewBox(svgEl, padding = 40) {
   const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
 
   // Walk all direct children of layers (initial arrows are in edge-layer)
-  for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer, .draw-layer, g[class^="layer-"]')) {
+  for (const layer of svgEl.querySelectorAll('.background-layer, .edge-layer, .label-layer, .node-layer, .draw-layer, g[class^="layer-"]')) {
     for (const child of layer.children) {
       expandBBoxFromElement(bbox, child);
     }
@@ -1018,6 +1160,7 @@ export function emitSVG(svgEl, resolved) {
     globalScaleX = 1,
     globalScaleY = 1,
     transformCanvas,
+    background,
   } = resolved;
 
   // PRNG for deterministic decoration rendering
@@ -1101,6 +1244,7 @@ export function emitSVG(svgEl, resolved) {
       }
     }
 
+    emitBackground(svgEl, background);
     const viewBox = computeViewBox(svgEl, configPadding);
     svgEl.setAttribute('viewBox', viewBox);
     applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
@@ -1168,12 +1312,15 @@ export function emitSVG(svgEl, resolved) {
     }
   }
 
-  // 8. Compute and set viewBox
+  // 8. Emit background elements (behind all content)
+  emitBackground(svgEl, background);
+
+  // 9. Compute and set viewBox
   const viewBox = computeViewBox(svgEl, configPadding);
   svgEl.setAttribute('viewBox', viewBox);
   applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
   applyTransformCanvas(svgEl, transformCanvas);
 
-  // 9. Return refs
+  // 10. Return refs
   return refs;
 }

@@ -37,6 +37,7 @@ import { estimateTextDimensions } from './core/text-measure.js';
 import { plot as computePlot } from './plotting/index.js';
 import { getMarkFillMode } from './plotting/marks.js';
 import { buildPathGeometry, computePathLabelPosition } from './geometry/paths.js';
+import { registerPendingReRender } from './core/katex-renderer.js';
 
 function round4(v) {
   const r = Math.round(v * 10000) / 10000;
@@ -688,6 +689,7 @@ export function render(svgEl, config) {
     globalScaleX,
     globalScaleY,
     transformCanvas,
+    background: config.background,
   };
 
   for (const id of stateIds) {
@@ -715,7 +717,12 @@ export function render(svgEl, config) {
     });
   }
 
-  return emitSVG(svgEl, model);
+  const refs = emitSVG(svgEl, model);
+
+  // Schedule a re-render after fonts load to fix KaTeX measurement
+  registerPendingReRender(svgEl, config, render);
+
+  return refs;
 }
 
 export { renderAutomaton } from './automata/automata.js';
