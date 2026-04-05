@@ -1,3 +1,5 @@
+**Status: COMPLETED** — TeX library working. JS equivalents in `src-v2/shapes/`.
+
 # Enhanced Multipart Shapes — Session Handoff
 
 ## The Task

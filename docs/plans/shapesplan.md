@@ -1,3 +1,4 @@
+**Status: COMPLETED** — Both shapes implemented in TeX library and JS (`src-v2/shapes/`).
 
 Project Plan: Enhanced circle split and ellipse split Shapes
 Goal

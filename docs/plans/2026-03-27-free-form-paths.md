@@ -1,3 +1,5 @@
+**Status: COMPLETED** — `config.paths` implemented in `src-v2/geometry/paths.js`.
+
 # Free-Form Path Drawing (config.paths) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

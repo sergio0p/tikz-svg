@@ -1,3 +1,5 @@
+**Status: COMPLETED** — Implemented in `src-v2/geometry/labels.js`. All tasks done.
+
 # Node-Based Edge Label Positioning — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

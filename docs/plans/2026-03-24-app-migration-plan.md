@@ -1,3 +1,5 @@
+**Status: PENDING** — Import path switch not yet executed. Needs visual validation.
+
 # App Migration to tikz-svg: Feasibility Assessment & Plan
 
 **Date:** 2026-03-24
