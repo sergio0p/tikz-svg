@@ -23,6 +23,7 @@ import './shapes/ellipse-split.js';
 import './shapes/cloud.js';
 import './shapes/rectangle-callout.js';
 import './shapes/ellipse-callout.js';
+import './shapes/cloud-callout.js';
 
 import { getShape } from './shapes/shape.js';
 import { resolvePositions } from './positioning/positioning.js';
@@ -333,6 +334,7 @@ export function render(svgEl, config) {
           : textHalfH;
         break;
       case 'cloud':
+      case 'cloud callout':
         // Cloud's savedGeometry handles the √2 scaling and inner/outer ellipse
         // computation internally — we just pass text half-dimensions.
         geomConfig.rx = hasExplicitSize
