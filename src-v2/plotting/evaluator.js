@@ -11,7 +11,7 @@
  * Source: tikz.code.tex lines 1225–1319 (domain, samples, variable, parametric)
  */
 
-import { compile } from 'mathjs';
+import { compile } from '../../examples-v2/mathjs-shim.js';
 
 /**
  * Compile a math expression string into a callable function.
