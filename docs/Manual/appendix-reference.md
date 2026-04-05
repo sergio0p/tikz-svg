@@ -230,11 +230,25 @@ Named font sizes: `'tiny'`(7), `'scriptsize'`(8), `'small'`(10), `'normalsize'`(
 
 ## Anchors
 
-**Standard (all shapes):** `center`, `north`, `south`, `east`, `west`, `north east`, `north west`, `south east`, `south west`
+**Standard (all shapes):** `center`, `mid`, `base`, `north`, `south`, `east`, `west`, `north east`, `north west`, `south east`, `south west`, `mid east`, `mid west`, `base east`, `base west`
 
 **Numeric:** Any angle in degrees (0=east, counterclockwise)
 
+**Regular polygon:** `corner N`, `side N` (1-indexed, N = number of sides)
+
+**Preparation:** `corner N`, `side N` (1-indexed, N = 1..6)
+
+**Trapezium/Parallelogram:** `bottom left corner`, `top left corner`, `top right corner`, `bottom right corner`, `left side`, `right side`, `top side`, `bottom side`
+
+**Kite:** `upper vertex`, `lower vertex`, `left vertex`, `right vertex`, `upper left side`, `lower left side`, `upper right side`, `lower right side`
+
+**Cylinder:** `top`, `bottom`, `shape center`, `before top`, `after top`, `before bottom`, `after bottom`
+
+**Semicircle:** `apex`, `arc start`, `arc end`, `chord center`
+
 **Callout-specific:** `pointer` (at the tip of the speech bubble)
+
+**Cloud-specific:** `puff N` (1-indexed, N = number of puffs)
 
 ---
 
