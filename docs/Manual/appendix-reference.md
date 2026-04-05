@@ -278,3 +278,26 @@ Named font sizes: `'tiny'`(7), `'scriptsize'`(8), `'small'`(10), `'normalsize'`(
 | `padding` | number | 40 | ViewBox padding around content (px) |
 | `layers` | Array | — | Layer z-order |
 | `transformCanvas` | Object | — | Post-render SVG transform |
+| `background` | Object | — | Background framing (see below) |
+
+---
+
+## Background Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `rectangle` | boolean | false | Draw background rectangle |
+| `top` | boolean | false | Top border line |
+| `bottom` | boolean | false | Bottom border line |
+| `left` | boolean | false | Left border line |
+| `right` | boolean | false | Right border line |
+| `grid` | boolean | false | Background grid |
+| `innerFrameSep` | number | 10 | Padding between content and rectangle |
+| `outerFrameSep` | number | 0 | Border line extension beyond rectangle |
+| `gridStep` | number | 10 | Grid line spacing (px) |
+| `rectangleStyle` | Object | `{stroke:'#000', strokeWidth:0.8, fill:'none'}` | Rectangle styling |
+| `topStyle` | Object | `{stroke:'#000', strokeWidth:0.8}` | Top line styling |
+| `bottomStyle` | Object | same | Bottom line styling |
+| `leftStyle` | Object | same | Left line styling |
+| `rightStyle` | Object | same | Right line styling |
+| `gridStyle` | Object | `{stroke:'#ccc', strokeWidth:0.4}` | Grid line styling |

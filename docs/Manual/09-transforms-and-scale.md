@@ -109,6 +109,91 @@ For economics where price (P) increases upward:
 
 This dual convention avoids both: (a) forcing economists to think in SVG y-down for plots, and (b) adding overhead to the common case of SVG-native node positioning.
 
+## Backgrounds
+
+The `background` option adds framing elements behind your diagram — rectangles, border lines, and grids. These are rendered as SVG elements inside the same `<svg>`, not CSS.
+
+### Background rectangle
+
+```js
+render(svg, {
+  background: { rectangle: true },
+  draw: [...]
+});
+```
+
+This draws a rectangle around all content, padded by `innerFrameSep` (default 10px).
+
+### Border lines
+
+Individual border lines along any edge:
+
+```js
+render(svg, {
+  background: {
+    top: true,
+    bottom: true,
+    left: true,
+    right: true,
+  },
+  draw: [...]
+});
+```
+
+Border lines sit at the inner frame boundary. With `outerFrameSep`, they extend beyond the rectangle:
+
+```js
+background: {
+  rectangle: true,
+  top: true,
+  innerFrameSep: 10,
+  outerFrameSep: 5,   // top line extends 5px past rectangle on each side
+}
+```
+
+### Grid
+
+```js
+render(svg, {
+  background: {
+    grid: true,
+    gridStep: 20,     // grid spacing in px (default 10)
+  },
+  draw: [...]
+});
+```
+
+### Padding control
+
+```js
+background: {
+  rectangle: true,
+  innerFrameSep: 20,    // padding between content and rectangle (default 10)
+  outerFrameSep: 5,     // extension for border lines beyond rectangle (default 0)
+}
+```
+
+Convenience shorthands matching TikZ:
+- Tight: `innerFrameSep: 0`
+- Loose: `innerFrameSep: 20`
+
+### Custom styles
+
+Every background element accepts style overrides:
+
+```js
+background: {
+  rectangle: true,
+  rectangleStyle: { fill: '#f5f5f5', stroke: '#333', strokeWidth: 1.5 },
+  grid: true,
+  gridStyle: { stroke: '#ddd', strokeWidth: 0.3 },
+  top: true,
+  topStyle: { stroke: 'blue', strokeWidth: 2 },
+}
+```
+
+Default styles: rectangles and lines use `stroke: '#000'`, `strokeWidth: 0.8`, `fill: 'none'`. Grids use `stroke: '#ccc'`, `strokeWidth: 0.4`.
+
 ## Next
 
 [Appendix: Reference Tables](appendix-reference.md) — all shapes, all properties, all arrow tips.
