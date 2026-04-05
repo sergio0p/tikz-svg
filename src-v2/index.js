@@ -26,6 +26,7 @@ import './shapes/ellipse-callout.js';
 import './shapes/cloud-callout.js';
 import './shapes/parallelogram.js';
 import './shapes/document.js';
+import './shapes/preparation.js';
 
 import { getShape } from './shapes/shape.js';
 import { resolvePositions } from './positioning/positioning.js';
@@ -324,6 +325,7 @@ export function render(svgEl, config) {
       case 'trapezium':
       case 'parallelogram':
       case 'document':
+      case 'preparation':
         geomConfig.halfWidth = hasExplicitSize
           ? Math.max(style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
           : textHalfW;
