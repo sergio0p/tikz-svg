@@ -21,6 +21,7 @@ import './shapes/rectangle-split.js';
 import './shapes/circle-split.js';
 import './shapes/ellipse-split.js';
 import './shapes/cloud.js';
+import './shapes/rectangle-callout.js';
 
 import { getShape } from './shapes/shape.js';
 import { resolvePositions } from './positioning/positioning.js';
@@ -308,6 +309,7 @@ export function render(svgEl, config) {
     switch (shapeName) {
       case 'rectangle':
       case 'rectangle split':
+      case 'rectangle callout':
       case 'diamond':
       case 'kite':
       case 'isosceles triangle':
@@ -370,6 +372,19 @@ export function render(svgEl, config) {
       const textR = Math.max(textHalfW, textHalfH);
       const minR = Math.max(minHalfW, minHalfH);
       geomConfig.radius = Math.max(geomConfig.radius, textR + innerSep, minR);
+    }
+
+    // Resolve callout pointer for callout shapes
+    if (shapeName.endsWith('callout') && style.calloutPointer) {
+      let ptr = style.calloutPointer;
+      // If pointer is a node reference string, resolve to its position
+      if (typeof ptr === 'string' && resolvedStates[ptr]) {
+        ptr = resolvedStates[ptr].position;
+      }
+      // Store as offset from center (for emitter re-call compatibility)
+      if (ptr && ptr.x != null && ptr.y != null) {
+        geomConfig.calloutPointerOffset = { x: ptr.x - center.x, y: ptr.y - center.y };
+      }
     }
 
     const geom = shape.savedGeometry(geomConfig);
