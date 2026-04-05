@@ -12,7 +12,7 @@
 
 ## PGF Reference
 
-Implementation is based on these PGF source files (in `References/`):
+Implementation is based on these PGF source files (in `docs/References/`):
 
 | File | Key mechanism |
 |------|--------------|

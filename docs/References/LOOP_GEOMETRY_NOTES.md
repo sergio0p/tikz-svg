@@ -5,12 +5,12 @@
 ### 1. tikzlibrarytopaths.code.tex
 **Location:** `/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/`
 **Size:** Defines the `to` path library with loop, bend, curve rendering
-**Status:** ✓ Copied to References/
+**Status:** ✓ In docs/References/
 
 ### 2. tikzlibraryautomata.code.tex  
 **Location:** `/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/`
 **Size:** Defines automata-specific styles (states, initial/accepting)
-**Status:** ✓ Copied to References/
+**Status:** ✓ In docs/References/
 
 ---
 

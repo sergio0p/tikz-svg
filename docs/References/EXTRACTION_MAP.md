@@ -7,7 +7,7 @@
 | `tikzlibrarytopaths.code.tex` | `/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/` | 11K | Implements `to` path library with loop, bend, curve rendering |
 | `tikzlibraryautomata.code.tex` | `/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/` | 3.9K | Automata-specific styles: states, initial/accepting markers |
 
-Both files now copied to: `/Users/sergiop/Dropbox/Scripts/tikz-svg/References/`
+Both files now in: `docs/References/`
 
 ---
 

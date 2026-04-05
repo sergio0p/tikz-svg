@@ -10,7 +10,7 @@
 
 **Stop-at-any-step guarantee:** Each task ships a complete, tested feature. The library is fully usable after any task.
 
-**PGF source references (in `References/`):**
+**PGF source references (in `docs/References/`):**
 - `pgfmoduleplot.code.tex` — plot stream API, `\pgfplotxyfile`, `\pgfplotgnuplot`
 - `pgflibraryplothandlers.code.tex` — 15+ handlers: curveto, closedcurve, comb, bar, const, jump
 - `pgflibraryplotmarks.code.tex` — 27 mark definitions

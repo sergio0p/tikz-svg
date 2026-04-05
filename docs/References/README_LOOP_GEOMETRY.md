@@ -85,7 +85,7 @@ For self-loops, both control points are calculated from the same node center.
 
 ### Where to Use This
 
-Implement loop edge rendering in: `/src/geometry/edges.js`
+Loop edge rendering implemented in: `src-v2/geometry/edges.js`
 
 ### Implementation Steps
 
@@ -113,10 +113,10 @@ const LOOP_ANGLES = {
 
 ## File Locations
 
-All files are located in: `/Users/sergiop/Dropbox/Scripts/tikz-svg/References/`
+All files are located in: `docs/References/`
 
 ```
-References/
+docs/References/
 ├── tikzlibrarytopaths.code.tex       [TeX Live 2025 source]
 ├── tikzlibraryautomata.code.tex      [TeX Live 2025 source]
 ├── QUICK_REFERENCE.txt               [Quick lookup]
