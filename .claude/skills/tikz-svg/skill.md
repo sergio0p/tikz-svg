@@ -30,7 +30,7 @@ Entry: `src-v2/index.js` exports `render()` and `renderAutomaton()`.
 | Paint order, layers | `06-composing-diagrams.md` |
 | Named styles, groups, cascade | `07-styles-and-groups.md` |
 | KaTeX math, wavy decorations | `08-math-and-decorations.md` |
-| Scale, origin, coordinate system | `09-transforms-and-scale.md` |
+| Scale — transforms — backgrounds | `09-transforms-scale-backgrounds.md` |
 | All properties, shapes, tips | `appendix-reference.md` |
 
 ## Common Mistakes

@@ -112,4 +112,4 @@ The value is the corner radius in pixels. Applied via the PGF-faithful Bezier ap
 
 ## Next
 
-[Chapter 9: Transforms and Scale](09-transforms-and-scale.md) — coordinate system control.
+[Chapter 9: Transforms, Scale, and Backgrounds](09-transforms-scale-backgrounds.md) — coordinate system control, backgrounds.

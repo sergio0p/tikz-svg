@@ -1,4 +1,4 @@
-# Transforms and Scale
+# Transforms, Scale, and Backgrounds
 
 ## The Coordinate System
 
