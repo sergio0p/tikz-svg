@@ -54,6 +54,12 @@ function anchor(name, geom) {
     case 'north west':  return { x: center.x - hw,  y: center.y - hh };
     case 'south east':  return { x: center.x + hw,  y: center.y + hh };
     case 'south west':  return { x: center.x - hw,  y: center.y + hh };
+    case 'mid':         return { x: center.x,       y: center.y };
+    case 'base':        return { x: center.x,       y: center.y };
+    case 'mid east':    return { x: center.x + hw,  y: center.y };
+    case 'base east':   return { x: center.x + hw,  y: center.y };
+    case 'mid west':    return { x: center.x - hw,  y: center.y };
+    case 'base west':   return { x: center.x - hw,  y: center.y };
     default: {
       const angle = parseFloat(name);
       if (!Number.isNaN(angle)) {
@@ -126,8 +132,9 @@ function backgroundPath(geom) {
 }
 
 const ANCHOR_NAMES = [
-  'center', 'north', 'south', 'east', 'west',
+  'center', 'mid', 'base', 'north', 'south', 'east', 'west',
   'north east', 'north west', 'south east', 'south west',
+  'mid east', 'mid west', 'base east', 'base west',
 ];
 
 function anchors() {

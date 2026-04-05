@@ -215,8 +215,9 @@ function shortenPointer(tipRel, amount) {
 // ── Shape implementation ────────────────────────────────────────────
 
 const ANCHOR_NAMES = [
-  'center', 'north', 'south', 'east', 'west',
+  'center', 'mid', 'base', 'north', 'south', 'east', 'west',
   'north east', 'north west', 'south east', 'south west',
+  'mid east', 'mid west', 'base east', 'base west',
   'pointer',
 ];
 
@@ -289,6 +290,12 @@ function anchor(name, geom) {
       x: c.x + geom.pointerAnchorRel.x,
       y: c.y + geom.pointerAnchorRel.y,
     };
+    case 'mid':         return { x: c.x, y: c.y };
+    case 'base':        return { x: c.x, y: c.y };
+    case 'mid east':    return { x: c.x + hw, y: c.y };
+    case 'base east':   return { x: c.x + hw, y: c.y };
+    case 'mid west':    return { x: c.x - hw, y: c.y };
+    case 'base west':   return { x: c.x - hw, y: c.y };
     default: {
       const angle = parseFloat(name);
       if (!Number.isNaN(angle)) {

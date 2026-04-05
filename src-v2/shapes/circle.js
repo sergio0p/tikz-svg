@@ -27,7 +27,7 @@ const NAMED_ANCHORS = {
   'south west': { x: -Math.SQRT1_2, y:  Math.SQRT1_2 },
 };
 
-const ANCHOR_NAMES = Object.keys(NAMED_ANCHORS);
+const ANCHOR_NAMES = [...Object.keys(NAMED_ANCHORS), 'mid', 'base', 'mid east', 'mid west', 'base east', 'base west'];
 
 /**
  * Compute saved geometry from node configuration.
@@ -58,6 +58,10 @@ function anchor(name, geom) {
   if (dir) {
     return vecAdd(center, vecScale(dir, radius));
   }
+
+  if (name === 'mid' || name === 'base') return { x: center.x, y: center.y };
+  if (name === 'mid east' || name === 'base east') return { x: center.x + radius, y: center.y };
+  if (name === 'mid west' || name === 'base west') return { x: center.x - radius, y: center.y };
 
   const angle = parseFloat(name);
   if (!Number.isNaN(angle)) {
