@@ -90,7 +90,8 @@ export function getShape(name) {
  * @returns {Object} The registered shape implementation.
  */
 export function createShape(name, spec) {
-  const anchorNameCache = ['center', ...Object.keys(spec.namedAnchors({
+  const anchorNameCache = ['center', 'mid', 'base', 'mid east', 'mid west', 'base east', 'base west',
+    ...Object.keys(spec.namedAnchors({
     // Probe call with dummy geom to extract anchor names.
     // namedAnchors must return consistent keys regardless of geom values.
     center: { x: 0, y: 0 }, outerSep: 0, _probe: true,
@@ -108,6 +109,23 @@ export function createShape(name, spec) {
     anchor(anchorName, geom) {
       if (anchorName === 'center') {
         return { x: geom.center.x, y: geom.center.y };
+      }
+
+      // mid/base anchors — TikZ text-baseline anchors.
+      // Without text baseline tracking, mid = base = center y.
+      // East/west variants use the shape's east/west border x at center y.
+      if (anchorName === 'mid' || anchorName === 'base') {
+        return { x: geom.center.x, y: geom.center.y };
+      }
+      if (anchorName === 'mid east' || anchorName === 'base east') {
+        const named = spec.namedAnchors(geom);
+        if (named.east) return { x: named.east.x, y: geom.center.y };
+        return shape.borderPoint(geom, { x: 1, y: 0 });
+      }
+      if (anchorName === 'mid west' || anchorName === 'base west') {
+        const named = spec.namedAnchors(geom);
+        if (named.west) return { x: named.west.x, y: geom.center.y };
+        return shape.borderPoint(geom, { x: -1, y: 0 });
       }
 
       const named = spec.namedAnchors(geom);
