@@ -90,6 +90,10 @@ export function render(svgEl, config) {
   const globalOriginX = config.originX ?? 0;
   const globalOriginY = config.originY ?? 0;
 
+  // TikZ [transform canvas={scale=N}] equivalent.
+  // Low-level graphics transform: scales everything (fonts, strokes, arrows).
+  const transformCanvas = config.transformCanvas ?? null;
+
   // ── DRAW-ORDER MODE ──────────────────────────────────────────────────
   // When config.draw is present, split entries by type and recurse with _drawOrder.
   if (config.draw && !config._drawOrder) {
@@ -665,6 +669,9 @@ export function render(svgEl, config) {
     drawOrder: config._drawOrder,
     layers: config._layers,
     seed: config.seed,
+    globalScaleX,
+    globalScaleY,
+    transformCanvas,
   };
 
   for (const id of stateIds) {

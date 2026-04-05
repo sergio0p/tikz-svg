@@ -9,6 +9,7 @@
 import { DEFAULTS, DIRECTIONS } from '../core/constants.js';
 import { Transform } from '../core/transform.js';
 import { morphPath, shapeToSVGPath } from '../decorations/index.js';
+import { roundPathCorners } from '../decorations/rounded-corners.js';
 import { SeededRandom } from '../core/random.js';
 import { createLabelContent, createMathForeignObject } from '../core/katex-renderer.js';
 
@@ -542,7 +543,7 @@ function emitNode(id, node, prng) {
     g.classList.add(style.className);
   }
 
-  const isMultipart = shape && shape.partRegions && style.partFills;
+  const isMultipart = shape && typeof shape.partRegions === 'function' && (style.partFills || Array.isArray(label));
   // Compute localGeom and regions once for both fills and labels
   const localGeom = isMultipart ? { ...geom, center: { x: 0, y: 0 } } : null;
   const regions = isMultipart ? shape.partRegions(localGeom) : null;
@@ -579,7 +580,7 @@ function emitNode(id, node, prng) {
     // Draw filled rectangles for each part, clipped to the shape
     const fillGroup = createSVGElement('g', { 'clip-path': `url(#${clipId})` });
     for (let i = 0; i < regions.length; i++) {
-      const fillColor = style.partFills[i] ?? style.fill ?? DEFAULTS.nodeFill;
+      const fillColor = (style.partFills ? style.partFills[i] : null) ?? style.fill ?? DEFAULTS.nodeFill;
       const r = regions[i].clipRect;
       fillGroup.appendChild(createSVGElement('rect', {
         x: r.x, y: r.y, width: r.width, height: r.height,
@@ -616,36 +617,50 @@ function emitNode(id, node, prng) {
   }
 
   if (Array.isArray(label) && regions) {
-    // Multipart labels: one <text> per part, aligned to the shape boundary
+    // Multipart labels: one label per part, with KaTeX support
     const partAlign = style.partAlign ?? 'center';
     const innerPad = 4;
+    const fontSize = style.fontSize ?? DEFAULTS.fontSize;
+    const fontFamily = style.fontFamily ?? DEFAULTS.fontFamily;
+    const color = style.labelColor ?? '#000000';
 
     for (let i = 0; i < label.length && i < regions.length; i++) {
       if (label[i] == null || label[i] === '') continue;
       const lc = regions[i].labelCenter;
+      const labelStr = String(label[i]);
 
-      let textAnchor, tx;
-      if (partAlign === 'left') {
-        textAnchor = 'start';
-        tx = regions[i].leftEdge + innerPad;
-      } else if (partAlign === 'right') {
-        textAnchor = 'end';
-        tx = regions[i].rightEdge - innerPad;
+      const labelContent = createLabelContent(labelStr, { fontSize, fontFamily, color });
+
+      if (labelContent.type === 'math') {
+        // KaTeX via foreignObject — centered on part label center
+        const fo = createMathForeignObject(labelContent.html, labelContent.width, labelContent.height, { fontSize, color });
+        const foG = createSVGElement('g', { transform: `translate(${lc.x}, ${lc.y})` });
+        foG.appendChild(fo);
+        g.appendChild(foG);
       } else {
-        textAnchor = 'middle';
-        tx = lc.x;
-      }
+        let textAnchor, tx;
+        if (partAlign === 'left') {
+          textAnchor = 'start';
+          tx = regions[i].leftEdge + innerPad;
+        } else if (partAlign === 'right') {
+          textAnchor = 'end';
+          tx = regions[i].rightEdge - innerPad;
+        } else {
+          textAnchor = 'middle';
+          tx = lc.x;
+        }
 
-      const text = createSVGElement('text', {
-        x: tx, y: lc.y,
-        'text-anchor': textAnchor,
-        'dominant-baseline': 'central',
-        'font-size': style.fontSize ?? DEFAULTS.fontSize,
-        'font-family': style.fontFamily ?? DEFAULTS.fontFamily,
-        fill: style.labelColor ?? '#000000',
-      });
-      text.textContent = String(label[i]);
-      g.appendChild(text);
+        const text = createSVGElement('text', {
+          x: tx, y: lc.y,
+          'text-anchor': textAnchor,
+          'dominant-baseline': 'central',
+          'font-size': fontSize,
+          'font-family': fontFamily,
+          fill: color,
+        });
+        text.textContent = labelContent.content;
+        g.appendChild(text);
+      }
     }
   } else if (label != null && label !== '') {
     const fontSize = style.fontSize ?? DEFAULTS.fontSize;
@@ -750,10 +765,18 @@ function createShapeElement(geom, style, opts = {}) {
     case 'rectangle': {
       const hw = Math.max(0, geom.halfWidth - outerSep - inset);
       const hh = Math.max(0, geom.halfHeight - outerSep - inset);
-      return createSVGElement('rect', {
+      const rc = style.roundedCorners ?? 0;
+      const attrs = {
         x: -hw, y: -hh, width: hw * 2, height: hh * 2,
         fill, stroke, 'stroke-width': strokeWidth,
-      });
+      };
+      if (rc > 0) {
+        // Clamp to half the shorter side (matches TikZ clamping behavior)
+        const maxR = Math.min(hw, hh);
+        attrs.rx = Math.min(rc, maxR);
+        attrs.ry = Math.min(rc, maxR);
+      }
+      return createSVGElement('rect', attrs);
     }
 
     case 'ellipse': {
@@ -786,7 +809,12 @@ function createShapeElement(geom, style, opts = {}) {
         if (inset > 0) {
           localGeom.outerSep = (localGeom.outerSep ?? 0) + inset;
         }
-        const d = shapeImpl.backgroundPath(localGeom);
+        let d = shapeImpl.backgroundPath(localGeom);
+        // Apply rounded corners to polygon path if requested
+        const rc = style.roundedCorners ?? 0;
+        if (rc > 0) {
+          d = roundPathCorners(d, rc);
+        }
         return createSVGElement('path', {
           d, fill, stroke, 'stroke-width': strokeWidth,
         });
@@ -910,6 +938,56 @@ function computeViewBox(svgEl, padding = 40) {
   return `${x} ${y} ${w} ${h}`;
 }
 
+/**
+ * Set SVG element width/height from viewBox so the element grows with scale.
+ *
+ * TikZ `scale` doubles coordinates → picture occupies 2× space on the page.
+ * Without explicit width/height the browser auto-fits the viewBox into the
+ * element's CSS size, negating the scale.  Setting width/height = viewBox
+ * dimensions gives a 1:1 mapping; when scale > 1 the viewBox (and thus the
+ * element) is proportionally larger.
+ */
+function applyScaledSize(svgEl, viewBox, scaleX, scaleY) {
+  if (scaleX === 1 && scaleY === 1) return;
+  const parts = viewBox.split(/\s+/).map(Number);
+  if (parts.length !== 4) return;
+  const [, , w, h] = parts;
+  svgEl.setAttribute('width', w);
+  svgEl.setAttribute('height', h);
+}
+
+/**
+ * TikZ `transform canvas` equivalent.  Wraps all rendered content (everything
+ * after <defs>) in a <g transform="scale(...)"> so fonts, strokes, arrows,
+ * and node shapes all scale uniformly.  Adjusts viewBox to encompass the
+ * scaled visual (TikZ doesn't adjust its bounding box, but SVG clips content
+ * outside the viewBox, so we must expand it).
+ */
+function applyTransformCanvas(svgEl, tc) {
+  if (!tc) return;
+  const sx = tc.scaleX ?? tc.scale ?? 1;
+  const sy = tc.scaleY ?? tc.scale ?? 1;
+  if (sx === 1 && sy === 1) return;
+
+  const wrapper = createSVGElement('g', {
+    transform: sx === sy ? `scale(${sx})` : `scale(${sx},${sy})`,
+  });
+
+  // Move every child except <defs> into the wrapper
+  const children = Array.from(svgEl.childNodes);
+  for (const child of children) {
+    if (child.nodeName === 'defs') continue;
+    wrapper.appendChild(child);
+  }
+  svgEl.appendChild(wrapper);
+
+  // Scale the viewBox so the scaled content is fully visible
+  const vb = svgEl.getAttribute('viewBox');
+  if (!vb) return;
+  const [x, y, w, h] = vb.split(/\s+/).map(Number);
+  svgEl.setAttribute('viewBox', `${x * sx} ${y * sy} ${w * sx} ${h * sy}`);
+}
+
 // ────────────────────────────────────────────
 // Main public API
 // ────────────────────────────────────────────
@@ -940,6 +1018,9 @@ export function emitSVG(svgEl, resolved) {
     drawOrder,
     layers,
     seed,
+    globalScaleX = 1,
+    globalScaleY = 1,
+    transformCanvas,
   } = resolved;
 
   // PRNG for deterministic decoration rendering
@@ -1025,6 +1106,8 @@ export function emitSVG(svgEl, resolved) {
 
     const viewBox = computeViewBox(svgEl);
     svgEl.setAttribute('viewBox', viewBox);
+    applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
+    applyTransformCanvas(svgEl, transformCanvas);
     return refs;
   }
 
@@ -1091,6 +1174,8 @@ export function emitSVG(svgEl, resolved) {
   // 8. Compute and set viewBox
   const viewBox = computeViewBox(svgEl);
   svgEl.setAttribute('viewBox', viewBox);
+  applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
+  applyTransformCanvas(svgEl, transformCanvas);
 
   // 9. Return refs
   return refs;
