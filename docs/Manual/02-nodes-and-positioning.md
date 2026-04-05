@@ -14,7 +14,7 @@ This draws a circle at (100, 100) with the label "q0" (the node's ID becomes its
 
 ## Changing the Shape
 
-Set `shape` to any of the 20 built-in shapes:
+Set `shape` to any of the 23 built-in shapes:
 
 ```js
 states: {
@@ -24,13 +24,15 @@ states: {
 }
 ```
 
-**Geometric shapes:** `circle`, `rectangle`, `ellipse`, `diamond`, `star`, `regular polygon`, `trapezium`, `semicircle`, `isosceles triangle`, `kite`, `dart`, `circular sector`, `cylinder`
+**Geometric shapes:** `circle`, `rectangle`, `ellipse`, `diamond`, `star`, `regular polygon`, `trapezium`, `parallelogram`, `semicircle`, `isosceles triangle`, `kite`, `dart`, `circular sector`, `cylinder`
 
 **Multipart:** `rectangle split`, `circle split`, `ellipse split`
 
 **Symbols:** `cloud`
 
 **Callouts:** `rectangle callout`, `ellipse callout`, `cloud callout`
+
+**Flowchart:** `document`, `preparation`
 
 ## Sizing Nodes
 

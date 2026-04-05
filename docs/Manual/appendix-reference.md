@@ -1,6 +1,6 @@
 # Appendix: Reference Tables
 
-## All Shapes (20)
+## All Shapes (23)
 
 ### Geometric
 
@@ -19,6 +19,14 @@
 | `dart` | `halfWidth`, `halfHeight` | |
 | `circular sector` | `radius`, `sectorAngle` | |
 | `cylinder` | `halfWidth`, `halfHeight`, `aspect` | 3D appearance |
+| `parallelogram` | `halfWidth`, `halfHeight` | Trapezium with fixed 120/60 angles |
+
+### Flowchart
+
+| Shape | Key properties | Notes |
+|-------|---------------|-------|
+| `document` | `halfWidth`, `halfHeight`, `bendHeight` (default 5) | Rectangle with wavy bottom |
+| `preparation` | `halfWidth`, `halfHeight`, `pointWidth` (default halfHeight) | Elongated hexagon |
 
 ### Multipart
 
