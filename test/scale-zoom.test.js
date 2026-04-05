@@ -46,19 +46,14 @@ describe('scale → SVG element sizing', () => {
     assert.strictEqual(svg.getAttribute('height'), null, 'height should not be set at scale=1');
   });
 
-  it('scale=2 sets width/height matching the (expanded) viewBox', async () => {
+  it('scale=2 does not set explicit width/height (CSS controls sizing)', async () => {
     const { render } = await import('../src-v2/index.js');
     const svg = makeSvg();
     render(svg, { ...basicConfig, scale: 2 });
 
-    const vb = svg.getAttribute('viewBox');
-    assert.ok(vb, 'viewBox should be set');
-    const [, , vbW, vbH] = vb.split(/\s+/).map(Number);
-
-    const w = Number(svg.getAttribute('width'));
-    const h = Number(svg.getAttribute('height'));
-    assert.strictEqual(w, vbW, 'width should equal viewBox width');
-    assert.strictEqual(h, vbH, 'height should equal viewBox height');
+    assert.ok(svg.getAttribute('viewBox'), 'viewBox should be set');
+    assert.strictEqual(svg.getAttribute('width'), null, 'width should not be set');
+    assert.strictEqual(svg.getAttribute('height'), null, 'height should not be set');
   });
 
   it('scale=2 produces a larger SVG element than scale=1', async () => {
@@ -80,7 +75,7 @@ describe('scale → SVG element sizing', () => {
       `scaled viewBox height (${vb2[3]}) should be clearly larger than unscaled (${vb1[3]})`);
   });
 
-  it('scaleX=2 makes width larger but height stays similar', async () => {
+  it('scaleX=2 makes viewBox wider but not taller', async () => {
     const { render } = await import('../src-v2/index.js');
 
     const svg1 = makeSvg();
@@ -96,12 +91,12 @@ describe('scale → SVG element sizing', () => {
     assert.ok(wRatio > 1.3, `width ratio should be >1.3, got ${wRatio.toFixed(2)}`);
     assert.ok(hRatio < 1.2, `height ratio should be ~1, got ${hRatio.toFixed(2)}`);
 
-    // Element dimensions should match viewBox
-    assert.strictEqual(Number(svg2.getAttribute('width')), vb2[2]);
-    assert.strictEqual(Number(svg2.getAttribute('height')), vb2[3]);
+    // No explicit width/height — CSS controls display size
+    assert.strictEqual(svg2.getAttribute('width'), null);
+    assert.strictEqual(svg2.getAttribute('height'), null);
   });
 
-  it('scaleY=2 makes height larger but width stays similar', async () => {
+  it('scaleY=2 makes viewBox taller but not wider', async () => {
     const { render } = await import('../src-v2/index.js');
 
     const svg1 = makeSvg();
@@ -117,8 +112,8 @@ describe('scale → SVG element sizing', () => {
     assert.ok(wRatio < 1.2, `width ratio should be ~1, got ${wRatio.toFixed(2)}`);
     assert.ok(hRatio > 1.3, `height ratio should be >1.3, got ${hRatio.toFixed(2)}`);
 
-    assert.strictEqual(Number(svg2.getAttribute('width')), vb2[2]);
-    assert.strictEqual(Number(svg2.getAttribute('height')), vb2[3]);
+    assert.strictEqual(svg2.getAttribute('width'), null);
+    assert.strictEqual(svg2.getAttribute('height'), null);
   });
 
   it('font size and stroke width stay constant across scale values', async () => {

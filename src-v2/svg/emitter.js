@@ -946,12 +946,10 @@ function computeViewBox(svgEl, padding = 40) {
  * element) is proportionally larger.
  */
 function applyScaledSize(svgEl, viewBox, scaleX, scaleY) {
-  if (scaleX === 1 && scaleY === 1) return;
-  const parts = viewBox.split(/\s+/).map(Number);
-  if (parts.length !== 4) return;
-  const [, , w, h] = parts;
-  svgEl.setAttribute('width', w);
-  svgEl.setAttribute('height', h);
+  // viewBox defines the coordinate space; CSS controls display size.
+  // Setting fixed width/height attributes fights with CSS width:100%
+  // and causes dead space via preserveAspectRatio centering.
+  // Intentionally left as no-op — the viewBox is sufficient.
 }
 
 /**
