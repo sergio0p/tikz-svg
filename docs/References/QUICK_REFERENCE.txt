@@ -1,0 +1,158 @@
+================================================================================
+TikZ LOOP EDGE GEOMETRY - QUICK REFERENCE
+================================================================================
+
+FILES EXTRACTED (TeX Live 2025):
+  ✓ tikzlibrarytopaths.code.tex (11 KB) — to path library, loop rendering
+  ✓ tikzlibraryautomata.code.tex (3.9 KB) — automata styles
+
+DOCUMENTATION CREATED:
+  ✓ LOOP_GEOMETRY_NOTES.md — Detailed algorithm & JavaScript pseudocode
+  ✓ EXTRACTION_MAP.md — Line-by-line breakdown of key sections
+  ✓ QUICK_REFERENCE.txt — This file
+
+================================================================================
+DEFAULT LOOP PARAMETERS (from tikzlibrarytopaths.code.tex, lines 364–375)
+================================================================================
+
+Loop Looseness:          8 (multiplier for control point distance)
+Min Distance:           5mm ≈ 14.17 pt
+Loop Direction Angles:
+
+  loop above:     out = 105°,  in = 75°   (top arc)
+  loop below:     out = 285°,  in = 255°  (bottom arc)
+  loop left:      out = 195°,  in = 165°  (left arc)
+  loop right:     out = 15°,   in = -15°  (right arc)
+
+================================================================================
+CONTROL POINT CALCULATION FORMULA
+================================================================================
+
+Input:   source_node, target_node (or same for self-loop), looseness = 8
+
+Step 1:  dx = target.x - source.x
+         dy = target.y - source.y
+         |dx| = abs(dx), |dy| = abs(dy)
+
+Step 2:  normalized_distance = max(|dx|, |dy|)
+         (with fixed-point scaling: 16×distance / 255)
+
+Step 3:  base_distance = 0.3915 × normalized_distance
+
+Step 4:  control_distance = looseness × base_distance
+                          = 8 × 0.3915 × normalized_distance
+                          = 3.132 × normalized_distance
+
+Step 5:  Clamp to [min_dist, max_dist]
+         = clamp(control_distance, 5mm, 10000pt)
+
+Step 6:  Position control points:
+         cp_out = source + (control_distance × cos(out_angle), 
+                                               sin(out_angle))
+         cp_in  = source + (control_distance × cos(in_angle),  
+                                               sin(in_angle))
+         (Note: for self-loops, target = source)
+
+Step 7:  Render cubic Bézier:  source → cp_out → cp_in → source
+
+================================================================================
+KEY CONSTANTS IN IMPLEMENTATION
+================================================================================
+
+CONSTANTS:
+  0.3915    — empirically determined PGF multiplier
+  8         — default loop looseness
+  5mm       — default minimum loop distance
+  255       — fixed-point precision (PGF)
+  16        — fixed-point scale factor (PGF)
+
+ANGLES (TikZ convention: 0° = East, CCW positive):
+  loop above:   75° (entry), 105° (exit)
+  loop below:   255° (entry), 285° (exit)
+  loop left:    165° (entry), 195° (exit)
+  loop right:   -15° (entry), 15° (exit)
+
+================================================================================
+CRITICAL SOURCE CODE LOCATIONS
+================================================================================
+
+tikzlibrarytopaths.code.tex:
+
+  Lines 62–64     : Looseness option registration
+  Lines 119–130   : Default constants (out, in, looseness, min/max)
+  Lines 134–163   : Main path computation (\tikz@to@compute)
+  Lines 176–223   : Distance calculation algorithm (CRITICAL)
+  Lines 225–230   : Control point positioning (CRITICAL)
+  Lines 364–375   : Loop style definitions (CRITICAL)
+
+tikzlibraryautomata.code.tex:
+
+  Lines 18–35     : State and initial/accepting styles
+  Lines 69–83     : Angle definitions for initial/accepting markers
+
+================================================================================
+FOR IMPLEMENTATION IN tikz-svg/src/geometry/edges.js
+================================================================================
+
+Function signature:
+  function computeLoopControlPoints(nodePos, direction, radius, looseness) {
+    // direction: 'above' | 'below' | 'left' | 'right'
+    // radius: node size
+    // looseness: default 8
+    // returns: { controlOut, controlIn } (both Point objects)
+  }
+
+Implementation checklist:
+  □ Map direction string to angle pair (out_angle, in_angle)
+  □ Calculate base_distance = 0.3915 × looseness × radius
+  □ Clamp to [5mm, 10000pt]
+  □ Position control points using polar coords from node center
+  □ Return Bézier control points for SVG path
+
+Reference files in References/:
+  • tikzlibrarytopaths.code.tex (main algorithm)
+  • LOOP_GEOMETRY_NOTES.md (JavaScript pseudocode)
+  • EXTRACTION_MAP.md (detailed breakdown)
+
+================================================================================
+EXAMPLE: Rendering q1 → q1 (self-loop above)
+================================================================================
+
+Input:
+  node_center = (100, 100)
+  node_radius = 30
+  direction = 'above'
+  looseness = 8
+
+Computation:
+  out_angle = 105°, in_angle = 75°
+  base_dist = 0.3915 × 8 × 30 = 94.0 pt
+  clamped_dist = min(94.0, 14.17) = 14.17 pt  ← CLAMPED!
+  
+  Hmm, this doesn't look right for a loop. The formula in TikZ uses
+  the distance between nodes, not node radius. For a self-loop where
+  dist = 0, the min_dist (5mm ≈ 14.17 pt) acts as default.
+
+Corrected:
+  For self-loops with no inter-node distance:
+    base_dist = 0.3915 × 8 × (some reference distance)
+    OR: Just use min_dist = 5mm ≈ 14.17 pt
+    OR: Scale by node radius (30 pt) as heuristic
+  
+  If using node_radius (30 pt):
+    control_dist = 0.3915 × 8 × 30 = 94.0 pt
+    clamped = clamp(94.0, 14.17, 10000pt) = 94.0 pt
+  
+  Control points (at 94 pt from center):
+    cp_out = (100, 100) + 94×(cos(105°), sin(105°))
+           = (100, 100) + 94×(-0.2588, 0.9659)
+           = (75.6, 190.8)
+    
+    cp_in = (100, 100) + 94×(cos(75°), sin(75°))
+          = (100, 100) + 94×(0.2588, 0.9659)
+          = (124.4, 190.8)
+
+SVG Path:
+  M 100 130 C 75.6 190.8, 124.4 190.8, 100 130
+
+================================================================================
