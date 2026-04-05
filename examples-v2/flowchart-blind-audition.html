@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flowchart Shapes: Blind Audition</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: #1a1a2e; color: #eee; }
+    .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; border-bottom: 1px solid #333; }
+    .page-title { font-size: 1.4rem; margin-bottom: 0.5rem; color: #aaa; letter-spacing: 0.05em; }
+    .page-subtitle { font-size: 0.95rem; color: #666; margin-bottom: 2rem; font-style: italic; }
+    .comparison { display: flex; gap: 3rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .side { text-align: center; }
+    .side-label { font-size: 1.8rem; font-weight: bold; color: #555; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .side img, .side svg { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .side img { width: 400px; height: auto; padding: 10px; }
+    .side svg { display: block; }
+    .svg-wrap { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); padding: 10px; display: inline-block; }
+    .reveal { font-size: 1.6rem; line-height: 2; text-align: center; }
+    .reveal strong { color: #e6b422; font-size: 2rem; }
+    .nav { position: fixed; bottom: 1.5rem; right: 1.5rem; font-size: 0.8rem; color: #555; }
+    .nav a { color: #888; text-decoration: none; margin: 0 0.5rem; }
+    .nav a:hover { color: #ccc; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.3rem; color: #e6b422; }
+    .intro { max-width: 500px; text-align: center; line-height: 1.8; color: #999; }
+  </style>
+</head>
+<body>
+
+<!-- Intro page -->
+<div class="page" id="intro">
+  <h1>Blind Audition</h1>
+  <p class="intro">
+    Each page shows two renderings of the same flowchart shape.
+    One is compiled from LaTeX/TikZ. The other is our JavaScript library.
+    <br><br>
+    Can you tell which is which?
+  </p>
+</div>
+
+<!-- Page 1: Parallelogram (I/O symbol) -->
+<div class="page" id="p1">
+  <div class="page-title">1 / 3</div>
+  <div class="page-subtitle">parallelogram — input/output</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <img src="../tex/flowchart-1-parallelogram.png" alt="rendering A">
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <div class="svg-wrap"><svg id="svg1" width="400" height="160"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- Page 2: Document (wavy bottom) -->
+<div class="page" id="p2">
+  <div class="page-title">2 / 3</div>
+  <div class="page-subtitle">document — output report</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <div class="svg-wrap"><svg id="svg2" width="400" height="200"></svg></div>
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <img src="../tex/flowchart-2-document.png" alt="rendering B">
+    </div>
+  </div>
+</div>
+
+<!-- Page 3: Preparation (hexagon) -->
+<div class="page" id="p3">
+  <div class="page-title">3 / 3</div>
+  <div class="page-subtitle">preparation — initialization</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <img src="../tex/flowchart-3-preparation.png" alt="rendering A">
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <div class="svg-wrap"><svg id="svg3" width="400" height="160"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- Reveal page -->
+<div class="page" id="reveal">
+  <div class="reveal">
+    <strong>The tikz-svg JavaScript library is:</strong>
+    <br><br>
+    Page 1 &mdash; <strong>B</strong><br>
+    Page 2 &mdash; <strong>A</strong><br>
+    Page 3 &mdash; <strong>B</strong><br>
+  </div>
+</div>
+
+<nav class="nav">
+  <a href="#intro">Intro</a>
+  <a href="#p1">1</a> <a href="#p2">2</a> <a href="#p3">3</a>
+  <a href="#reveal">Reveal</a>
+</nav>
+
+<script type="module">
+  import { render } from '../src-v2/index.js';
+
+  const CM = 60;
+
+  // Page 1: Parallelogram
+  // TikZ: trapezium, left angle=120, right angle=60, min width=3cm, min height=1.2cm
+  render(document.getElementById('svg1'), {
+    states: {
+      p: {
+        position: { x: 200, y: 70 },
+        label: 'Input Data',
+        shape: 'parallelogram',
+        fill: '#D9D9FF',
+        stroke: '#000',
+        strokeWidth: 1.6,
+        minimumWidth: 3 * CM,
+        minimumHeight: 1.2 * CM,
+        fontSize: 22,
+        fontFamily: 'serif',
+      },
+    },
+    edges: [],
+  });
+
+  // Page 2: Document
+  // TikZ: tape, bend top=none, bend bottom=in and out, min width=3cm, min height=1.5cm
+  render(document.getElementById('svg2'), {
+    states: {
+      d: {
+        position: { x: 200, y: 90 },
+        label: 'Report',
+        shape: 'document',
+        fill: '#D9FFD9',
+        stroke: '#000',
+        strokeWidth: 1.6,
+        minimumWidth: 3 * CM,
+        minimumHeight: 1.5 * CM,
+        tapeBendTop: 'none',
+        tapeBendBottom: 'in and out',
+        tapeBendHeight: 12,
+        fontSize: 22,
+        fontFamily: 'serif',
+      },
+    },
+    edges: [],
+  });
+
+  // Page 3: Preparation (hexagon)
+  // TikZ: signal, signal from=nowhere, signal to=east and west, min width=3cm, min height=1.2cm
+  render(document.getElementById('svg3'), {
+    states: {
+      h: {
+        position: { x: 200, y: 70 },
+        label: 'Initialize',
+        shape: 'preparation',
+        fill: '#FFEBCC',
+        stroke: '#000',
+        strokeWidth: 1.6,
+        minimumWidth: 3 * CM,
+        minimumHeight: 1.2 * CM,
+        fontSize: 22,
+        fontFamily: 'serif',
+      },
+    },
+    edges: [],
+  });
+
+  // Post-render: match SVG display size to PNG display size
+  const DISPLAY_W = 400;
+  for (const id of ['svg1', 'svg2', 'svg3']) {
+    const svg = document.getElementById(id);
+    const vb = svg.getAttribute('viewBox');
+    if (!vb) continue;
+    const [, , vw, vh] = vb.split(' ').map(Number);
+    const ar = vh / vw;
+    svg.setAttribute('width', DISPLAY_W);
+    svg.setAttribute('height', Math.round(DISPLAY_W * ar));
+  }
+</script>
+</body>
+</html>

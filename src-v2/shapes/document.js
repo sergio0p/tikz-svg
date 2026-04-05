@@ -1,94 +1,256 @@
 /**
- * Document shape — rectangle with wavy bottom edge.
- * Based on TikZ "tape" shape (pgflibraryshapes.symbols.code.tex lines 2115–2557).
- * Uses bottom bend only ("in and out" style) for the standard flowchart document icon.
+ * Document shape — TikZ "tape" shape from pgflibraryshapes.symbols.code.tex (lines 2115–2557).
  *
- * TikZ tape draws the wave as two quarter-ellipse arcs with:
- *   bendxradius = 0.707 * halfWidth (cos 45°)
- *   bendyradius = 3.414 * halfBendHeight (1/(1-sin 45°))
- * We approximate with cubic Bézier curves (SVG C command).
+ * A rectangle with optional wavy top and/or bottom edges drawn as elliptical arcs.
+ *
+ * Keys (matching TikZ):
+ *   tapeBendTop:    'in and out' | 'out and in' | 'none'  (default: 'none' for document use)
+ *   tapeBendBottom: 'in and out' | 'out and in' | 'none'  (default: 'in and out')
+ *   tapeBendHeight: total height of a bend in px           (default: 5, matching TikZ 5pt)
+ *
+ * Arc geometry (from PGF source):
+ *   halfBendHeight = tapeBendHeight / 2
+ *   bendxradius    = cos(45°) × halfWidth   = 0.707106 × halfWidth
+ *   bendyradius    = 1/(1-sin(45°)) × halfBendHeight = 3.414213 × halfBendHeight
+ *
+ * Each wavy side consists of two quarter-ellipse arcs:
+ *   'in and out': first arc bends inward (toward center), second bends outward
+ *   'out and in': first arc bends outward, second bends inward
+ *
+ * Coordinate convention: TikZ y-up → SVG y-down. All y values are negated.
+ * The path is drawn clockwise (TikZ draws it in the same winding order).
  */
 
 import { createShape, polygonBorderPoint } from './shape.js';
 
 /**
- * Generate cubic Bézier control points for the wavy bottom edge.
- * The wave is an S-curve: right half curves down, left half curves back up.
+ * Build SVG path for a wavy side using two elliptical arcs (SVG A command).
+ *
+ * TikZ draws arcs using \pgfpatharc{startAngle}{endAngle}{rx and ry}.
+ * We convert to SVG arc commands. Each 90° arc becomes one A command.
+ *
+ * For the TOP side (TikZ y-up, our y-down):
+ *   Path goes left-to-right: from (-hw, -hh) to (+hw, -hh)
+ *   The bend extends upward (negative y in SVG) by halfBendHeight.
+ *
+ * For the BOTTOM side:
+ *   Path goes right-to-left: from (+hw, +hh) to (-hw, +hh)
+ *   The bend extends downward (positive y in SVG) by halfBendHeight.
+ *
+ * @param {number} x0 - start x
+ * @param {number} y0 - start y (at halfHeight level, before bend offset)
+ * @param {number} hw - halfWidth
+ * @param {number} hbh - halfBendHeight
+ * @param {string} style - 'in and out', 'out and in', or 'none'
+ * @param {boolean} isTop - true for top side, false for bottom
+ * @returns {string} SVG path fragment (excluding starting M/L, including endpoint)
  */
-function wavyBottomPath(cx, cy, hw, hh, bendH) {
-  const k = 0.5522847; // cubic Bézier approximation of quarter circle
+function wavySidePath(x0, y0, hw, hbh, brx, bry, style, isTop) {
+  if (style === 'none') {
+    // Straight line to the other corner
+    const endX = isTop ? (x0 + 2 * hw) : (x0 - 2 * hw);
+    return ` L ${endX} ${y0}`;
+  }
 
-  // Right half: from bottom-right corner down to center trough
-  const r1x = cx + hw,   r1y = cy + hh;
-  const m1x = cx,         m1y = cy + hh + bendH;
-  const c1x = r1x - hw * k, c1y = r1y;
-  const c2x = m1x + hw * k, c2y = m1y;
+  // The bend starts at halfBendHeight offset from the halfHeight line
+  // SVG y-down: top bends go to y0 - hbh (upward), bottom bends go to y0 + hbh (downward)
+  const bendDir = isTop ? -1 : 1;
+  const bendStartY = y0 + bendDir * hbh;
 
-  // Left half: from center trough back up to bottom-left corner
-  const r2x = cx - hw,   r2y = cy + hh;
-  const c3x = m1x - hw * k, c3y = m1y;
-  const c4x = r2x + hw * k, c4y = r2y;
+  // Two quarter-ellipse arcs span the full width
+  // Arc midpoint is at center x, bend endpoint is at opposite corner
+  const cx = isTop ? (x0 + hw) : (x0 - hw);
+  const endX = isTop ? (x0 + 2 * hw) : (x0 - 2 * hw);
 
-  return { r1x, r1y, c1x, c1y, c2x, c2y, m1x, m1y, c3x, c3y, c4x, c4y, r2x, r2y };
+  // SVG A command: A rx ry x-rotation large-arc-flag sweep-flag x y
+  // Each arc is 90°, so large-arc = 0.
+  // Sweep direction depends on bend style and side.
+
+  if (style === 'in and out') {
+    // First arc bends inward (toward center), second outward (away from center)
+    // Top side (going left to right in SVG):
+    //   TikZ arc 225→315 (inward, sweep=right): SVG sweep=1 for top
+    //   TikZ arc 135→45 (outward, sweep=right): SVG sweep=1 for top
+    // Bottom side (going right to left in SVG):
+    //   TikZ arc 45→135 (inward, sweep=right): SVG sweep=1 for bottom
+    //   TikZ arc 315→225 (outward, sweep=right): SVG sweep=1 for bottom
+    const sweep1 = isTop ? 0 : 1;
+    const sweep2 = isTop ? 1 : 0;
+    return (
+      ` L ${x0} ${bendStartY}` +
+      ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${y0}` +
+      ` A ${brx} ${bry} 0 0 ${sweep2} ${endX} ${bendStartY}`
+    );
+  }
+
+  // 'out and in': first arc bends outward, second inward
+  if (style === 'out and in') {
+    const sweep1 = isTop ? 1 : 0;
+    const sweep2 = isTop ? 0 : 1;
+    return (
+      ` L ${x0} ${bendStartY}` +
+      ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${y0 + bendDir * 2 * hbh}` +
+      ` A ${brx} ${bry} 0 0 ${sweep2} ${endX} ${bendStartY}`
+    );
+  }
+
+  // Fallback: straight
+  const endXFallback = isTop ? (x0 + 2 * hw) : (x0 - 2 * hw);
+  return ` L ${endXFallback} ${y0}`;
+}
+
+/**
+ * Compute the y-offset of a corner anchor due to a bend.
+ * TikZ: for 'in and out' style, NE corner is at halfHeight + halfBendHeight + cothalfangleout * outerysep
+ *        for 'out and in' style, NE corner is at halfHeight + halfBendHeight + cothalfanglein * outerysep
+ * Since we don't track outerxsep/outerysep separately, we use outerSep for both.
+ */
+function cornerBendOffset(style, hbh) {
+  if (style === 'none') return 0;
+  return hbh;
 }
 
 export default createShape('document', {
   savedGeometry(config) {
-    const { center, halfWidth, halfHeight, bendHeight = 5, outerSep = 0 } = config;
+    const {
+      center,
+      halfWidth,
+      halfHeight,
+      tapeBendTop = 'none',
+      tapeBendBottom = 'in and out',
+      tapeBendHeight = 5,
+      outerSep = 0,
+    } = config;
+
+    const hw = (halfWidth ?? 30) + outerSep;
+    const hbh = tapeBendHeight / 2;
+
+    // TikZ adds halfBendHeight to halfHeight for each active bend
+    // to make room for the wave (lines 2138–2145)
+    let hh = (halfHeight ?? 20) + outerSep;
+
+    // Bend radii (PGF source lines 2164–2176)
+    const brx = 0.707106 * hw;    // cos(45°) × halfWidth
+    const bry = 3.414213 * hbh;   // 1/(1-sin(45°)) × halfBendHeight
+
     return {
       center: { x: center.x, y: center.y },
-      halfWidth: (halfWidth ?? 30) + outerSep,
-      halfHeight: (halfHeight ?? 20) + outerSep,
-      bendHeight, outerSep,
+      halfWidth: hw,
+      halfHeight: hh,
+      tapeBendTop,
+      tapeBendBottom,
+      tapeBendHeight,
+      halfBendHeight: hbh,
+      bendxradius: brx,
+      bendyradius: bry,
+      outerSep,
     };
   },
 
   namedAnchors(geom) {
-    const { center: c, halfWidth: hw, halfHeight: hh, bendHeight: bh } = geom;
+    const { center: c, halfWidth: hw, halfHeight: hh, halfBendHeight: hbh,
+            tapeBendTop: top, tapeBendBottom: bot } = geom;
+
+    // Corner y-offsets from bends (SVG y-down: top corners go more negative, bottom more positive)
+    const topOffset = cornerBendOffset(top, hbh);
+    const botOffset = cornerBendOffset(bot, hbh);
+
+    // North anchor: average of NE and NW y (both at same y for tape)
+    const northY = c.y - hh - topOffset;
+    const southY = c.y + hh + botOffset;
+
     return {
-      north:        { x: c.x, y: c.y - hh },
-      south:        { x: c.x, y: c.y + hh + bh },
+      north:        { x: c.x, y: northY },
+      south:        { x: c.x, y: southY },
       east:         { x: c.x + hw, y: c.y },
       west:         { x: c.x - hw, y: c.y },
-      'north east': { x: c.x + hw, y: c.y - hh },
-      'north west': { x: c.x - hw, y: c.y - hh },
-      'south east': { x: c.x + hw, y: c.y + hh },
-      'south west': { x: c.x - hw, y: c.y + hh },
+      // TikZ: NE/NW corners sit at halfHeight + bend offset (with different offsets for in-and-out vs out-and-in)
+      // For 'in and out' top: NE at (hw, -(hh+hbh)), NW at (-hw, -(hh+hbh))
+      // For 'none': NE at (hw, -hh)
+      'north east': { x: c.x + hw, y: c.y - hh - topOffset },
+      'north west': { x: c.x - hw, y: c.y - hh - topOffset },
+      'south east': { x: c.x + hw, y: c.y + hh + botOffset },
+      'south west': { x: c.x - hw, y: c.y + hh + botOffset },
     };
   },
 
   borderPoint(geom, direction) {
-    const { center: c, halfWidth: hw, halfHeight: hh, bendHeight: bh } = geom;
-    // Approximate wavy bottom with sampled polygon points
-    const steps = 8;
-    const bottomPts = [];
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = c.x + hw - 2 * hw * t;
-      const wave = bh * Math.sin(Math.PI * t);
-      bottomPts.push({ x, y: c.y + hh + wave });
+    const { center: c, halfWidth: hw, halfHeight: hh, halfBendHeight: hbh,
+            tapeBendTop: top, tapeBendBottom: bot } = geom;
+
+    // Approximate the wavy edges with polygon vertices for borderPoint intersection
+    const topOff = cornerBendOffset(top, hbh);
+    const botOff = cornerBendOffset(bot, hbh);
+
+    if (top === 'none' && bot === 'none') {
+      // Pure rectangle
+      const verts = [
+        { x: c.x - hw, y: c.y - hh },
+        { x: c.x + hw, y: c.y - hh },
+        { x: c.x + hw, y: c.y + hh },
+        { x: c.x - hw, y: c.y + hh },
+      ];
+      return polygonBorderPoint(c, direction, verts);
     }
-    const verts = [
-      { x: c.x - hw, y: c.y - hh },
-      { x: c.x + hw, y: c.y - hh },
-      ...bottomPts,
-    ];
+
+    // Build polygon approximation with sampled wave points
+    const verts = [];
+    // Top edge (left to right)
+    if (top === 'none') {
+      verts.push({ x: c.x - hw, y: c.y - hh });
+      verts.push({ x: c.x + hw, y: c.y - hh });
+    } else {
+      const steps = 8;
+      const bendDir = -1; // top goes upward in SVG
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const x = c.x - hw + 2 * hw * t;
+        const wave = hbh * Math.sin(Math.PI * t) * (top === 'in and out' ? 1 : -1);
+        verts.push({ x, y: c.y - hh + bendDir * hbh + wave * bendDir });
+      }
+    }
+    // Bottom edge (right to left)
+    if (bot === 'none') {
+      verts.push({ x: c.x + hw, y: c.y + hh });
+      verts.push({ x: c.x - hw, y: c.y + hh });
+    } else {
+      const steps = 8;
+      const bendDir = 1; // bottom goes downward in SVG
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const x = c.x + hw - 2 * hw * t;
+        const wave = hbh * Math.sin(Math.PI * t) * (bot === 'in and out' ? 1 : -1);
+        verts.push({ x, y: c.y + hh + bendDir * hbh + wave * bendDir });
+      }
+    }
     return polygonBorderPoint(c, direction, verts);
   },
 
   backgroundPath(geom) {
-    const { center: { x: cx, y: cy }, halfWidth, halfHeight, bendHeight, outerSep } = geom;
+    const { center: { x: cx, y: cy }, halfWidth, halfHeight, halfBendHeight: hbh,
+            bendxradius: brx, bendyradius: bry,
+            tapeBendTop: top, tapeBendBottom: bot, outerSep } = geom;
+
     const hw = halfWidth - outerSep;
     const hh = halfHeight - outerSep;
-    const bh = bendHeight;
-    const w = wavyBottomPath(cx, cy, hw, hh, bh);
-    return (
-      `M ${cx - hw} ${cy - hh}` +
-      ` L ${cx + hw} ${cy - hh}` +
-      ` L ${w.r1x} ${w.r1y}` +
-      ` C ${w.c1x} ${w.c1y} ${w.c2x} ${w.c2y} ${w.m1x} ${w.m1y}` +
-      ` C ${w.c3x} ${w.c3y} ${w.c4x} ${w.c4y} ${w.r2x} ${w.r2y}` +
-      ` Z`
-    );
+
+    // Path matches TikZ backgroundpath (lines 2335–2376), converted to SVG y-down.
+    // TikZ starts at (-hw, 0) → (-hw, hh) → top bend → (hw, -hh) → bottom bend → close
+    // In SVG y-down: TikZ +y = SVG -y
+    // Start at left edge center, go up to top-left
+    let d = `M ${cx - hw} ${cy}`;
+    d += ` L ${cx - hw} ${cy - hh}`;
+
+    // Top side (left to right)
+    d += wavySidePath(cx - hw, cy - hh, hw, hbh, brx, bry, top, true);
+
+    // Right edge down to bottom-right
+    d += ` L ${cx + hw} ${cy + hh}`;
+
+    // Bottom side (right to left)
+    d += wavySidePath(cx + hw, cy + hh, hw, hbh, brx, bry, bot, false);
+
+    d += ' Z';
+    return d;
   },
 });
