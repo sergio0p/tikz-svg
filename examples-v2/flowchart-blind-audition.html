@@ -43,13 +43,13 @@
 <div class="page" id="p1">
   <div class="page-title">1 / 3</div>
   <div class="page-subtitle">parallelogram — input/output</div>
-  <div class="comparison">
-    <div class="side">
-      <div class="side-label">A</div>
-      <img src="../tex/flowchart-1-parallelogram.png" alt="rendering A">
+  <div class="comparison" data-page="1">
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/flowchart-1-parallelogram.png" alt="rendering">
     </div>
-    <div class="side">
-      <div class="side-label">B</div>
+    <div class="side" data-role="svg">
+      <div class="side-label"></div>
       <div class="svg-wrap"><svg id="svg1" width="400" height="160"></svg></div>
     </div>
   </div>
@@ -59,14 +59,14 @@
 <div class="page" id="p2">
   <div class="page-title">2 / 3</div>
   <div class="page-subtitle">document — output report</div>
-  <div class="comparison">
-    <div class="side">
-      <div class="side-label">A</div>
-      <div class="svg-wrap"><svg id="svg2" width="400" height="200"></svg></div>
+  <div class="comparison" data-page="2">
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/flowchart-2-document.png" alt="rendering">
     </div>
-    <div class="side">
-      <div class="side-label">B</div>
-      <img src="../tex/flowchart-2-document.png" alt="rendering B">
+    <div class="side" data-role="svg">
+      <div class="side-label"></div>
+      <div class="svg-wrap"><svg id="svg2" width="400" height="200"></svg></div>
     </div>
   </div>
 </div>
@@ -75,13 +75,13 @@
 <div class="page" id="p3">
   <div class="page-title">3 / 3</div>
   <div class="page-subtitle">preparation — initialization</div>
-  <div class="comparison">
-    <div class="side">
-      <div class="side-label">A</div>
-      <img src="../tex/flowchart-3-preparation.png" alt="rendering A">
+  <div class="comparison" data-page="3">
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/flowchart-3-preparation.png" alt="rendering">
     </div>
-    <div class="side">
-      <div class="side-label">B</div>
+    <div class="side" data-role="svg">
+      <div class="side-label"></div>
       <div class="svg-wrap"><svg id="svg3" width="400" height="160"></svg></div>
     </div>
   </div>
@@ -92,9 +92,7 @@
   <div class="reveal">
     <strong>The tikz-svg JavaScript library is:</strong>
     <br><br>
-    Page 1 &mdash; <strong>B</strong><br>
-    Page 2 &mdash; <strong>A</strong><br>
-    Page 3 &mdash; <strong>B</strong><br>
+    <div id="reveal-list"></div>
   </div>
 </div>
 
@@ -106,6 +104,25 @@
 
 <script type="module">
   import { render } from '../src-v2/index.js';
+
+  // ── Randomize sides for blind audition ──
+  const reveals = [];
+  for (const comp of document.querySelectorAll('.comparison')) {
+    const page = comp.dataset.page;
+    const sides = Array.from(comp.children);
+    const svgFirst = Math.random() < 0.5;
+    if (svgFirst) {
+      comp.insertBefore(sides.find(s => s.dataset.role === 'svg'), comp.firstChild);
+    }
+    // Label A/B based on DOM order
+    const ordered = Array.from(comp.children);
+    ordered[0].querySelector('.side-label').textContent = 'A';
+    ordered[1].querySelector('.side-label').textContent = 'B';
+    // Track which label is the library
+    const svgLabel = ordered.findIndex(s => s.dataset.role === 'svg') === 0 ? 'A' : 'B';
+    reveals.push(`Page ${page} — <strong>${svgLabel}</strong>`);
+  }
+  document.getElementById('reveal-list').innerHTML = reveals.join('<br>');
 
   const CM = 60;
 
