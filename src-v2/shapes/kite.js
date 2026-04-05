@@ -28,6 +28,8 @@ export default createShape('kite', {
 
   namedAnchors(geom) {
     const { center: c, halfWidth: hw, upperHeight: uh, lowerHeight: lh } = geom;
+    const verts = kiteVertices(c.x, c.y, hw, uh, lh);
+    // verts: [0]=top, [1]=right, [2]=bottom, [3]=left
     return {
       north:       { x: c.x, y: c.y - uh }, south: { x: c.x, y: c.y + lh },
       east:        { x: c.x + hw, y: c.y }, west:  { x: c.x - hw, y: c.y },
@@ -35,6 +37,12 @@ export default createShape('kite', {
       'north west': { x: c.x - hw / 2, y: c.y - uh / 2 },
       'south east': { x: c.x + hw / 2, y: c.y + lh / 2 },
       'south west': { x: c.x - hw / 2, y: c.y + lh / 2 },
+      'upper vertex': verts[0], 'lower vertex': verts[2],
+      'left vertex': verts[3], 'right vertex': verts[1],
+      'upper left side':  { x: (verts[0].x + verts[3].x) / 2, y: (verts[0].y + verts[3].y) / 2 },
+      'upper right side': { x: (verts[0].x + verts[1].x) / 2, y: (verts[0].y + verts[1].y) / 2 },
+      'lower left side':  { x: (verts[2].x + verts[3].x) / 2, y: (verts[2].y + verts[3].y) / 2 },
+      'lower right side': { x: (verts[2].x + verts[1].x) / 2, y: (verts[2].y + verts[1].y) / 2 },
     };
   },
 

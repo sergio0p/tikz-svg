@@ -282,6 +282,35 @@ describe('corner N / side N anchors on preparation', () => {
   });
 });
 
+describe('kite shape-specific anchors', () => {
+  it('has vertex anchors', async () => {
+    await import('../src-v2/shapes/kite.js');
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('kite');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 20, upperHeight: 25, lowerHeight: 30, outerSep: 0,
+    });
+    for (const name of ['upper vertex', 'lower vertex', 'left vertex', 'right vertex']) {
+      const pt = shape.anchor(name, geom);
+      assert.ok(pt, `${name} should exist`);
+    }
+    assert.ok(shape.anchor('upper vertex', geom).y < 0);
+    assert.ok(shape.anchor('lower vertex', geom).y > 0);
+  });
+
+  it('has side anchors', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('kite');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 20, upperHeight: 25, lowerHeight: 30, outerSep: 0,
+    });
+    for (const name of ['upper left side', 'lower left side', 'upper right side', 'lower right side']) {
+      const pt = shape.anchor(name, geom);
+      assert.ok(pt, `${name} should exist`);
+    }
+  });
+});
+
 describe('trapezium shape-specific anchors', () => {
   it('has corner anchors', async () => {
     await import('../src-v2/shapes/trapezium.js');
