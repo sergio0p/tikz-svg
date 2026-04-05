@@ -67,29 +67,36 @@ function wavySidePath(x0, y0, hw, hbh, brx, bry, style, isTop) {
   // Sweep direction depends on bend style and side.
 
   if (style === 'in and out') {
-    // First arc bends inward (toward center), second outward (away from center)
-    // Top side (going left to right in SVG):
-    //   TikZ arc 225→315 (inward, sweep=right): SVG sweep=1 for top
-    //   TikZ arc 135→45 (outward, sweep=right): SVG sweep=1 for top
-    // Bottom side (going right to left in SVG):
-    //   TikZ arc 45→135 (inward, sweep=right): SVG sweep=1 for bottom
-    //   TikZ arc 315→225 (outward, sweep=right): SVG sweep=1 for bottom
-    const sweep1 = isTop ? 0 : 1;
-    const sweep2 = isTop ? 1 : 0;
+    // TikZ: all three waypoints (start, mid, end) are at the same y (bendStartY).
+    // First arc curves INWARD (toward center): sweep toward smaller |y - center|.
+    // Second arc curves OUTWARD (away from center): sweep toward larger |y - center|.
+    //
+    // Bottom (going right-to-left, start right of mid):
+    //   TikZ arc 45→135 (CCW in y-up → CW in SVG y-down) → sweep=1
+    //   The inward arc curves UP (toward center) between the waypoints.
+    //   TikZ arc 315→225 (CW in y-up → CCW in SVG y-down) → sweep=0
+    //   The outward arc curves DOWN (away from center) between the waypoints.
+    //
+    // Top (going left-to-right, start left of mid):
+    //   TikZ arc 225→315 (CCW in y-up → CW in SVG y-down) → sweep=1
+    //   TikZ arc 135→45 (CW in y-up → CCW in SVG y-down) → sweep=0
+    //   But top side bends are mirrored: inward = DOWN, outward = UP.
+    const sweep1 = 1; // inward arc
+    const sweep2 = 0; // outward arc
     return (
       ` L ${x0} ${bendStartY}` +
-      ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${y0}` +
+      ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${bendStartY}` +
       ` A ${brx} ${bry} 0 0 ${sweep2} ${endX} ${bendStartY}`
     );
   }
 
-  // 'out and in': first arc bends outward, second inward
+  // 'out and in': first arc bends outward, second inward (reversed sweep flags)
   if (style === 'out and in') {
-    const sweep1 = isTop ? 1 : 0;
-    const sweep2 = isTop ? 0 : 1;
+    const sweep1 = 0; // outward arc
+    const sweep2 = 1; // inward arc
     return (
       ` L ${x0} ${bendStartY}` +
-      ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${y0 + bendDir * 2 * hbh}` +
+      ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${bendStartY}` +
       ` A ${brx} ${bry} 0 0 ${sweep2} ${endX} ${bendStartY}`
     );
   }
