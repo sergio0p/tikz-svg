@@ -92,6 +92,36 @@ function getMeasureDiv() {
   return _measureDiv;
 }
 
+/** Track whether fonts have finished loading. */
+let _fontsReady = false;
+if (typeof document !== 'undefined' && document.fonts) {
+  document.fonts.ready.then(() => { _fontsReady = true; });
+}
+
+/** SVG elements that need re-render after fonts load. */
+const _pendingReRenders = [];
+
+/**
+ * Register a render call for re-execution after fonts load.
+ * @param {SVGElement} svgEl
+ * @param {Object} config
+ * @param {Function} renderFn
+ */
+export function registerPendingReRender(svgEl, config, renderFn) {
+  if (_fontsReady) return; // fonts already loaded, no need
+  _pendingReRenders.push({ svgEl, config, renderFn });
+}
+
+// Re-render all pending graphs once fonts are ready
+if (typeof document !== 'undefined' && document.fonts) {
+  document.fonts.ready.then(() => {
+    for (const { svgEl, config, renderFn } of _pendingReRenders) {
+      try { renderFn(svgEl, config); } catch {}
+    }
+    _pendingReRenders.length = 0;
+  });
+}
+
 /**
  * Measure rendered KaTeX HTML dimensions.
  * @param {string} html - KaTeX HTML string
