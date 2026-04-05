@@ -53,6 +53,29 @@ export default createShape('preparation', {
     };
   },
 
+  dynamicAnchor(name, geom) {
+    const { center: c, halfWidth: hw, halfHeight: hh, pointWidth: pw } = geom;
+    const verts = hexVertices(c.x, c.y, hw, hh, pw);
+
+    const cornerMatch = name.match(/^corner (\d+)$/);
+    if (cornerMatch) {
+      const n = parseInt(cornerMatch[1], 10);
+      if (n < 1 || n > 6) return null;
+      return verts[n - 1];
+    }
+
+    const sideMatch = name.match(/^side (\d+)$/);
+    if (sideMatch) {
+      const n = parseInt(sideMatch[1], 10);
+      if (n < 1 || n > 6) return null;
+      const a = verts[n - 1];
+      const b = verts[n % 6];
+      return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+
+    return null;
+  },
+
   borderPoint(geom, direction) {
     const { center: c, halfWidth: hw, halfHeight: hh, pointWidth: pw } = geom;
     return polygonBorderPoint(c, direction, hexVertices(c.x, c.y, hw, hh, pw));

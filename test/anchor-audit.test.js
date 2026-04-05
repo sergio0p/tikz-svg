@@ -232,3 +232,52 @@ describe('corner N / side N anchors on regular polygon', () => {
     assert.throws(() => shape.anchor('corner 6', geom));
   });
 });
+
+describe('corner N / side N anchors on preparation', () => {
+  it('has corner 1 through corner 6', async () => {
+    await import('../src-v2/shapes/preparation.js');
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('preparation');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 50, halfHeight: 20, outerSep: 0,
+    });
+    for (let i = 1; i <= 6; i++) {
+      const pt = shape.anchor(`corner ${i}`, geom);
+      assert.ok(pt, `corner ${i} should exist`);
+    }
+  });
+
+  it('has side 1 through side 6', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('preparation');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 50, halfHeight: 20, outerSep: 0,
+    });
+    for (let i = 1; i <= 6; i++) {
+      const pt = shape.anchor(`side ${i}`, geom);
+      assert.ok(pt, `side ${i} should exist`);
+    }
+  });
+
+  it('side 1 is midpoint of corner 1 and corner 2', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('preparation');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 50, halfHeight: 20, outerSep: 0,
+    });
+    const c1 = shape.anchor('corner 1', geom);
+    const c2 = shape.anchor('corner 2', geom);
+    const s1 = shape.anchor('side 1', geom);
+    assert.ok(Math.abs(s1.x - (c1.x + c2.x) / 2) < 0.01);
+    assert.ok(Math.abs(s1.y - (c1.y + c2.y) / 2) < 0.01);
+  });
+
+  it('corner 7 throws', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('preparation');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 50, halfHeight: 20, outerSep: 0,
+    });
+    assert.throws(() => shape.anchor('corner 7', geom));
+  });
+});
