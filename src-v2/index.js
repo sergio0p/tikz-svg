@@ -22,6 +22,7 @@ import './shapes/circle-split.js';
 import './shapes/ellipse-split.js';
 import './shapes/cloud.js';
 import './shapes/rectangle-callout.js';
+import './shapes/ellipse-callout.js';
 
 import { getShape } from './shapes/shape.js';
 import { resolvePositions } from './positioning/positioning.js';
@@ -323,6 +324,7 @@ export function render(svgEl, config) {
         break;
       case 'ellipse':
       case 'ellipse split':
+      case 'ellipse callout':
         geomConfig.rx = hasExplicitSize
           ? Math.max(style.rx ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
           : textHalfW;
