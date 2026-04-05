@@ -275,5 +275,6 @@ Named font sizes: `'tiny'`(7), `'scriptsize'`(8), `'small'`(10), `'normalsize'`(
 | `nodeDistance` | number | 90 | Relative positioning spacing |
 | `onGrid` | boolean | true | Center-to-center positioning |
 | `seed` | number | — | RNG seed for decorations |
+| `padding` | number | 40 | ViewBox padding around content (px) |
 | `layers` | Array | — | Layer z-order |
 | `transformCanvas` | Object | — | Post-render SVG transform |

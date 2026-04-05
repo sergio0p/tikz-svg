@@ -62,9 +62,20 @@ render(svg, {
 });
 ```
 
-## ViewBox
+## ViewBox and Padding
 
-The library auto-computes the SVG `viewBox` to fit all content. You don't need to set it manually. The SVG element should have `width: 100%` in CSS to fill its container, and the viewBox handles aspect ratio.
+The library auto-computes the SVG `viewBox` to fit all content plus padding. You don't need to set it manually. The SVG element should have `width: 100%` in CSS to fill its container, and the viewBox handles aspect ratio.
+
+Default padding is 40px on each side. Override it with `padding`:
+
+```js
+render(svg, {
+  padding: 20,    // tighter margins
+  // or
+  padding: 60,    // more breathing room (large shadows, wide arrows)
+  draw: [...]
+});
+```
 
 If the auto-computed viewBox is wrong (content clipped), check that all elements have correct positions — elements at unexpected coordinates can inflate the viewBox.
 

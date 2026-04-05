@@ -684,6 +684,7 @@ export function render(svgEl, config) {
     drawOrder: config._drawOrder,
     layers: config._layers,
     seed: config.seed,
+    padding: config.padding,
     globalScaleX,
     globalScaleY,
     transformCanvas,

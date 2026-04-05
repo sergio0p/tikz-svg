@@ -1016,6 +1016,7 @@ export function emitSVG(svgEl, resolved) {
     drawOrder,
     layers,
     seed,
+    padding: configPadding,
     globalScaleX = 1,
     globalScaleY = 1,
     transformCanvas,
@@ -1102,7 +1103,7 @@ export function emitSVG(svgEl, resolved) {
       }
     }
 
-    const viewBox = computeViewBox(svgEl);
+    const viewBox = computeViewBox(svgEl, configPadding);
     svgEl.setAttribute('viewBox', viewBox);
     applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
     applyTransformCanvas(svgEl, transformCanvas);
@@ -1170,7 +1171,7 @@ export function emitSVG(svgEl, resolved) {
   }
 
   // 8. Compute and set viewBox
-  const viewBox = computeViewBox(svgEl);
+  const viewBox = computeViewBox(svgEl, configPadding);
   svgEl.setAttribute('viewBox', viewBox);
   applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
   applyTransformCanvas(svgEl, transformCanvas);
