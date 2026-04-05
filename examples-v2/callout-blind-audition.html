@@ -14,7 +14,7 @@
     .side { text-align: center; }
     .side-label { font-size: 1.8rem; font-weight: bold; color: #555; margin-bottom: 1rem; letter-spacing: 0.1em; }
     .side img, .side svg { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-    .side img { max-width: 400px; height: auto; padding: 10px; }
+    .side img { width: 400px; height: auto; padding: 10px; }
     .side svg { display: block; }
     .svg-wrap { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); padding: 10px; display: inline-block; }
     .reveal { font-size: 1.6rem; line-height: 2; text-align: center; }
@@ -154,7 +154,7 @@
         position: { x: 100, y: 55 },
         label: 'Hello!',
         shape: 'rectangle callout',
-        fill: '#d4e4f7',
+        fill: '#E6E6FF',
         stroke: '#000',
         strokeWidth: 1.6,
         minimumWidth: 2.5 * CM,
@@ -182,7 +182,7 @@
         position: { x: 230, y: 130 },
         label: 'Note',
         shape: 'ellipse callout',
-        fill: '#d4f7d4',
+        fill: '#E6FFE6',
         stroke: '#000',
         strokeWidth: 1.6,
         minimumWidth: 2.5 * CM,
@@ -210,14 +210,13 @@
         position: { x: 160, y: 110 },
         label: 'Think',
         shape: 'cloud',
-        fill: '#fce5cc',
+        fill: '#FFF2D9',
         stroke: '#000',
         strokeWidth: 1.6,
-        minimumWidth: 3 * CM,
-        minimumHeight: 2 * CM,
         cloudPuffs: 10,
         cloudPuffArc: 135,
-        fontSize: 22,
+        fontSize: 36,
+        innerSep: 0,
       },
     },
     edges: [],
@@ -230,16 +229,15 @@
         position: { x: 110, y: 80 },
         label: 'Hmm...',
         shape: 'cloud callout',
-        fill: '#fefcd4',
+        fill: '#FFFFD9',
         stroke: '#000',
         strokeWidth: 1.6,
-        minimumWidth: 3 * CM,
-        minimumHeight: 2 * CM,
         cloudPuffs: 10,
         cloudPuffArc: 135,
         calloutPointer: { x: 110 + 3 * CM, y: 80 + 1.5 * CM },
         calloutPointerSegments: 3,
-        fontSize: 22,
+        fontSize: 36,
+        innerSep: 0,
       },
       dot: {
         position: { x: 110 + 3 * CM, y: 80 + 1.5 * CM },
@@ -260,7 +258,7 @@
         position: { x: 260, y: 65 },
         label: 'Warning',
         shape: 'rectangle callout',
-        fill: '#f7d4d4',
+        fill: '#FFEBEB',
         stroke: '#000',
         strokeWidth: 1.6,
         minimumWidth: 2 * CM,
@@ -280,6 +278,21 @@
     },
     edges: [],
   });
+
+  // ── Post-render: match SVG display size to PNG display size ──
+  // After render(), the emitter sets viewBox automatically.
+  // Read each SVG's viewBox aspect ratio and set width/height
+  // so the SVG displays at the same width as the PNG (400px).
+  const DISPLAY_W = 400;
+  for (const id of ['svg1', 'svg2', 'svg3', 'svg4', 'svg5']) {
+    const svg = document.getElementById(id);
+    const vb = svg.getAttribute('viewBox');
+    if (!vb) continue;
+    const [, , vw, vh] = vb.split(' ').map(Number);
+    const ar = vh / vw;
+    svg.setAttribute('width', DISPLAY_W);
+    svg.setAttribute('height', Math.round(DISPLAY_W * ar));
+  }
 </script>
 </body>
 </html>
