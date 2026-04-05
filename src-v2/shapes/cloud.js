@@ -179,6 +179,9 @@ export default createShape('cloud', {
     return {
       center: { x: center.x, y: center.y },
       outerSep,
+      // Preserve rx/ry for emitter re-call (savedGeometry is called again with ...geom)
+      rx: textHalfW,
+      ry: textHalfH,
       puffs,
       arc,
       anglestep,
