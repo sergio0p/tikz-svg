@@ -40,6 +40,9 @@ export default createShape('cylinder', {
       'after top':  { x: c.x - hw, y: c.y - hh + ery },
       'before bottom': { x: c.x + hw, y: c.y + hh - ery },
       'after bottom':  { x: c.x - hw, y: c.y + hh - ery },
+      'top':    { x: c.x, y: c.y - hh + ery },
+      'bottom': { x: c.x, y: c.y + hh - ery },
+      'shape center': { x: c.x, y: c.y },
     };
   },
 

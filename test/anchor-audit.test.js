@@ -282,6 +282,26 @@ describe('corner N / side N anchors on preparation', () => {
   });
 });
 
+describe('cylinder shape-specific anchors', () => {
+  it('has top, bottom, shape center', async () => {
+    await import('../src-v2/shapes/cylinder.js');
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('cylinder');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, halfWidth: 20, halfHeight: 30, outerSep: 0,
+    });
+    const top = shape.anchor('top', geom);
+    const bottom = shape.anchor('bottom', geom);
+    const sc = shape.anchor('shape center', geom);
+    assert.ok(top.y < 0, 'top should be above center');
+    assert.ok(bottom.y > 0, 'bottom should be below center');
+    assert.strictEqual(sc.x, 0);
+    assert.strictEqual(sc.y, 0);
+    assert.strictEqual(top.x, 0);
+    assert.strictEqual(bottom.x, 0);
+  });
+});
+
 describe('kite shape-specific anchors', () => {
   it('has vertex anchors', async () => {
     await import('../src-v2/shapes/kite.js');
