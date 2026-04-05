@@ -158,3 +158,77 @@ describe('mid/base anchors on registerShape shapes', () => {
     assert.strictEqual(mid.x, 0);
   });
 });
+
+describe('corner N / side N anchors on regular polygon', () => {
+  it('pentagon has corner 1 through corner 5', async () => {
+    await import('../src-v2/shapes/regular-polygon.js');
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('regular polygon');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, sides: 5, outerSep: 0,
+    });
+    for (let i = 1; i <= 5; i++) {
+      const pt = shape.anchor(`corner ${i}`, geom);
+      assert.ok(pt, `corner ${i} should exist`);
+      const dist = Math.sqrt(pt.x ** 2 + pt.y ** 2);
+      assert.ok(Math.abs(dist - 30) < 0.01, `corner ${i} dist=${dist} should be ~30`);
+    }
+  });
+
+  it('corner 1 of pentagon is at top (90 degrees)', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('regular polygon');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, sides: 5, outerSep: 0,
+    });
+    const c1 = shape.anchor('corner 1', geom);
+    assert.ok(Math.abs(c1.x) < 0.01, `corner 1 x=${c1.x} should be ~0`);
+    assert.ok(c1.y < 0, `corner 1 y=${c1.y} should be negative (top)`);
+  });
+
+  it('pentagon has side 1 through side 5', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('regular polygon');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, sides: 5, outerSep: 0,
+    });
+    for (let i = 1; i <= 5; i++) {
+      const pt = shape.anchor(`side ${i}`, geom);
+      assert.ok(pt, `side ${i} should exist`);
+    }
+  });
+
+  it('side 1 is midpoint between corner 1 and corner 2', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('regular polygon');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, sides: 5, outerSep: 0,
+    });
+    const c1 = shape.anchor('corner 1', geom);
+    const c2 = shape.anchor('corner 2', geom);
+    const s1 = shape.anchor('side 1', geom);
+    assert.ok(Math.abs(s1.x - (c1.x + c2.x) / 2) < 0.01);
+    assert.ok(Math.abs(s1.y - (c1.y + c2.y) / 2) < 0.01);
+  });
+
+  it('hexagon has corner 1 through corner 6 and side 1 through side 6', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('regular polygon');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, sides: 6, outerSep: 0,
+    });
+    for (let i = 1; i <= 6; i++) {
+      assert.ok(shape.anchor(`corner ${i}`, geom), `corner ${i}`);
+      assert.ok(shape.anchor(`side ${i}`, geom), `side ${i}`);
+    }
+  });
+
+  it('corner N throws for N > sides', async () => {
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('regular polygon');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, sides: 5, outerSep: 0,
+    });
+    assert.throws(() => shape.anchor('corner 6', geom));
+  });
+});

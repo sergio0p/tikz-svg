@@ -42,6 +42,36 @@ export default createShape('regular polygon', {
     return polygonBorderPoint(c, direction, polygonVertices(c.x, c.y, radius, sides, startAngle));
   },
 
+  dynamicAnchor(name, geom) {
+    const { center: c, radius, sides, startAngle } = geom;
+    const step = 360 / sides;
+
+    const cornerMatch = name.match(/^corner (\d+)$/);
+    if (cornerMatch) {
+      const n = parseInt(cornerMatch[1], 10);
+      if (n < 1 || n > sides) return null;
+      const rad = (startAngle + (n - 1) * step) * DEG2RAD;
+      return {
+        x: c.x + radius * Math.cos(rad),
+        y: c.y - radius * Math.sin(rad),
+      };
+    }
+
+    const sideMatch = name.match(/^side (\d+)$/);
+    if (sideMatch) {
+      const n = parseInt(sideMatch[1], 10);
+      if (n < 1 || n > sides) return null;
+      const rad1 = (startAngle + (n - 1) * step) * DEG2RAD;
+      const rad2 = (startAngle + n * step) * DEG2RAD;
+      return {
+        x: c.x + radius * (Math.cos(rad1) + Math.cos(rad2)) / 2,
+        y: c.y - radius * (Math.sin(rad1) + Math.sin(rad2)) / 2,
+      };
+    }
+
+    return null;
+  },
+
   backgroundPath(geom) {
     const { center: { x: cx, y: cy }, radius, sides, startAngle, outerSep } = geom;
     const verts = polygonVertices(cx, cy, radius - outerSep, sides, startAngle);
