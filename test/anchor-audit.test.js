@@ -282,6 +282,21 @@ describe('corner N / side N anchors on preparation', () => {
   });
 });
 
+describe('semicircle chord center', () => {
+  it('has chord center anchor', async () => {
+    await import('../src-v2/shapes/semicircle.js');
+    const { getShape } = await import('../src-v2/shapes/shape.js');
+    const shape = getShape('semicircle');
+    const geom = shape.savedGeometry({
+      center: { x: 0, y: 0 }, radius: 30, outerSep: 0,
+    });
+    const cc = shape.anchor('chord center', geom);
+    assert.ok(cc, 'chord center should exist');
+    assert.strictEqual(cc.x, 0);
+    assert.strictEqual(cc.y, 0);
+  });
+});
+
 describe('cylinder shape-specific anchors', () => {
   it('has top, bottom, shape center', async () => {
     await import('../src-v2/shapes/cylinder.js');

@@ -36,6 +36,7 @@ export default createShape('semicircle', {
       'arc start':  { x: c.x + r, y: c.y },
       'arc end':    { x: c.x - r, y: c.y },
       apex:         { x: c.x, y: c.y - r },
+      'chord center': { x: c.x, y: c.y },
     };
   },
 
