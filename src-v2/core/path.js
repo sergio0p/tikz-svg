@@ -4,7 +4,8 @@
  * manipulation, and SVG serialization.
  */
 
-const KAPPA = 0.5522847498;
+/** PGF's cubic Bézier constant for quarter-circle arc approximation. */
+export const KAPPA = 0.5522847498;
 
 function round4(v) {
   const r = Math.round(v * 10000) / 10000;

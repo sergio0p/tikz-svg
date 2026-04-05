@@ -1,10 +1,5 @@
 import { pointsToPath, parseSVGPath, isClosedPath } from './path-utils.js';
-
-/**
- * PGF's circle-approximation constant for cubic Bézier quarter arcs.
- * See pgfcorepathprocessing.code.tex line 402.
- */
-const KAPPA = 0.5522847;
+import { KAPPA } from '../core/path.js';
 
 /**
  * Smooth polyline corners with cubic Bézier arcs.
@@ -48,7 +43,6 @@ export function applyRoundedCorners(points, radius, closed) {
       x: curr.x + (next.x - curr.x) * (rad / dNext),
       y: curr.y + (next.y - curr.y) * (rad / dNext),
     };
-    // Cubic control points: interpolate toward the corner vertex
     const cp1 = {
       x: entry.x + KAPPA * (curr.x - entry.x),
       y: entry.y + KAPPA * (curr.y - entry.y),

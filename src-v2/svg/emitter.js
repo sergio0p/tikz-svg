@@ -761,11 +761,11 @@ function createShapeElement(geom, style, opts = {}) {
   }
 
   // Drawn dimensions use visual size (subtract outerSep from anchor dimensions)
+  const rc = style.roundedCorners ?? 0;
   switch (shapeName) {
     case 'rectangle': {
       const hw = Math.max(0, geom.halfWidth - outerSep - inset);
       const hh = Math.max(0, geom.halfHeight - outerSep - inset);
-      const rc = style.roundedCorners ?? 0;
       const attrs = {
         x: -hw, y: -hh, width: hw * 2, height: hh * 2,
         fill, stroke, 'stroke-width': strokeWidth,
@@ -810,8 +810,6 @@ function createShapeElement(geom, style, opts = {}) {
           localGeom.outerSep = (localGeom.outerSep ?? 0) + inset;
         }
         let d = shapeImpl.backgroundPath(localGeom);
-        // Apply rounded corners to polygon path if requested
-        const rc = style.roundedCorners ?? 0;
         if (rc > 0) {
           d = roundPathCorners(d, rc);
         }
