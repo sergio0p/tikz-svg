@@ -39,7 +39,7 @@ describe('decoration integration (full pipeline)', () => {
     const paths = svg.querySelectorAll('.edge-layer path');
     assert.strictEqual(paths.length, 1);
     const d = paths[0].getAttribute('d');
-    assert.ok(d.includes('Q'), 'wavy edge should have rounded corners');
+    assert.ok(d.includes('C'), 'wavy edge should have rounded corners (cubic)');
   });
 
   it('renders wavy node borders via stateStyle', () => {

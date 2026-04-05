@@ -1,15 +1,22 @@
 /**
- * Isosceles triangle shape — triangle with two equal sides, apex at top.
+ * Isosceles triangle shape — apex pointing right (matching TikZ default).
  * PGF source: pgflibraryshapes.geometric.code.tex lines 1992–2361
+ *
+ * In PGF local coords the apex is at (+x, 0) and the base is vertical,
+ * so the default orientation has the apex pointing east (right).
+ *
+ * minimumWidth  → base width (vertical extent)
+ * minimumHeight → base-to-apex distance (horizontal extent)
  */
 
 import { createShape, polygonBorderPoint } from './shape.js';
 
 function triangleVertices(cx, cy, hw, hh) {
+  // hw = half base width (vertical), hh = half height base-to-apex (horizontal)
   return [
-    { x: cx,      y: cy - hh },  // apex (north)
-    { x: cx + hw, y: cy + hh },  // bottom right
-    { x: cx - hw, y: cy + hh },  // bottom left
+    { x: cx + hh, y: cy },        // apex (right)
+    { x: cx - hh, y: cy + hw },   // base bottom (SVG y-down)
+    { x: cx - hh, y: cy - hw },   // base top
   ];
 }
 
@@ -26,17 +33,17 @@ export default createShape('isosceles triangle', {
   namedAnchors(geom) {
     const { center: c, halfWidth: hw, halfHeight: hh } = geom;
     return {
-      north:        { x: c.x, y: c.y - hh },
-      south:        { x: c.x, y: c.y + hh },
-      east:         { x: c.x + hw, y: c.y + hh },
-      west:         { x: c.x - hw, y: c.y + hh },
-      'north east':  { x: c.x + hw / 2, y: c.y },
-      'north west':  { x: c.x - hw / 2, y: c.y },
-      'south east':  { x: c.x + hw, y: c.y + hh },
-      'south west':  { x: c.x - hw, y: c.y + hh },
-      apex:          { x: c.x, y: c.y - hh },
-      'left corner':  { x: c.x - hw, y: c.y + hh },
-      'right corner': { x: c.x + hw, y: c.y + hh },
+      north:         { x: c.x, y: c.y - hw },
+      south:         { x: c.x, y: c.y + hw },
+      east:          { x: c.x + hh, y: c.y },
+      west:          { x: c.x - hh, y: c.y },
+      'north east':  { x: c.x + hh / 2, y: c.y - hw / 2 },
+      'north west':  { x: c.x - hh, y: c.y - hw },
+      'south east':  { x: c.x + hh / 2, y: c.y + hw / 2 },
+      'south west':  { x: c.x - hh, y: c.y + hw },
+      apex:          { x: c.x + hh, y: c.y },
+      'left corner':  { x: c.x - hh, y: c.y - hw },
+      'right corner': { x: c.x - hh, y: c.y + hw },
     };
   },
 
@@ -48,6 +55,6 @@ export default createShape('isosceles triangle', {
   backgroundPath(geom) {
     const { center: { x: cx, y: cy }, halfWidth, halfHeight, outerSep } = geom;
     const hw = halfWidth - outerSep, hh = halfHeight - outerSep;
-    return `M ${cx} ${cy - hh} L ${cx + hw} ${cy + hh} L ${cx - hw} ${cy + hh} Z`;
+    return `M ${cx + hh} ${cy} L ${cx - hh} ${cy + hw} L ${cx - hh} ${cy - hw} Z`;
   },
 });

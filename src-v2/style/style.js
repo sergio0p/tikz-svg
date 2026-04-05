@@ -43,6 +43,7 @@ export function resolveNodeStyle(nodeId, config) {
     yshift: 0,
     rotate: 0,
     nodeScale: 1,
+    roundedCorners: 0,
   };
   // Merge: DEFAULTS → stateStyle → group style → expanded named style + per-node
   const registry = new StyleRegistry(config.styles);

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rounded Corners: Blind Audition</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: #1a1a2e; color: #eee; }
+    .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; border-bottom: 1px solid #333; }
+    .page-title { font-size: 1.4rem; margin-bottom: 0.5rem; color: #aaa; letter-spacing: 0.05em; }
+    .page-subtitle { font-size: 0.95rem; color: #666; margin-bottom: 2rem; font-style: italic; }
+    .comparison { display: flex; gap: 3rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .side { text-align: center; }
+    .side-label { font-size: 1.8rem; font-weight: bold; color: #555; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .side img, .side svg { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .side img { max-width: 400px; height: auto; padding: 10px; }
+    .side svg { display: block; }
+    .svg-wrap { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); padding: 10px; display: inline-block; }
+    .reveal { font-size: 1.6rem; line-height: 2; text-align: center; }
+    .reveal strong { color: #e6b422; font-size: 2rem; }
+    .nav { position: fixed; bottom: 1.5rem; right: 1.5rem; font-size: 0.8rem; color: #555; }
+    .nav a { color: #888; text-decoration: none; margin: 0 0.5rem; }
+    .nav a:hover { color: #ccc; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.3rem; color: #e6b422; }
+    .intro { max-width: 500px; text-align: center; line-height: 1.8; color: #999; }
+  </style>
+</head>
+<body>
+
+<!-- Intro page -->
+<div class="page" id="intro">
+  <h1>Blind Audition</h1>
+  <p class="intro">
+    Each page shows two renderings of a TikZ shape with <code>rounded corners</code>.
+    One is compiled from LaTeX/TikZ. The other is our JavaScript library.
+    <br><br>
+    Can you tell which is which?
+  </p>
+</div>
+
+<!-- Page 1: Rectangle with rounded corners -->
+<div class="page" id="p1">
+  <div class="page-title">1 / 4</div>
+  <div class="page-subtitle">rectangle, rounded corners=8pt</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <img src="../tex/rc-1-rectangle.png" alt="rendering A">
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <div class="svg-wrap"><svg id="svg1" width="250" height="120"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- Page 2: Diamond with rounded corners -->
+<div class="page" id="p2">
+  <div class="page-title">2 / 4</div>
+  <div class="page-subtitle">diamond, rounded corners=6pt</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <div class="svg-wrap"><svg id="svg2" width="200" height="200"></svg></div>
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <img src="../tex/rc-2-diamond.png" alt="rendering B">
+    </div>
+  </div>
+</div>
+
+<!-- Page 3: Regular polygon (hexagon) with rounded corners -->
+<div class="page" id="p3">
+  <div class="page-title">3 / 4</div>
+  <div class="page-subtitle">regular polygon (6 sides), rounded corners=5pt</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <img src="../tex/rc-3-hexagon.png" alt="rendering A">
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <div class="svg-wrap"><svg id="svg3" width="200" height="200"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- Page 4: Isosceles triangle with rounded corners -->
+<div class="page" id="p4">
+  <div class="page-title">4 / 4</div>
+  <div class="page-subtitle">isosceles triangle, rounded corners=6pt</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <div class="svg-wrap"><svg id="svg4" width="250" height="200"></svg></div>
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <img src="../tex/rc-4-triangle.png" alt="rendering B">
+    </div>
+  </div>
+</div>
+
+<!-- Reveal page -->
+<div class="page" id="reveal">
+  <div class="reveal">
+    <strong>The tikz-svg JavaScript library is:</strong>
+    <br><br>
+    Page 1 &mdash; <strong>B</strong><br>
+    Page 2 &mdash; <strong>A</strong><br>
+    Page 3 &mdash; <strong>B</strong><br>
+    Page 4 &mdash; <strong>A</strong><br>
+  </div>
+</div>
+
+<nav class="nav">
+  <a href="#intro">Intro</a>
+  <a href="#p1">1</a> <a href="#p2">2</a> <a href="#p3">3</a>
+  <a href="#p4">4</a>
+  <a href="#reveal">Reveal</a>
+</nav>
+
+<script type="module">
+  import { render } from '../src-v2/index.js';
+
+  const CM = 28.35;
+
+  // Page 1: Rectangle with rounded corners=8pt
+  render(document.getElementById('svg1'), {
+    states: {
+      r: {
+        position: [125, 60],
+        label: 'Rectangle',
+        shape: 'rectangle',
+        fill: '#d4d4f7',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 3 * CM,
+        minimumHeight: 1.5 * CM,
+        roundedCorners: 8,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 2: Diamond with rounded corners=6pt
+  render(document.getElementById('svg2'), {
+    states: {
+      d: {
+        position: [100, 100],
+        label: 'Choice',
+        shape: 'diamond',
+        fill: '#d4f7d4',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 2.5 * CM,
+        minimumHeight: 2.5 * CM,
+        roundedCorners: 6,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 3: Regular polygon (hexagon) with rounded corners=5pt
+  render(document.getElementById('svg3'), {
+    states: {
+      h: {
+        position: [100, 100],
+        label: 'Hex',
+        shape: 'regular polygon',
+        fill: '#fce5cc',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        sides: 6,
+        radius: 1.25 * CM,
+        roundedCorners: 5,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 4: Isosceles triangle with rounded corners=6pt
+  render(document.getElementById('svg4'), {
+    states: {
+      t: {
+        position: [120, 100],
+        label: 'Alert',
+        shape: 'isosceles triangle',
+        fill: '#f7d4d4',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 3 * CM,
+        minimumHeight: 2 * CM,
+        roundedCorners: 6,
+      },
+    },
+    edges: [],
+  });
+</script>
+</body>
+</html>

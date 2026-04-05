@@ -21,12 +21,12 @@ describe('morphPath', () => {
     assert.ok(result.endsWith('L 100 0'));
   });
 
-  it('produces Q commands when roundedCorners is set', () => {
+  it('produces C commands when roundedCorners is set', () => {
     const result = morphPath('M 0 0 L 50 0 L 100 0', {
       type: 'random steps', segmentLength: 10, amplitude: 3,
       roundedCorners: 4, seed: 42,
     });
-    assert.ok(result.includes('Q'), 'should have quadratic bezier curves');
+    assert.ok(result.includes('C'), 'should have cubic bezier curves (PGF-matching)');
   });
 
   it('closes the path for closed input', () => {
