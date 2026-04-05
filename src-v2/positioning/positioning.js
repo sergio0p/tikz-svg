@@ -21,6 +21,9 @@ const DIRECTION_KEYS = Object.keys(DIRECTIONS);
 export function parsePositionSpec(position) {
   if (!position) return null;
 
+  // Array shorthand: [x, y]
+  if (Array.isArray(position)) return null;
+
   // Already absolute
   if (typeof position.x === 'number' && typeof position.y === 'number') {
     return null;
@@ -202,7 +205,9 @@ export function resolvePositions(config) {
 
     if (spec === null) {
       // Absolute or missing position — default unpositioned nodes to origin
-      if (node.position && typeof node.position.x === 'number') {
+      if (Array.isArray(node.position)) {
+        node.position = { x: node.position[0], y: node.position[1] };
+      } else if (node.position && typeof node.position.x === 'number') {
         node.position = { x: node.position.x, y: node.position.y };
       } else {
         node.position = { x: 0, y: 0 };
