@@ -1,6 +1,20 @@
 /**
  * Diamond shape — 4-sided rotated rectangle.
  * PGF source: pgflibraryshapes.geometric.code.tex lines 234–342
+ *
+ * TikZ diamond sizing (with default aspect=1):
+ *   xa = textHalfW + innerSep
+ *   ya = textHalfH + innerSep
+ *   halfW = xa + aspect * ya    (= xa + ya when aspect=1)
+ *   halfH = aspect_inv * xa + ya (= xa + ya when aspect=1)
+ *   halfW = max(halfW, minimumWidth/2)
+ *   halfH = max(halfH, minimumHeight/2)
+ *   halfW += outerSep
+ *   halfH += outerSep
+ *
+ * The pipeline passes rx = textHalfW + innerSep (for diamond shapes,
+ * without minimumWidth clamping). The diamond applies the aspect
+ * transform and minimumWidth internally.
  */
 
 import { createShape, polygonBorderPoint } from './shape.js';
@@ -16,12 +30,44 @@ function diamondVertices(cx, cy, hw, hh) {
 
 export default createShape('diamond', {
   savedGeometry(config) {
-    const { center, halfWidth, halfHeight, outerSep = 0 } = config;
+    const {
+      center,
+      // rx/ry = textHalfW + innerSep (from pipeline, no minimumWidth)
+      rx: xa, ry: ya,
+      halfWidth: legacyHW, halfHeight: legacyHH,
+      outerSep = 0,
+      shapeAspect = 1,
+      minimumWidth = 0,
+      minimumHeight = 0,
+    } = config;
+
+    // Support both rx/ry (new pipeline path) and halfWidth/halfHeight (legacy)
+    const textXA = xa ?? legacyHW ?? 20;
+    const textYA = ya ?? legacyHH ?? 20;
+
+    // TikZ diamond transform: halfW = xa + aspect * ya
+    let hw = textXA + shapeAspect * textYA;
+    let hh = (1 / shapeAspect) * textXA + textYA;
+
+    // Clamp to minimum dimensions
+    hw = Math.max(hw, minimumWidth / 2);
+    hh = Math.max(hh, minimumHeight / 2);
+
+    // Add outerSep
+    hw += outerSep;
+    hh += outerSep;
+
     return {
       center: { x: center.x, y: center.y },
-      halfWidth: (halfWidth ?? 20) + outerSep,
-      halfHeight: (halfHeight ?? 20) + outerSep,
+      halfWidth: hw,
+      halfHeight: hh,
       outerSep,
+      // Preserve for emitter re-call
+      rx: textXA,
+      ry: textYA,
+      shapeAspect,
+      minimumWidth,
+      minimumHeight,
     };
   },
 

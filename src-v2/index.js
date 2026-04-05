@@ -316,7 +316,6 @@ export function render(svgEl, config) {
       case 'rectangle':
       case 'rectangle split':
       case 'rectangle callout':
-      case 'diamond':
       case 'kite':
       case 'isosceles triangle':
       case 'trapezium':
@@ -325,6 +324,16 @@ export function render(svgEl, config) {
           : textHalfW;
         geomConfig.halfHeight = hasExplicitSize
           ? Math.max(style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius, textHalfH)
+          : textHalfH;
+        break;
+      case 'diamond':
+        // Diamond applies aspect-ratio transform and minimumWidth internally.
+        // Pass text dims via rx/ry; pipeline adds innerSep, shape handles the rest.
+        geomConfig.rx = hasExplicitSize
+          ? Math.max(style.rx ?? style.halfWidth ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
+          : textHalfW;
+        geomConfig.ry = hasExplicitSize
+          ? Math.max(style.ry ?? style.halfHeight ?? style.radius ?? DEFAULTS.nodeRadius, textHalfH)
           : textHalfH;
         break;
       case 'ellipse':
@@ -370,10 +379,10 @@ export function render(svgEl, config) {
     const minHalfW = (style.minimumWidth ?? 0) / 2;
     const minHalfH = (style.minimumHeight ?? 0) / 2;
 
-    if (shapeName === 'cloud' || shapeName === 'cloud callout') {
-      // Cloud/cloud-callout apply innerSep before √2 scaling and minimumWidth
-      // at the outer ellipse level — both handled in savedGeometry.
-      // Pipeline only adds innerSep; does NOT clamp to minimumWidth here.
+    if (shapeName === 'cloud' || shapeName === 'cloud callout' || shapeName === 'diamond') {
+      // These shapes apply an internal geometric transform (√2 scaling, aspect
+      // ratio, cross-coupling) between innerSep and minimumWidth application.
+      // Pipeline only adds innerSep; shape handles minimumWidth at the correct level.
       geomConfig.rx = Math.max(geomConfig.rx, textHalfW + innerSep);
       geomConfig.ry = Math.max(geomConfig.ry, textHalfH + innerSep);
     } else if (geomConfig.halfWidth != null) {
