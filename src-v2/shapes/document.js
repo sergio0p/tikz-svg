@@ -68,21 +68,24 @@ function wavySidePath(x0, y0, hw, hbh, brx, bry, style, isTop) {
 
   if (style === 'in and out') {
     // TikZ: all three waypoints (start, mid, end) are at the same y (bendStartY).
-    // First arc curves INWARD (toward center): sweep toward smaller |y - center|.
-    // Second arc curves OUTWARD (away from center): sweep toward larger |y - center|.
+    // "in and out" = first arc curves INWARD (toward center), second OUTWARD.
     //
-    // Bottom (going right-to-left, start right of mid):
-    //   TikZ arc 45→135 (CCW in y-up → CW in SVG y-down) → sweep=1
-    //   The inward arc curves UP (toward center) between the waypoints.
-    //   TikZ arc 315→225 (CW in y-up → CCW in SVG y-down) → sweep=0
-    //   The outward arc curves DOWN (away from center) between the waypoints.
+    // SVG sweep flags depend on travel direction:
+    //   Top (left-to-right): inward=UP needs sweep=0, outward=DOWN needs sweep=1
+    //   Bottom (right-to-left): inward=UP needs sweep=0, outward=DOWN needs sweep=1
     //
-    // Top (going left-to-right, start left of mid):
-    //   TikZ arc 225→315 (CCW in y-up → CW in SVG y-down) → sweep=1
-    //   TikZ arc 135→45 (CW in y-up → CCW in SVG y-down) → sweep=0
-    //   But top side bends are mirrored: inward = DOWN, outward = UP.
-    const sweep1 = 1; // inward arc
-    const sweep2 = 0; // outward arc
+    // Wait — "inward" means toward center for BOTH sides:
+    //   Top: inward = toward positive y (DOWN in SVG) → sweep=1
+    //   Bottom: inward = toward negative y (UP in SVG) → sweep=0
+    //
+    // For bottom going right-to-left, start is RIGHT of end:
+    //   sweep=0 → CCW → goes UP (inward) ✓
+    //   sweep=1 → CW → goes DOWN (outward) ✓
+    // For top going left-to-right, start is LEFT of end:
+    //   sweep=1 → CW → goes DOWN (inward for top) ✓
+    //   sweep=0 → CCW → goes UP (outward for top) ✓
+    const sweep1 = isTop ? 1 : 0; // inward arc
+    const sweep2 = isTop ? 0 : 1; // outward arc
     return (
       ` L ${x0} ${bendStartY}` +
       ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${bendStartY}` +
@@ -90,10 +93,10 @@ function wavySidePath(x0, y0, hw, hbh, brx, bry, style, isTop) {
     );
   }
 
-  // 'out and in': first arc bends outward, second inward (reversed sweep flags)
+  // 'out and in': reversed — first outward, second inward
   if (style === 'out and in') {
-    const sweep1 = 0; // outward arc
-    const sweep2 = 1; // inward arc
+    const sweep1 = isTop ? 0 : 1; // outward arc
+    const sweep2 = isTop ? 1 : 0; // inward arc
     return (
       ` L ${x0} ${bendStartY}` +
       ` A ${brx} ${bry} 0 0 ${sweep1} ${cx} ${bendStartY}` +
