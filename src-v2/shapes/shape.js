@@ -86,6 +86,7 @@ export function getShape(name) {
  * @param {Function} spec.namedAnchors - (geom) => { anchorName: {x,y}, ... }. Do NOT include 'center'.
  * @param {Function} spec.borderPoint - (geom, direction) => {x,y}. Direction is a unit-ish vector.
  * @param {Function} spec.backgroundPath - (geom) => SVG path string. Should use visual dimensions (subtract outerSep).
+ * @param {Function} [spec.dynamicAnchor] - (name, geom) => {x,y}|null. For parameterised anchors (e.g. 'puff 3').
  * @returns {Object} The registered shape implementation.
  */
 export function createShape(name, spec) {
@@ -112,6 +113,12 @@ export function createShape(name, spec) {
       const named = spec.namedAnchors(geom);
       if (anchorName in named) {
         return named[anchorName];
+      }
+
+      // Dynamic anchors (e.g. 'puff 3' for cloud shape)
+      if (spec.dynamicAnchor) {
+        const pt = spec.dynamicAnchor(anchorName, geom);
+        if (pt) return pt;
       }
 
       // Numeric angle → borderPoint

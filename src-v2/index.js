@@ -20,6 +20,7 @@ import './shapes/cylinder.js';
 import './shapes/rectangle-split.js';
 import './shapes/circle-split.js';
 import './shapes/ellipse-split.js';
+import './shapes/cloud.js';
 
 import { getShape } from './shapes/shape.js';
 import { resolvePositions } from './positioning/positioning.js';
@@ -271,13 +272,29 @@ export function render(svgEl, config) {
     // Compute text dimensions for auto-sizing / overflow prevention
     const label = states[id].label ?? id;
     const fontSize = style.fontSize ?? DEFAULTS.fontSize;
-    const textDim = estimateTextDimensions(
-      Array.isArray(label) ? label.join(' ') : label,
-      fontSize,
-      style.textWidth ?? 0
-    );
-    const textHalfW = textDim.width / 2;
-    const textHalfH = textDim.height / 2;
+    let textHalfW, textHalfH;
+
+    if (Array.isArray(label)) {
+      // Multipart: width = widest part, height = sum of part heights
+      const parts = label.length;
+      let maxW = 0;
+      let totalH = 0;
+      for (const partLabel of label) {
+        const dim = estimateTextDimensions(String(partLabel), fontSize, style.textWidth ?? 0);
+        if (dim.width > maxW) maxW = dim.width;
+        totalH += dim.height;
+      }
+      textHalfW = maxW / 2;
+      textHalfH = totalH / 2;
+    } else {
+      const textDim = estimateTextDimensions(
+        String(label),
+        fontSize,
+        style.textWidth ?? 0
+      );
+      textHalfW = textDim.width / 2;
+      textHalfH = textDim.height / 2;
+    }
 
     // Check if user explicitly set any dimension
     const nodeProps = states[id] || {};
@@ -304,6 +321,16 @@ export function render(svgEl, config) {
         break;
       case 'ellipse':
       case 'ellipse split':
+        geomConfig.rx = hasExplicitSize
+          ? Math.max(style.rx ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
+          : textHalfW;
+        geomConfig.ry = hasExplicitSize
+          ? Math.max(style.ry ?? style.radius ?? DEFAULTS.nodeRadius, textHalfH)
+          : textHalfH;
+        break;
+      case 'cloud':
+        // Cloud's savedGeometry handles the √2 scaling and inner/outer ellipse
+        // computation internally — we just pass text half-dimensions.
         geomConfig.rx = hasExplicitSize
           ? Math.max(style.rx ?? style.radius ?? DEFAULTS.nodeRadius, textHalfW)
           : textHalfW;
