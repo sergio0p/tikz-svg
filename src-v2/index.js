@@ -370,7 +370,13 @@ export function render(svgEl, config) {
     const minHalfW = (style.minimumWidth ?? 0) / 2;
     const minHalfH = (style.minimumHeight ?? 0) / 2;
 
-    if (geomConfig.halfWidth != null) {
+    if (shapeName === 'cloud' || shapeName === 'cloud callout') {
+      // Cloud/cloud-callout apply innerSep before √2 scaling and minimumWidth
+      // at the outer ellipse level — both handled in savedGeometry.
+      // Pipeline only adds innerSep; does NOT clamp to minimumWidth here.
+      geomConfig.rx = Math.max(geomConfig.rx, textHalfW + innerSep);
+      geomConfig.ry = Math.max(geomConfig.ry, textHalfH + innerSep);
+    } else if (geomConfig.halfWidth != null) {
       geomConfig.halfWidth = Math.max(geomConfig.halfWidth, textHalfW + innerSep, minHalfW);
       geomConfig.halfHeight = Math.max(geomConfig.halfHeight, textHalfH + innerSep, minHalfH);
     } else if (geomConfig.rx != null) {

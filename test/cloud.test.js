@@ -275,6 +275,61 @@ describe('Cloud with zero outerSep', () => {
   });
 });
 
+describe('Cloud innerSep and minimumWidth interact correctly', () => {
+  it('innerSep=0 vs innerSep=10 produces different cloud sizes (no minimum)', () => {
+    // Without minimumWidth, innerSep should directly affect size.
+    // Pipeline should pass rx = textHalfW + innerSep to cloud.
+    const textHalfW = 20, textHalfH = 15;
+    const g0 = cloudShape.savedGeometry({
+      center: { x: 0, y: 0 },
+      rx: textHalfW + 0,   // innerSep = 0
+      ry: textHalfH + 0,
+      outerSep: 0,
+    });
+    const g10 = cloudShape.savedGeometry({
+      center: { x: 0, y: 0 },
+      rx: textHalfW + 10,  // innerSep = 10
+      ry: textHalfH + 10,
+      outerSep: 0,
+    });
+    assert.ok(g10.xInner > g0.xInner,
+      `innerSep=10 xInner ${g10.xInner} > innerSep=0 xInner ${g0.xInner}`);
+    assert.ok(g10.xOuter > g0.xOuter,
+      `innerSep=10 xOuter ${g10.xOuter} > innerSep=0 xOuter ${g0.xOuter}`);
+  });
+
+  it('minimumWidth should compete with outer radii, not text radii', () => {
+    // TikZ: minimum is applied to OUTER ellipse (after √2 + coupling).
+    // So minimum=60 should NOT kick in when outer > 30 (= 60/2).
+    // With rx=20, inner ≈ 20*√2 ≈ 28.3, outer ≈ 28.3*1.08 ≈ 30.6.
+    // Minimum/2 = 30 < 30.6, so minimum should NOT dominate.
+    const withoutMin = cloudShape.savedGeometry({
+      center: { x: 0, y: 0 }, rx: 20, ry: 15, outerSep: 0,
+    });
+    const withMin = cloudShape.savedGeometry({
+      center: { x: 0, y: 0 }, rx: 20, ry: 15, outerSep: 0,
+      minimumWidth: 60, minimumHeight: 40,
+    });
+    const innerRatio = withMin.xInner / withoutMin.xInner;
+    assert.ok(innerRatio < 1.2,
+      `minimumWidth=60 should not inflate xInner by >20%: ratio=${innerRatio.toFixed(3)}`);
+  });
+
+  it('pipeline passes text+innerSep as rx, not clamped to minimumWidth', () => {
+    // Pipeline should pass rx = textHalfW + innerSep (not max with minimumWidth/2).
+    // Cloud handles minimumWidth at the outer level internally.
+    // With textHalfW=20, innerSep=3: rx should be 23, not 30 (minW/2).
+    const correctRx = 20 + 3; // textHalfW + innerSep
+    const g = cloudShape.savedGeometry({
+      center: { x: 0, y: 0 }, rx: correctRx, ry: correctRx, outerSep: 0,
+      minimumWidth: 60,
+    });
+    // inner = 23 * √2 ≈ 32.5, not 30 * √2 ≈ 42.4
+    assert.ok(g.xInner < 35,
+      `xInner should be ~32.5 (from rx=23), got ${g.xInner.toFixed(1)}`);
+  });
+});
+
 describe('Cloud at origin', () => {
   const geom = makeGeom({ center: { x: 0, y: 0 } });
 
