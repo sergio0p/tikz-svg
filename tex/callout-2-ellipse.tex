@@ -1,0 +1,13 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{shapes.callouts}
+\begin{document}
+\begin{tikzpicture}
+\node[ellipse callout, draw, thick, fill=green!10,
+      callout absolute pointer={(-2.5,1.5)},
+      callout pointer arc=20,
+      minimum width=2.5cm, minimum height=1.2cm]
+  {Note};
+\fill[red] (-2.5,1.5) circle (2pt);
+\end{tikzpicture}
+\end{document}

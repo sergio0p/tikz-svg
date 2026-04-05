@@ -1,0 +1,14 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{shapes.callouts, shapes.symbols}
+\begin{document}
+\begin{tikzpicture}
+\node[cloud callout, draw, thick, fill=yellow!15,
+      cloud puffs=10, cloud puff arc=135,
+      callout absolute pointer={(3,-1.5)},
+      callout pointer segments=3,
+      minimum width=3cm, minimum height=2cm]
+  {Hmm...};
+\fill[red] (3,-1.5) circle (2pt);
+\end{tikzpicture}
+\end{document}

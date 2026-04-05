@@ -1,0 +1,13 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{shapes.callouts}
+\begin{document}
+\begin{tikzpicture}
+\node[rectangle callout, draw, thick, fill=red!8,
+      callout absolute pointer={(-3,0.3)},
+      callout pointer width=0.3cm,
+      minimum width=2cm, minimum height=0.8cm]
+  {Warning};
+\fill[red] (-3,0.3) circle (2pt);
+\end{tikzpicture}
+\end{document}

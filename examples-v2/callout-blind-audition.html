@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Callout Shapes: Blind Audition</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: #1a1a2e; color: #eee; }
+    .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; border-bottom: 1px solid #333; }
+    .page-title { font-size: 1.4rem; margin-bottom: 0.5rem; color: #aaa; letter-spacing: 0.05em; }
+    .page-subtitle { font-size: 0.95rem; color: #666; margin-bottom: 2rem; font-style: italic; }
+    .comparison { display: flex; gap: 3rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .side { text-align: center; }
+    .side-label { font-size: 1.8rem; font-weight: bold; color: #555; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .side img, .side svg { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .side img { max-width: 400px; height: auto; padding: 10px; }
+    .side svg { display: block; }
+    .svg-wrap { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); padding: 10px; display: inline-block; }
+    .reveal { font-size: 1.6rem; line-height: 2; text-align: center; }
+    .reveal strong { color: #e6b422; font-size: 2rem; }
+    .nav { position: fixed; bottom: 1.5rem; right: 1.5rem; font-size: 0.8rem; color: #555; }
+    .nav a { color: #888; text-decoration: none; margin: 0 0.5rem; }
+    .nav a:hover { color: #ccc; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.3rem; color: #e6b422; }
+    .intro { max-width: 500px; text-align: center; line-height: 1.8; color: #999; }
+  </style>
+</head>
+<body>
+
+<!-- Intro page -->
+<div class="page" id="intro">
+  <h1>Blind Audition</h1>
+  <p class="intro">
+    Each page shows two renderings of the same TikZ callout shape.
+    One is compiled from LaTeX/TikZ. The other is our JavaScript library.
+    <br><br>
+    Can you tell which is which?
+  </p>
+</div>
+
+<!-- Page 1: Rectangle callout pointing lower-right -->
+<div class="page" id="p1">
+  <div class="page-title">1 / 5</div>
+  <div class="page-subtitle">rectangle callout, pointer lower-right</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <div class="svg-wrap"><svg id="svg1" width="350" height="180"></svg></div>
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <img src="../tex/callout-1-rect-right.png" alt="rendering B">
+    </div>
+  </div>
+</div>
+
+<!-- Page 2: Ellipse callout pointing upper-left -->
+<div class="page" id="p2">
+  <div class="page-title">2 / 5</div>
+  <div class="page-subtitle">ellipse callout, pointer upper-left</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <img src="../tex/callout-2-ellipse.png" alt="rendering A">
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <div class="svg-wrap"><svg id="svg2" width="350" height="180"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- Page 3: Cloud shape -->
+<div class="page" id="p3">
+  <div class="page-title">3 / 5</div>
+  <div class="page-subtitle">cloud shape (no callout)</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <div class="svg-wrap"><svg id="svg3" width="300" height="200"></svg></div>
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <img src="../tex/callout-3-cloud.png" alt="rendering B">
+    </div>
+  </div>
+</div>
+
+<!-- Page 4: Cloud callout with thought bubbles -->
+<div class="page" id="p4">
+  <div class="page-title">4 / 5</div>
+  <div class="page-subtitle">cloud callout, 3 thought-bubble segments</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <img src="../tex/callout-4-cloud-callout.png" alt="rendering A">
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <div class="svg-wrap"><svg id="svg4" width="350" height="220"></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- Page 5: Rectangle callout pointing left -->
+<div class="page" id="p5">
+  <div class="page-title">5 / 5</div>
+  <div class="page-subtitle">rectangle callout, pointer left</div>
+  <div class="comparison">
+    <div class="side">
+      <div class="side-label">A</div>
+      <div class="svg-wrap"><svg id="svg5" width="350" height="150"></svg></div>
+    </div>
+    <div class="side">
+      <div class="side-label">B</div>
+      <img src="../tex/callout-5-rect-left.png" alt="rendering B">
+    </div>
+  </div>
+</div>
+
+<!-- Reveal page -->
+<div class="page" id="reveal">
+  <div class="reveal">
+    <strong>The tikz-svg JavaScript library is:</strong>
+    <br><br>
+    Page 1 &mdash; <strong>A</strong><br>
+    Page 2 &mdash; <strong>B</strong><br>
+    Page 3 &mdash; <strong>A</strong><br>
+    Page 4 &mdash; <strong>B</strong><br>
+    Page 5 &mdash; <strong>A</strong><br>
+  </div>
+</div>
+
+<nav class="nav">
+  <a href="#intro">Intro</a>
+  <a href="#p1">1</a> <a href="#p2">2</a> <a href="#p3">3</a>
+  <a href="#p4">4</a> <a href="#p5">5</a>
+  <a href="#reveal">Reveal</a>
+</nav>
+
+<script type="module">
+  import { render } from '../src-v2/index.js';
+
+  // TikZ uses cm: 1cm ≈ 28.35px. We use a scale that looks comparable.
+  const CM = 28.35;
+
+  // Page 1: Rectangle callout pointing lower-right
+  // TikZ: node at origin, pointer at (3,-1), min width=2.5cm, min height=1cm
+  render(document.getElementById('svg1'), {
+    states: {
+      c: {
+        position: [120, 60],
+        label: 'Hello!',
+        shape: 'rectangle callout',
+        fill: '#d4e4f7',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 2.5 * CM,
+        minimumHeight: 1 * CM,
+        calloutPointer: { x: 120 + 3 * CM, y: 60 + 1 * CM },
+        calloutPointerWidth: 0.25 * CM,
+      },
+      dot: {
+        position: [120 + 3 * CM, 60 + 1 * CM],
+        label: '',
+        shape: 'circle',
+        fill: 'red',
+        stroke: 'none',
+        radius: 2,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 2: Ellipse callout pointing upper-left
+  render(document.getElementById('svg2'), {
+    states: {
+      c: {
+        position: [220, 120],
+        label: 'Note',
+        shape: 'ellipse callout',
+        fill: '#d4f7d4',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 2.5 * CM,
+        minimumHeight: 1.2 * CM,
+        calloutPointer: { x: 220 - 2.5 * CM, y: 120 - 1.5 * CM },
+        calloutPointerArc: 20,
+      },
+      dot: {
+        position: [220 - 2.5 * CM, 120 - 1.5 * CM],
+        label: '',
+        shape: 'circle',
+        fill: 'red',
+        stroke: 'none',
+        radius: 2,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 3: Cloud shape
+  render(document.getElementById('svg3'), {
+    states: {
+      c: {
+        position: [150, 100],
+        label: 'Think',
+        shape: 'cloud',
+        fill: '#fce5cc',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 3 * CM,
+        minimumHeight: 2 * CM,
+        cloudPuffs: 10,
+        cloudPuffArc: 135,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 4: Cloud callout
+  render(document.getElementById('svg4'), {
+    states: {
+      c: {
+        position: [120, 80],
+        label: 'Hmm...',
+        shape: 'cloud callout',
+        fill: '#fefcd4',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 3 * CM,
+        minimumHeight: 2 * CM,
+        cloudPuffs: 10,
+        cloudPuffArc: 135,
+        calloutPointer: { x: 120 + 3 * CM, y: 80 + 1.5 * CM },
+        calloutPointerSegments: 3,
+      },
+      dot: {
+        position: [120 + 3 * CM, 80 + 1.5 * CM],
+        label: '',
+        shape: 'circle',
+        fill: 'red',
+        stroke: 'none',
+        radius: 2,
+      },
+    },
+    edges: [],
+  });
+
+  // Page 5: Rectangle callout pointing left
+  render(document.getElementById('svg5'), {
+    states: {
+      c: {
+        position: [230, 60],
+        label: 'Warning',
+        shape: 'rectangle callout',
+        fill: '#f7d4d4',
+        stroke: '#000',
+        strokeWidth: 1.2,
+        minimumWidth: 2 * CM,
+        minimumHeight: 0.8 * CM,
+        calloutPointer: { x: 230 - 3 * CM, y: 60 - 0.3 * CM },
+        calloutPointerWidth: 0.3 * CM,
+      },
+      dot: {
+        position: [230 - 3 * CM, 60 - 0.3 * CM],
+        label: '',
+        shape: 'circle',
+        fill: 'red',
+        stroke: 'none',
+        radius: 2,
+      },
+    },
+    edges: [],
+  });
+</script>
+</body>
+</html>
