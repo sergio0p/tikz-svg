@@ -4,7 +4,7 @@
  * delegating to the main render pipeline.
  */
 
-import { render } from '../index.js';
+import { render } from '../../src-v2/index.js';
 
 /** Automata-specific defaults (only values not already in DEFAULTS). */
 const AUTOMATA_STATE_DEFAULTS = {
