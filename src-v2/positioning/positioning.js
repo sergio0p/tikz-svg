@@ -212,33 +212,41 @@ export function resolvePositions(config) {
       } else {
         node.position = { x: 0, y: 0 };
       }
-      continue;
-    }
-    const { direction, refNode, distance } = spec;
-    const dirEntry = DIRECTIONS[direction];
-    const refCenter = resolved[refNode].position;
-
-    if (onGrid) {
-      // On-grid: new center = ref center + offset
-      const offset = computeOffset(dirEntry, distance, nodeDistance);
-      node.position = vecAdd(refCenter, offset);
     } else {
-      // Off-grid: anchor-to-anchor spacing
-      const radius = node.radius ?? DEFAULTS.nodeRadius;
-      const refRadius = resolved[refNode].radius ?? DEFAULTS.nodeRadius;
+      const { direction, refNode, distance } = spec;
+      const dirEntry = DIRECTIONS[direction];
+      const refCenter = resolved[refNode].position;
 
-      // Reference anchor point on the reference node
-      const refAnchorPt = anchorPoint(refCenter, refRadius, dirEntry.refAnchor);
+      if (onGrid) {
+        // On-grid: new center = ref center + offset
+        const offset = computeOffset(dirEntry, distance, nodeDistance);
+        node.position = vecAdd(refCenter, offset);
+      } else {
+        // Off-grid: anchor-to-anchor spacing
+        const radius = node.radius ?? DEFAULTS.nodeRadius;
+        const refRadius = resolved[refNode].radius ?? DEFAULTS.nodeRadius;
 
-      // The offset goes from refAnchor to newAnchor edge
-      const offset = computeOffset(dirEntry, distance, nodeDistance);
+        // Reference anchor point on the reference node
+        const refAnchorPt = anchorPoint(refCenter, refRadius, dirEntry.refAnchor);
 
-      // The new node's anchor should land at refAnchorPt + offset
-      const newAnchorPt = vecAdd(refAnchorPt, offset);
+        // The offset goes from refAnchor to newAnchor edge
+        const offset = computeOffset(dirEntry, distance, nodeDistance);
 
-      // Reverse the anchor offset to get the center
-      const anchorOffset = anchorPoint(vec(0, 0), radius, dirEntry.newAnchor);
-      node.position = vecAdd(newAnchorPt, vecScale(anchorOffset, -1));
+        // The new node's anchor should land at refAnchorPt + offset
+        const newAnchorPt = vecAdd(refAnchorPt, offset);
+
+        // Reverse the anchor offset to get the center
+        const anchorOffset = anchorPoint(vec(0, 0), radius, dirEntry.newAnchor);
+        node.position = vecAdd(newAnchorPt, vecScale(anchorOffset, -1));
+      }
+    }
+
+    // Apply xshift/yshift immediately so downstream nodes see the shifted position.
+    // In TikZ, shifts are coordinate transforms that affect relative placement.
+    const xs = node.xshift ?? 0;
+    const ys = node.yshift ?? 0;
+    if (xs !== 0 || ys !== 0) {
+      node.position = vecAdd(node.position, vec(xs, ys));
     }
   }
 

@@ -442,9 +442,8 @@ export function render(svgEl, config) {
       }
     }
 
-    // xshift/yshift
-    x += (style.xshift ?? 0);
-    y += (style.yshift ?? 0);
+    // xshift/yshift — now applied during positioning (Phase 2) so that
+    // downstream nodes see the shifted position for relative placement.
 
     if (x !== entry.center.x || y !== entry.center.y) {
       entry.center = { x, y };
