@@ -1,0 +1,10 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\begin{document}
+\begin{tikzpicture}[every node/.style={circle, draw, minimum size=1cm}]
+  \node (a) {A};
+  \node[right=of a] (b) {B};
+  \node[right=of b] (c) {C};
+\end{tikzpicture}
+\end{document}

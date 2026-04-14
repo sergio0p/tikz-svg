@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { resolvePositions, parsePositionSpec } from '../src/positioning/positioning.js';
+import { resolvePositions, parsePositionSpec } from '../src-v2/positioning/positioning.js';
 
 const near = (a, b, eps = 0.1) => Math.abs(a - b) < eps;
 

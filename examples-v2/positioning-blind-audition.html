@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Positioning: Blind Audition</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: #1a1a2e; color: #eee; }
+    .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; border-bottom: 1px solid #333; }
+    .page-title { font-size: 1.4rem; margin-bottom: 0.5rem; color: #aaa; letter-spacing: 0.05em; }
+    .page-subtitle { font-size: 0.95rem; color: #666; margin-bottom: 2rem; font-style: italic; }
+    .comparison { display: flex; gap: 3rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .side { text-align: center; }
+    .side-label { font-size: 1.8rem; font-weight: bold; color: #555; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .side img, .side svg { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+    .side img { width: 400px; height: auto; padding: 10px; image-rendering: auto; }
+    .svg-wrap { background: white; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); padding: 10px; display: inline-block; }
+    .reveal { font-size: 1.6rem; line-height: 2; text-align: center; }
+    .reveal strong { color: #e6b422; font-size: 2rem; }
+    .nav { position: fixed; bottom: 1.5rem; right: 1.5rem; font-size: 0.8rem; color: #555; }
+    .nav a { color: #888; text-decoration: none; margin: 0 0.5rem; }
+    .nav a:hover { color: #ccc; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.3rem; color: #e6b422; }
+    .intro { max-width: 500px; text-align: center; line-height: 1.8; color: #999; }
+  </style>
+</head>
+<body>
+
+<!-- Intro page -->
+<div class="page" id="intro">
+  <h1>Blind Audition</h1>
+  <p class="intro">
+    Each page shows two renderings of the same TikZ diagram using relative positioning
+    (<code>right=of</code>, <code>below=of</code>, <code>above right=of</code>, etc.).
+    One is compiled from LaTeX/TikZ. The other is our JavaScript library.
+    <br><br>
+    Can you tell which is which?
+  </p>
+</div>
+
+<!-- Page 1: Three nodes in a row -->
+<div class="page" id="p1">
+  <div class="page-title">1 / 5</div>
+  <div class="page-subtitle">right=of &mdash; three nodes in a line</div>
+  <div class="comparison">
+    <div class="side" data-role="library">
+      <div class="side-label"></div>
+      <div class="svg-wrap"><svg id="svg1" width="400" height="120"></svg></div>
+    </div>
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/pos-1-right.png" alt="rendering">
+    </div>
+  </div>
+</div>
+
+<!-- Page 2: 2x2 grid -->
+<div class="page" id="p2">
+  <div class="page-title">2 / 5</div>
+  <div class="page-subtitle">right=of, below=of &mdash; 2&times;2 grid</div>
+  <div class="comparison">
+    <div class="side" data-role="library">
+      <div class="side-label"></div>
+      <div class="svg-wrap"><svg id="svg2" width="400" height="400"></svg></div>
+    </div>
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/pos-2-grid.png" alt="rendering">
+    </div>
+  </div>
+</div>
+
+<!-- Page 3: Diagonal placement -->
+<div class="page" id="p3">
+  <div class="page-title">3 / 5</div>
+  <div class="page-subtitle">above right, below right &mdash; diamond layout</div>
+  <div class="comparison">
+    <div class="side" data-role="library">
+      <div class="side-label"></div>
+      <div class="svg-wrap"><svg id="svg3" width="400" height="400"></svg></div>
+    </div>
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/pos-3-diagonal.png" alt="rendering">
+    </div>
+  </div>
+</div>
+
+<!-- Page 4: Branching chain with edges -->
+<div class="page" id="p4">
+  <div class="page-title">4 / 5</div>
+  <div class="page-subtitle">chained positioning with edges &mdash; branching tree</div>
+  <div class="comparison">
+    <div class="side" data-role="library">
+      <div class="side-label"></div>
+      <div class="svg-wrap"><svg id="svg4" width="400" height="300"></svg></div>
+    </div>
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/pos-4-chain.png" alt="rendering">
+    </div>
+  </div>
+</div>
+
+<!-- Page 5: Square loop with edges -->
+<div class="page" id="p5">
+  <div class="page-title">5 / 5</div>
+  <div class="page-subtitle">right, above, left &mdash; square loop with edges</div>
+  <div class="comparison">
+    <div class="side" data-role="library">
+      <div class="side-label"></div>
+      <div class="svg-wrap"><svg id="svg5" width="400" height="400"></svg></div>
+    </div>
+    <div class="side" data-role="tikz">
+      <div class="side-label"></div>
+      <img src="../tex/pos-5-mixed.png" alt="rendering">
+    </div>
+  </div>
+</div>
+
+<!-- Reveal page -->
+<div class="page" id="reveal">
+  <div class="reveal" id="reveal-content">
+    <strong>The tikz-svg JavaScript library is:</strong>
+    <br><br>
+  </div>
+</div>
+
+<nav class="nav">
+  <a href="#intro">Intro</a>
+  <a href="#p1">1</a> <a href="#p2">2</a> <a href="#p3">3</a>
+  <a href="#p4">4</a> <a href="#p5">5</a>
+  <a href="#reveal">Reveal</a>
+</nav>
+
+<script type="module">
+  import { render } from '../src-v2/index.js';
+
+  // ── Randomize sides (per-example, per-load) ──
+  const assignments = {};
+  document.querySelectorAll('.comparison').forEach((comp, i) => {
+    const sides = [...comp.children];
+    const swap = Math.random() < 0.5;
+    if (swap) comp.appendChild(sides[0]); // move first child to end
+    const labels = comp.querySelectorAll('.side-label');
+    labels[0].textContent = 'A';
+    labels[1].textContent = 'B';
+    // Record which label the library ended up on
+    const libSide = comp.querySelector('[data-role="library"]');
+    const libLabel = libSide.querySelector('.side-label').textContent;
+    assignments[i + 1] = libLabel;
+  });
+
+  // ── Build reveal page ──
+  const revealEl = document.getElementById('reveal-content');
+  for (let i = 1; i <= 5; i++) {
+    revealEl.innerHTML += `Page ${i} &mdash; <strong>${assignments[i]}</strong><br>`;
+  }
+
+  // ── Render configs ──
+  // TikZ defaults: positioning library, node distance=1cm (off-grid = border-to-border),
+  // minimum size=1cm circles. Our matching: onGrid false, nodeDistance=40, radius=20.
+  const ND = 40;
+  const R = 20;
+  const common = { onGrid: false, nodeDistance: ND, padding: 60 };
+
+  // Page 1: A → B → C in a row
+  render(document.getElementById('svg1'), {
+    ...common,
+    states: {
+      a: { label: 'A', radius: R },
+      b: { label: 'B', radius: R, position: { right: 'a' } },
+      c: { label: 'C', radius: R, position: { right: 'b' } },
+    },
+    edges: [],
+  });
+
+  // Page 2: 2x2 grid
+  render(document.getElementById('svg2'), {
+    ...common,
+    states: {
+      a: { label: '1', radius: R },
+      b: { label: '2', radius: R, position: { right: 'a' } },
+      c: { label: '3', radius: R, position: { below: 'a' } },
+      d: { label: '4', radius: R, position: { below: 'b' } },
+    },
+    edges: [],
+  });
+
+  // Page 3: Diamond — above right / below right
+  render(document.getElementById('svg3'), {
+    ...common,
+    states: {
+      a: { label: 'A', radius: R },
+      b: { label: 'B', radius: R, position: { 'above right': 'a' } },
+      c: { label: 'C', radius: R, position: { 'below right': 'a' } },
+      d: { label: 'D', radius: R, position: { 'below right': 'b' } },
+    },
+    edges: [],
+  });
+
+  // Page 4: Branching chain with edges
+  render(document.getElementById('svg4'), {
+    ...common,
+    stateStyle: { fontSize: 16 },
+    states: {
+      q0: { label: 'q\u2080', radius: R },
+      q1: { label: 'q\u2081', radius: R, position: { right: 'q0' } },
+      q2: { label: 'q\u2082', radius: R, position: { 'above right': 'q1' } },
+      q3: { label: 'q\u2083', radius: R, position: { 'below right': 'q1' } },
+      q4: { label: 'q\u2084', radius: R, position: { right: 'q2' } },
+    },
+    edges: [
+      { from: 'q0', to: 'q1' },
+      { from: 'q1', to: 'q2' },
+      { from: 'q1', to: 'q3' },
+      { from: 'q2', to: 'q4' },
+    ],
+  });
+
+  // Page 5: Square loop with edges
+  render(document.getElementById('svg5'), {
+    ...common,
+    states: {
+      a: { label: 'A', radius: R },
+      b: { label: 'B', radius: R, position: { right: 'a' } },
+      c: { label: 'C', radius: R, position: { above: 'b' } },
+      d: { label: 'D', radius: R, position: { left: 'c' } },
+    },
+    edges: [
+      { from: 'a', to: 'b' },
+      { from: 'b', to: 'c' },
+      { from: 'c', to: 'd' },
+      { from: 'd', to: 'a' },
+    ],
+  });
+
+  // ── Post-render: match SVG display size to PNG display size ──
+  const DISPLAY_W = 400;
+  for (const id of ['svg1', 'svg2', 'svg3', 'svg4', 'svg5']) {
+    const svg = document.getElementById(id);
+    const vb = svg.getAttribute('viewBox');
+    if (!vb) continue;
+    const [, , vw, vh] = vb.split(' ').map(Number);
+    const ar = vh / vw;
+    svg.setAttribute('width', DISPLAY_W);
+    svg.setAttribute('height', Math.round(DISPLAY_W * ar));
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\begin{document}
+\begin{tikzpicture}[every node/.style={circle, draw, minimum size=1cm}]
+  \node (a) {1};
+  \node[right=of a] (b) {2};
+  \node[below=of a] (c) {3};
+  \node[below=of b] (d) {4};
+\end{tikzpicture}
+\end{document}

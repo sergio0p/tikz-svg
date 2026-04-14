@@ -1,0 +1,16 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\begin{document}
+\begin{tikzpicture}[every node/.style={circle, draw, minimum size=1cm}]
+  \node (q0) {$q_0$};
+  \node[right=of q0] (q1) {$q_1$};
+  \node[above right=of q1] (q2) {$q_2$};
+  \node[below right=of q1] (q3) {$q_3$};
+  \node[right=of q2] (q4) {$q_4$};
+  \draw[->] (q0) -- (q1);
+  \draw[->] (q1) -- (q2);
+  \draw[->] (q1) -- (q3);
+  \draw[->] (q2) -- (q4);
+\end{tikzpicture}
+\end{document}

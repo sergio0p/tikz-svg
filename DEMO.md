@@ -41,17 +41,14 @@ Use separate files (not multi-page) because `sips` only converts page 1.
 
 ### 2. Compile and convert to PNG
 
+**Always use ImageMagick** (`magick`) for PDF-to-PNG conversion. It renders at native DPI, producing sharp PNGs that match SVG quality in the blind audition. `sips` rasterizes at 72 DPI then upscales, which makes the TikZ side visibly blurrier — a dead giveaway.
+
 ```bash
 cd tex
 for f in callout-1-rect-right callout-2-ellipse callout-3-cloud; do
   pdflatex -interaction=nonstopmode "$f.tex"
-  sips -s format png --resampleWidth 600 "$f.pdf" --out "$f.png"
+  magick -density 300 "$f.pdf" -background white -alpha remove "$f.png"
 done
-```
-
-If `sips` is not available (non-macOS), use ImageMagick:
-```bash
-magick -density 300 "$f.pdf" -background white -alpha remove "$f.png"
 ```
 
 ### 3. Create the HTML demo
@@ -72,10 +69,23 @@ npx http-server /path/to/tikz-svg -p 8080 -c-1
 open http://localhost:8080/examples-v2/callout-blind-audition.html
 ```
 
-## Rules
+## Randomization Rules
+
+Randomization **must** happen at runtime in JavaScript, never hardcoded in HTML:
+
+1. **Per-example independence.** Each comparison page flips its own coin (`Math.random() < 0.5`). One page may show the library on the left while another shows it on the right — they are independent.
+2. **Re-randomize on every page load.** Refreshing the browser must produce a new random assignment. Do not bake side assignments into the HTML source.
+3. **Dynamic reveal.** The reveal page must be built from the same random assignments, not a static list.
+
+### Implementation pattern
+
+Each `.comparison` contains two `.side` children. One wraps an `<svg>` (library), the other wraps an `<img>` (TikZ PNG). On `DOMContentLoaded`, a script iterates every `.comparison`, flips a coin, and swaps the two `.side` elements if true. The reveal page reads the resulting order to report which side was which.
+
+The HTML should not assign A/B labels to specific content — the script assigns them after shuffling.
+
+## Other Rules
 
 - **No spoilers.** Never label outputs as "TikZ" or "tikz-svg" on comparison pages.
 - **No bias.** Don't style one side differently to make it look better.
 - **Identical parameters.** Both sides must use the same dimensions, colors, fonts, and layout as closely as possible.
-- **Randomize sides.** The library output should not always be on the same side.
 - **Reveal only on the last page.**
