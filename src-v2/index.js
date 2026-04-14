@@ -214,9 +214,17 @@ export function render(svgEl, config) {
   // ── PHASE 2: RESOLVE POSITIONS ──────────────────────────────────────
   // Topological sort + direction table → absolute { x, y } for every node.
 
+  // When scale is set, divide nodeDistance by scale so offsets are in scaled
+  // coordinates. Phase 2.6 multiplies by scale, restoring the intended pixel
+  // distance. TikZ: "node distance" is always in the current coordinate system.
+  const scale = Math.max(globalScaleX, globalScaleY);
+  const effectiveNodeDistance = scale !== 1
+    ? (config.nodeDistance ?? DEFAULTS.nodeDistance) / scale
+    : config.nodeDistance;
+
   const resolvedStates = resolvePositions({
     states,
-    nodeDistance: config.nodeDistance,
+    nodeDistance: effectiveNodeDistance,
     onGrid: config.onGrid,
   });
 
