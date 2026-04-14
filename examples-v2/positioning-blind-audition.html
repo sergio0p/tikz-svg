@@ -163,7 +163,7 @@
   // minimum size=1cm circles. Our matching: onGrid false, nodeDistance=40, radius=20.
   const ND = 40;
   const R = 20;
-  const common = { onGrid: false, nodeDistance: ND, padding: 60 };
+  const common = { onGrid: false, nodeDistance: ND };
 
   // Page 1: A → B → C in a row
   render(document.getElementById('svg1'), {
@@ -247,6 +247,7 @@
     svg.setAttribute('width', DISPLAY_W);
     svg.setAttribute('height', Math.round(DISPLAY_W * ar));
   }
+
 </script>
 </body>
 </html>

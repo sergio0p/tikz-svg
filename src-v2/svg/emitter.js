@@ -76,29 +76,31 @@ function expandBBoxFromElement(bbox, el) {
   // For <g> with a translate transform, parse center and scan children
   const transform = el.getAttribute('transform');
   if (transform) {
-    const match = transform.match(/translate\(\s*([-\d.]+)[,\s]+([-\d.]+)\s*\)/);
+    const match = transform.match(/translate\(\s*([-\d.eE+]+)[,\s]+([-\d.eE+]+)\s*\)/);
     if (match) {
       const cx = parseFloat(match[1]);
       const cy = parseFloat(match[2]);
-      // Scan immediate children for radius/size hints
+      // Scan immediate children for radius/size hints.
+      // Include half the stroke width so the bbox covers the full painted extent.
       for (const child of el.children) {
         const tag = child.tagName;
+        const half = (parseFloat(child.getAttribute('stroke-width')) || 0) / 2;
         if (tag === 'circle') {
           const r = parseFloat(child.getAttribute('r')) || 0;
-          expandBBox(bbox, cx - r, cy - r);
-          expandBBox(bbox, cx + r, cy + r);
+          expandBBox(bbox, cx - r - half, cy - r - half);
+          expandBBox(bbox, cx + r + half, cy + r + half);
         } else if (tag === 'ellipse') {
           const rx = parseFloat(child.getAttribute('rx')) || 0;
           const ry = parseFloat(child.getAttribute('ry')) || 0;
-          expandBBox(bbox, cx - rx, cy - ry);
-          expandBBox(bbox, cx + rx, cy + ry);
+          expandBBox(bbox, cx - rx - half, cy - ry - half);
+          expandBBox(bbox, cx + rx + half, cy + ry + half);
         } else if (tag === 'rect' || tag === 'foreignObject') {
           const x = parseFloat(child.getAttribute('x')) || 0;
           const y = parseFloat(child.getAttribute('y')) || 0;
           const w = parseFloat(child.getAttribute('width')) || 0;
           const h = parseFloat(child.getAttribute('height')) || 0;
-          expandBBox(bbox, cx + x, cy + y);
-          expandBBox(bbox, cx + x + w, cy + y + h);
+          expandBBox(bbox, cx + x - half, cy + y - half);
+          expandBBox(bbox, cx + x + w + half, cy + y + h + half);
         } else if (tag === 'path') {
           // Generic shape rendered as <path> — parse d-attribute coordinates
           const d = child.getAttribute('d');
@@ -106,7 +108,8 @@ function expandBBoxFromElement(bbox, el) {
             const nums = d.match(/-?[\d.]+/g);
             if (nums && nums.length >= 2) {
               for (let j = 0; j < nums.length - 1; j += 2) {
-                expandBBox(bbox, cx + parseFloat(nums[j]), cy + parseFloat(nums[j + 1]));
+                expandBBox(bbox, cx + parseFloat(nums[j]) - half, cy + parseFloat(nums[j + 1]) - half);
+                expandBBox(bbox, cx + parseFloat(nums[j]) + half, cy + parseFloat(nums[j + 1]) + half);
               }
             }
           }

@@ -220,6 +220,14 @@ export function render(svgEl, config) {
     onGrid: config.onGrid,
   });
 
+  // Round resolved positions to avoid floating-point noise (e.g. -3.55e-15)
+  // that produces scientific notation in SVG translate() attributes.
+  for (const id of stateIds) {
+    const pos = resolvedStates[id].position;
+    pos.x = round4(pos.x);
+    pos.y = round4(pos.y);
+  }
+
   // ── PHASE 2.5: APPLY TRANSFORMS ────────────────────────────────────
   // Apply global and per-group coordinate transforms to resolved positions.
   // This is a coordinate transform (TikZ-preferred): positions are remapped,
@@ -730,4 +738,4 @@ export function render(svgEl, config) {
   return refs;
 }
 
-export { renderAutomaton } from './automata/automata.js';
+// renderAutomaton removed — use render() directly
