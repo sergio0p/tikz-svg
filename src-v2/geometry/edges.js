@@ -182,9 +182,10 @@ export function computeStraightEdge(sourceNode, targetNode) {
  * @param {Object} targetNode
  * @param {string|number} bend - 'left', 'right', or angle in degrees
  * @param {Object} [defaults]
+ * @param {number} [looseness=1] - scales control point distance from baseline (>1 = more bowed)
  * @returns {{ path: string, startPoint: Object, endPoint: Object, controlPoint: Object, type: 'quadratic' }}
  */
-export function computeBentEdge(sourceNode, targetNode, bend, defaults = {}) {
+export function computeBentEdge(sourceNode, targetNode, bend, defaults = {}, looseness = 1) {
   const bendDefault = defaults.bendAngle ?? DEFAULTS.bendAngle;
   const bendAngle = resolveBendAngle(bend, bendDefault);
 
@@ -203,10 +204,21 @@ export function computeBentEdge(sourceNode, targetNode, bend, defaults = {}) {
   const endPoint = borderPt(targetNode, arrivalDir);
 
   // Control point = intersection of the two tangent rays
-  const controlPoint = rayIntersection(
+  let controlPoint = rayIntersection(
     startPoint, departureDir,
     endPoint, arrivalDir
   );
+
+  // Apply looseness: scale control point distance from the start–end midpoint.
+  // looseness=1 is the default (no change); >1 bows the curve more.
+  if (looseness !== 1) {
+    const midX = (startPoint.x + endPoint.x) / 2;
+    const midY = (startPoint.y + endPoint.y) / 2;
+    controlPoint = {
+      x: midX + (controlPoint.x - midX) * looseness,
+      y: midY + (controlPoint.y - midY) * looseness,
+    };
+  }
 
   const path = `M ${startPoint.x} ${startPoint.y} Q ${controlPoint.x} ${controlPoint.y} ${endPoint.x} ${endPoint.y}`;
 
@@ -307,7 +319,7 @@ export function computeEdgePath(sourceNode, targetNode, edgeConfig = {}, default
   }
   // Bent edge
   else if (edgeConfig.bend != null) {
-    geom = computeBentEdge(sourceNode, targetNode, edgeConfig.bend, defaults);
+    geom = computeBentEdge(sourceNode, targetNode, edgeConfig.bend, defaults, edgeConfig.looseness);
   }
   // Default: straight
   else {
