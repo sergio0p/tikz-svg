@@ -602,6 +602,7 @@ export function render(svgEl, config) {
       marks: svgMarks,
       markPath: result.markPath ? result.markPath.toSVGPath() : null,
       markFillMode: style.mark ? getMarkFillMode(style.mark) : 'stroke',
+      id: plotDef.id ?? `plot-${i}`,
     });
   }
 
@@ -680,6 +681,7 @@ export function render(svgEl, config) {
       arrowStartId,
       arrowEndId,
       labelNodes,
+      id: pathDef.id ?? `path-${i}`,
     });
   }
 
@@ -725,7 +727,22 @@ export function render(svgEl, config) {
     };
   }
 
+  // Auto-assign edge and label IDs: `edge-<from>-<to>` (unique) or
+  // `edge-<from>-<to>-<n>` (1-indexed) when a from→to pair repeats. Labels
+  // mirror the edge id with the `label-` prefix. User-supplied `id` wins.
+  const pairCounts = {};
+  for (const e of edges) {
+    const key = `${e.from}-${e.to}`;
+    pairCounts[key] = (pairCounts[key] || 0) + 1;
+  }
+  const pairSeen = {};
   for (let i = 0; i < edges.length; i++) {
+    const key = `${edges[i].from}-${edges[i].to}`;
+    pairSeen[key] = (pairSeen[key] || 0) + 1;
+    const suffix = pairCounts[key] > 1 ? `-${pairSeen[key]}` : '';
+    const autoId = `edge-${key}${suffix}`;
+    const autoLabelId = `label-${key}${suffix}`;
+
     model.edges.push({
       index: i,
       from: edges[i].from,
@@ -735,6 +752,8 @@ export function render(svgEl, config) {
       edgeGeometry: edgeGeometries[i],
       labelNode: edgeLabelPositions[i],
       style: resolvedEdgeStyles[i],
+      id: edges[i].id ?? autoId,
+      labelId: edges[i].labelId ?? autoLabelId,
     });
   }
 

@@ -259,6 +259,10 @@ function emitEdgePath(edge, prng) {
     pathEl.classList.add(style.className);
   }
 
+  if (edge.id) {
+    pathEl.setAttribute('id', edge.id);
+  }
+
   return pathEl;
 }
 
@@ -292,6 +296,10 @@ function emitLabelNode(edge) {
     class: 'label-node',
     transform: transformStr,
   });
+
+  if (edge.labelId) {
+    g.setAttribute('id', edge.labelId);
+  }
 
   // Background rect (invisible by default)
   const rect = createSVGElement('rect', {
@@ -345,6 +353,7 @@ function emitPlot(plotModel, layer) {
   const { path, style, marks, markPath, markFillMode } = plotModel;
 
   // Plot path
+  let pathEl = null;
   if (path) {
     const attrs = {
       d: path,
@@ -360,7 +369,9 @@ function emitPlot(plotModel, layer) {
     if (style.opacity != null && style.opacity < 1) {
       attrs.opacity = style.opacity;
     }
-    layer.appendChild(createSVGElement('path', attrs));
+    pathEl = createSVGElement('path', attrs);
+    if (plotModel.id) pathEl.setAttribute('id', plotModel.id);
+    layer.appendChild(pathEl);
   }
 
   // Plot marks
@@ -384,6 +395,8 @@ function emitPlot(plotModel, layer) {
       layer.appendChild(g);
     }
   }
+
+  return pathEl;
 }
 
 // ────────────────────────────────────────────
@@ -407,7 +420,7 @@ const ANCHOR_OFFSETS = {
 function emitDrawPath(pathModel, edgeLayer, labelLayer) {
   const { d, style, arrowStartId, arrowEndId, labelNodes } = pathModel;
 
-  if (!d) return;
+  if (!d) return null;
 
   const attrs = {
     d,
@@ -434,7 +447,9 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
     attrs['marker-end'] = `url(#${arrowEndId})`;
   }
 
-  edgeLayer.appendChild(createSVGElement('path', attrs));
+  const pathEl = createSVGElement('path', attrs);
+  if (pathModel.id) pathEl.setAttribute('id', pathModel.id);
+  edgeLayer.appendChild(pathEl);
 
   if (labelNodes) {
     for (const ln of labelNodes) {
@@ -472,6 +487,8 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
       }
     }
   }
+
+  return pathEl;
 }
 
 // ────────────────────────────────────────────
@@ -1180,7 +1197,7 @@ export function emitSVG(svgEl, resolved) {
 
   // ── ORDERED RENDERING (TikZ-faithful paint order) ──────────
   if (drawOrder) {
-    const refs = { nodes: {}, edges: [], labels: [], plots: [] };
+    const refs = { nodes: {}, edges: [], labels: [], plots: [], byId: {} };
     const defaultArrowDef = arrowDefs.length > 0 ? arrowDefs[0] : null;
     const defaultArrowId = defaultArrowDef ? defaultArrowDef.id : null;
 
@@ -1193,6 +1210,8 @@ export function emitSVG(svgEl, resolved) {
           const g = emitNode(item.id, node, prng);
           target.appendChild(g);
           refs.nodes[item.id] = g;
+          const gid = g.getAttribute('id');
+          if (gid) refs.byId[gid] = g;
           if (node.style.initial) {
             target.appendChild(emitInitialArrow(node, defaultArrowId, defaultArrowDef));
           }
@@ -1204,23 +1223,27 @@ export function emitSVG(svgEl, resolved) {
           const pathEl = emitEdgePath(edge, prng);
           target.appendChild(pathEl);
           refs.edges.push(pathEl);
+          if (edge.id) refs.byId[edge.id] = pathEl;
           const labelEl = emitLabelNode(edge);
           if (labelEl) {
             target.appendChild(labelEl);
             refs.labels.push(labelEl);
+            if (edge.labelId) refs.byId[edge.labelId] = labelEl;
           }
           break;
         }
         case 'plot': {
           const plotModel = plots[item.index];
           if (!plotModel) break;
-          emitPlot(plotModel, target);
+          const plotEl = emitPlot(plotModel, target);
+          if (plotEl && plotModel.id) refs.byId[plotModel.id] = plotEl;
           break;
         }
         case 'drawPath': {
           const pathModel = drawPaths[item.index];
           if (!pathModel) break;
-          emitDrawPath(pathModel, target, target);
+          const pathEl = emitDrawPath(pathModel, target, target);
+          if (pathEl && pathModel.id) refs.byId[pathModel.id] = pathEl;
           break;
         }
       }
@@ -1272,6 +1295,7 @@ export function emitSVG(svgEl, resolved) {
     edges: [],
     labels: [],
     plots: [],
+    byId: {},
   };
 
   // 4. Emit edges
@@ -1279,23 +1303,27 @@ export function emitSVG(svgEl, resolved) {
     const pathEl = emitEdgePath(edge, prng);
     edgeLayer.appendChild(pathEl);
     refs.edges.push(pathEl);
+    if (edge.id) refs.byId[edge.id] = pathEl;
 
     // 5. Emit edge label nodes
     const labelEl = emitLabelNode(edge);
     if (labelEl) {
       labelLayer.appendChild(labelEl);
       refs.labels.push(labelEl);
+      if (edge.labelId) refs.byId[edge.labelId] = labelEl;
     }
   }
 
   // 5.5. Emit plots (in edge layer, behind nodes)
   for (const plotModel of plots) {
-    emitPlot(plotModel, edgeLayer);
+    const plotEl = emitPlot(plotModel, edgeLayer);
+    if (plotEl && plotModel.id) refs.byId[plotModel.id] = plotEl;
   }
 
   // 5.6. Emit free-form paths (\draw)
   for (const pathModel of drawPaths) {
-    emitDrawPath(pathModel, edgeLayer, labelLayer);
+    const pathEl = emitDrawPath(pathModel, edgeLayer, labelLayer);
+    if (pathEl && pathModel.id) refs.byId[pathModel.id] = pathEl;
   }
 
   // 6. Emit nodes
@@ -1307,6 +1335,8 @@ export function emitSVG(svgEl, resolved) {
     const g = emitNode(id, node, prng);
     nodeLayer.appendChild(g);
     refs.nodes[id] = g;
+    const gid = g.getAttribute('id');
+    if (gid) refs.byId[gid] = g;
 
     // 7. Emit initial arrow if node is an initial state
     if (node.style.initial) {
