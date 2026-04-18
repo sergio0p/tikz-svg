@@ -172,8 +172,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/style/style.js test/node-properties.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add named font sizes and innerSep to node style resolution"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/style/style.js test/node-properties.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add named font sizes and innerSep to node style resolution"
 ```
 
 ---
@@ -317,8 +317,8 @@ Expected: All tests PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/core/constants.js src-v2/style/style.js src-v2/index.js test/node-properties.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add minimumWidth, minimumHeight, innerSep geometry to nodes"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/core/constants.js src-v2/style/style.js src-v2/index.js test/node-properties.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add minimumWidth, minimumHeight, innerSep geometry to nodes"
 ```
 
 ---
@@ -451,8 +451,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/index.js test/node-properties.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add xshift, yshift, anchor positioning to nodes"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/index.js test/node-properties.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add xshift, yshift, anchor positioning to nodes"
 ```
 
 ---
@@ -567,8 +567,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/node-properties.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add rotate and per-node scale to node rendering"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/node-properties.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add rotate and per-node scale to node rendering"
 ```
 
 ---
@@ -828,8 +828,8 @@ Expected: All tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/node-properties.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add textWidth wrapping with align and explicit line breaks"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/node-properties.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add textWidth wrapping with align and explicit line breaks"
 ```
 
 ---
@@ -1027,7 +1027,7 @@ Create `examples-v2/node-properties-demo.html`:
 - [ ] **Step 2: Verify in browser**
 
 ```bash
-npx http-server /Users/sergiop/Dropbox/Scripts/tikz-svg -p 8080 -c-1
+npx http-server ~/Dropbox/Scripts/tikz-svg -p 8080 -c-1
 open http://localhost:8080/examples-v2/node-properties-demo.html
 ```
 
@@ -1039,8 +1039,8 @@ Expected: All tests PASS.
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add examples-v2/node-properties-demo.html
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add node properties demo with text wrap, anchor, rotate, scale"
+git -C ~/Dropbox/Scripts/tikz-svg add examples-v2/node-properties-demo.html
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add node properties demo with text wrap, anchor, rotate, scale"
 ```
 
 ---

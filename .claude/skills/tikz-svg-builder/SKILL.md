@@ -188,7 +188,7 @@ Tests use `node --test` + jsdom for DOM. New features need tests in `test/`.
 Demo HTML files live in `examples-v2/`. Because the library uses ES modules and some dependencies (e.g., mathjs) use bare specifiers that browsers can't resolve from `file://`, **always serve demos via a local HTTP server**:
 
 ```bash
-npx http-server /Users/sergiop/Dropbox/Scripts/tikz-svg -p 8080 -c-1
+npx http-server ~/Dropbox/Scripts/tikz-svg -p 8080 -c-1
 open http://localhost:8080/examples-v2/demo-name.html
 ```
 

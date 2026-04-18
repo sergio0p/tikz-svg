@@ -355,8 +355,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/named-layers.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add named layers for z-order control in draw mode"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/named-layers.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add named layers for z-order control in draw mode"
 ```
 
 ---
@@ -496,8 +496,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/index.js test/named-layers.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: pass config.layers and item layer through pipeline"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/index.js test/named-layers.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: pass config.layers and item layer through pipeline"
 ```
 
 ---
@@ -656,8 +656,8 @@ Expected: All tests PASS.
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add examples-v2/layers-demo.html
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add named layers demo with overlapping shapes"
+git -C ~/Dropbox/Scripts/tikz-svg add examples-v2/layers-demo.html
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add named layers demo with overlapping shapes"
 ```
 
 ---

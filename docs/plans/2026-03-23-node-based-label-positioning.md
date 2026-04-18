@@ -47,7 +47,7 @@
 - [ ] **Step 1: Copy src and examples**
 
 ```bash
-cd /Users/sergiop/Dropbox/Scripts/tikz-svg
+cd ~/Dropbox/Scripts/tikz-svg
 cp -r src/ src-v2/
 cp -r examples/ examples-v2/
 ```
@@ -1179,7 +1179,7 @@ Prepare the LECWeb migration command.
 - [ ] **Step 1: Test the migration script on a dry run**
 
 ```bash
-grep -n 'tikz-svg/src/automata' /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
+grep -n 'tikz-svg/src/automata' ~/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html ~/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
 ```
 
 Expected: 7 matching lines (6 in arbitrage, 1 in financial-markets).
@@ -1190,8 +1190,8 @@ The migration (to be run when user is ready):
 
 ```bash
 sed -i '' 's|/tikz-svg/src/automata/automata.js|/tikz-svg/src-v2/automata/automata.js|g' \
-  /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html \
-  /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
+  ~/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html \
+  ~/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
 ```
 
 **Do NOT run this yet** — user will confirm when ready to migrate live pages.

@@ -257,7 +257,7 @@ labelDistance: 0,       // changed from 8 — anchor + innerSep provide clearanc
 ## Sandbox setup
 
 ```bash
-cd /Users/sergiop/Dropbox/Scripts/tikz-svg
+cd ~/Dropbox/Scripts/tikz-svg
 cp -r src/ src-v2/
 cp -r examples/ examples-v2/
 # Update import paths in demos

@@ -5,7 +5,7 @@ description: Use when creating SVG graphics for lecture pages — economics grap
 
 # tikz-svg Library (v2)
 
-Library: `/Users/sergiop/Dropbox/Scripts/tikz-svg/`
+Library: `~/Dropbox/Scripts/tikz-svg/`
 Entry: `src-v2/index.js` exports `render()` and `renderAutomaton()`.
 
 ## Mental Model

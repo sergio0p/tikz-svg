@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Newton Polygon — Equation 1.1.3</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">
+  { "imports": { "mathjs": "./mathjs-shim.js" } }
+  </script>
+  <style>
+    body {
+      font-family: 'Times New Roman', serif;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 2rem;
+      background: #fdf6e3;
+      color: #073642;
+    }
+    h2 { font-size: 1.15rem; margin-bottom: 0.3rem; font-weight: normal; }
+    svg { max-width: 780px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h2>Newton polygon of (1.1.3) &mdash; Minkowski sum decompositions</h2>
+  <svg id="diagram"></svg>
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    const svg = document.getElementById('diagram');
+
+    const config = {
+      scale: 65,
+      originX: 55,
+      originY: 195,
+      padding: 30,
+
+      styles: {
+        dot:  { shape: 'circle', radius: 12,
+                fill: '#4c1d95', stroke: 'none', innerSep: 2,
+                labelColor: '#ffffff', fontSize: 9,
+                fontFamily: "'Times New Roman', serif" },
+        dotR: { shape: 'circle', radius: 12, fill: '#dc2626',
+                stroke: 'none', innerSep: 2,
+                labelColor: '#ffffff', fontSize: 9,
+                fontFamily: "'Times New Roman', serif" },
+        dotB: { shape: 'circle', radius: 12, fill: '#2563eb',
+                stroke: 'none', innerSep: 2,
+                labelColor: '#ffffff', fontSize: 9,
+                fontFamily: "'Times New Roman', serif" },
+        dotG: { shape: 'circle', radius: 12, fill: '#16a34a',
+                stroke: 'none', innerSep: 2,
+                labelColor: '#ffffff', fontSize: 9,
+                fontFamily: "'Times New Roman', serif" },
+        dotO: { shape: 'circle', radius: 12, fill: '#ea580c',
+                stroke: 'none', innerSep: 2,
+                labelColor: '#ffffff', fontSize: 9,
+                fontFamily: "'Times New Roman', serif" },
+        dotT: { shape: 'circle', radius: 12, fill: '#0d9488',
+                stroke: 'none', innerSep: 2,
+                labelColor: '#ffffff', fontSize: 9,
+                fontFamily: "'Times New Roman', serif" },
+        sym:  { shape: 'rectangle', fill: 'none', stroke: 'none',
+                fontSize: 26, fontFamily: "'Times New Roman', serif",
+                labelColor: '#334155', innerSep: 0 },
+        lbl:  { shape: 'rectangle', fill: 'none', stroke: 'none',
+                fontSize: 13, fontFamily: "'Times New Roman', serif",
+                labelColor: '#475569', innerSep: 0 },
+        crd:  { shape: 'rectangle', fill: 'none', stroke: 'none',
+                fontSize: 9, fontFamily: "'Times New Roman', serif",
+                labelColor: '#94a3b8', innerSep: 0 },
+      },
+
+      draw: [
+        // ════════════════════════════════════════
+        // HEXAGON — Newton polygon of full product
+        // ════════════════════════════════════════
+
+        // Filled interior
+        { type: 'path',
+          points: [{x:0,y:0},{x:1,y:0},{x:2,y:-1},{x:2,y:-2},{x:1,y:-2},{x:0,y:-1}],
+          cycle: true, fill: 'rgba(147,130,220,0.15)', stroke: 'none' },
+
+        // Edges color-coded by segment direction
+        // Red = horizontal (from x⊕0)
+        { type: 'path', points: [{x:0,y:0},{x:1,y:0}],
+          stroke: '#dc2626', strokeWidth: 2.5 },
+        { type: 'path', points: [{x:2,y:-2},{x:1,y:-2}],
+          stroke: '#dc2626', strokeWidth: 2.5 },
+        // Blue = vertical (from y⊕0)
+        { type: 'path', points: [{x:2,y:-1},{x:2,y:-2}],
+          stroke: '#2563eb', strokeWidth: 2.5 },
+        { type: 'path', points: [{x:0,y:-1},{x:0,y:0}],
+          stroke: '#2563eb', strokeWidth: 2.5 },
+        // Green = diagonal (from xy⊕0)
+        { type: 'path', points: [{x:1,y:0},{x:2,y:-1}],
+          stroke: '#16a34a', strokeWidth: 2.5 },
+        { type: 'path', points: [{x:1,y:-2},{x:0,y:-1}],
+          stroke: '#16a34a', strokeWidth: 2.5 },
+
+        // Lattice points (regular polygon hexagons)
+        { type: 'node', id: 'h00', position: {x:0,y:0},    style: 'dot', label: '1' },
+        { type: 'node', id: 'h10', position: {x:1,y:0},    style: 'dot', label: 'x' },
+        { type: 'node', id: 'h01', position: {x:0,y:-1},   style: 'dot', label: 'y' },
+        { type: 'node', id: 'h11', position: {x:1,y:-1},   style: 'dot', label: 'xy' },
+        { type: 'node', id: 'h21', position: {x:2,y:-1},   style: 'dot', label: 'x\u00B2y' },
+        { type: 'node', id: 'h12', position: {x:1,y:-2},   style: 'dot', label: 'xy\u00B2' },
+        { type: 'node', id: 'h22', position: {x:2,y:-2},   style: 'dot', label: 'x\u00B2y\u00B2' },
+
+        // Coordinate labels at vertices
+        { type: 'node', id: 'c00', position: {x:-0.05,y:0.28},  style: 'crd', label: '(0,0)' },
+        { type: 'node', id: 'c10', position: {x:1,y:0.28},      style: 'crd', label: '(1,0)' },
+        { type: 'node', id: 'c01', position: {x:-0.5,y:-1},      style: 'crd', label: '(0,1)' },
+        { type: 'node', id: 'c11', position: {x:1,y:-0.72},      style: 'crd', label: '(1,1)' },
+        { type: 'node', id: 'c21', position: {x:2.5,y:-1},       style: 'crd', label: '(2,1)' },
+        { type: 'node', id: 'c12', position: {x:0.5,y:-2.2},     style: 'crd', label: '(1,2)' },
+        { type: 'node', id: 'c22', position: {x:2.5,y:-2},       style: 'crd', label: '(2,2)' },
+
+        // ════════════════════════════════════════
+        // ROW 1: = Seg₁ + Seg₂ + Seg₃
+        // ════════════════════════════════════════
+
+        { type: 'node', id: 'eq1', position: {x:3.05,y:-0.5}, style: 'sym', label: '=' },
+
+        // Segment 1 — red, horizontal: Newt(x⊕0)
+        { type: 'path', points: [{x:3.6,y:-0.5},{x:4.6,y:-0.5}],
+          stroke: '#dc2626', strokeWidth: 3 },
+        { type: 'node', id: 's1a', position: {x:3.6,y:-0.5}, style: 'dotR', label: '1' },
+        { type: 'node', id: 's1b', position: {x:4.6,y:-0.5}, style: 'dotR', label: 'x' },
+        { type: 'node', id: 'ls1', position: {x:4.1,y:-0.05}, style: 'lbl',
+          label: '$x \\oplus 0$' },
+
+        { type: 'node', id: 'p1', position: {x:5.1,y:-0.5}, style: 'sym', label: '+' },
+
+        // Segment 2 — blue, vertical: Newt(y⊕0)
+        { type: 'path', points: [{x:5.6,y:0},{x:5.6,y:-1}],
+          stroke: '#2563eb', strokeWidth: 3 },
+        { type: 'node', id: 's2a', position: {x:5.6,y:0},   style: 'dotB', label: '1' },
+        { type: 'node', id: 's2b', position: {x:5.6,y:-1},  style: 'dotB', label: 'y' },
+        { type: 'node', id: 'ls2', position: {x:5.6,y:0.35}, style: 'lbl',
+          label: '$y \\oplus 0$' },
+
+        { type: 'node', id: 'p2', position: {x:6.2,y:-0.5}, style: 'sym', label: '+' },
+
+        // Segment 3 — green, diagonal: Newt(xy⊕0)
+        { type: 'path', points: [{x:6.7,y:0},{x:7.7,y:-1}],
+          stroke: '#16a34a', strokeWidth: 3 },
+        { type: 'node', id: 's3a', position: {x:6.7,y:0},   style: 'dotG', label: '1' },
+        { type: 'node', id: 's3b', position: {x:7.7,y:-1},  style: 'dotG', label: 'xy' },
+        { type: 'node', id: 'ls3', position: {x:7.5,y:0.35}, style: 'lbl',
+          label: '$xy \\oplus 0$' },
+
+        // ════════════════════════════════════════
+        // ROW 2: = Tri₁ + Tri₂
+        // ════════════════════════════════════════
+
+        { type: 'node', id: 'eq2', position: {x:3.05,y:-2.2}, style: 'sym', label: '=' },
+
+        // Triangle 1 — orange: Newt(xy⊕x⊕0)
+        // Vertices: (0,0),(1,0),(1,1) → right angle at (1,0)
+        { type: 'path',
+          points: [{x:3.6,y:-1.7},{x:4.6,y:-1.7},{x:4.6,y:-2.7}],
+          cycle: true, fill: 'rgba(251,146,60,0.25)', stroke: '#ea580c', strokeWidth: 2 },
+        { type: 'node', id: 't1a', position: {x:3.6,y:-1.7}, style: 'dotO', label: '1' },
+        { type: 'node', id: 't1b', position: {x:4.6,y:-1.7}, style: 'dotO', label: 'x' },
+        { type: 'node', id: 't1c', position: {x:4.6,y:-2.7}, style: 'dotO', label: 'xy' },
+        { type: 'node', id: 'lt1', position: {x:4.1,y:-3.15}, style: 'lbl',
+          label: '$xy \\oplus x \\oplus 0$' },
+
+        { type: 'node', id: 'p3', position: {x:5.29,y:-2.2}, style: 'sym', label: '+' },
+
+        // Triangle 2 — teal: Newt(xy⊕y⊕0)
+        // Vertices: (0,0),(0,1),(1,1) → right angle at (0,1)
+        { type: 'path',
+          points: [{x:6.2,y:-1.7},{x:6.2,y:-2.7},{x:7.2,y:-2.7}],
+          cycle: true, fill: 'rgba(45,212,191,0.25)', stroke: '#0d9488', strokeWidth: 2 },
+        { type: 'node', id: 't2a', position: {x:6.2,y:-1.7}, style: 'dotT', label: '1' },
+        { type: 'node', id: 't2b', position: {x:6.2,y:-2.7}, style: 'dotT', label: 'y' },
+        { type: 'node', id: 't2c', position: {x:7.2,y:-2.7}, style: 'dotT', label: 'xy' },
+        { type: 'node', id: 'lt2', position: {x:6.7,y:-3.15}, style: 'lbl',
+          label: '$xy \\oplus y \\oplus 0$' },
+
+        // Minkowski sum definition
+        { type: 'node', id: 'mink', position: { 'below left': 'c00' },
+          shape: 'rectangle', fill: 'none', stroke: 'none',
+          anchor: 'north west', fontSize: 9, innerSep: 0,
+          fontFamily: "'Times New Roman', serif", labelColor: '#000000',
+          label: 'Minkowski sum: $\\; A + B = \\{a + b \\,:\\, a \\in A,\\, b \\in B\\}$' },
+      ],
+    };
+
+    // Hide SVG during rendering
+    svg.style.visibility = 'hidden';
+
+    // First render without mink to get natural viewBox
+    const minkNode = config.draw.pop();
+    render(svg, config);
+    const frozenViewBox = svg.getAttribute('viewBox');
+
+    // Second render with mink
+    config.draw.push(minkNode);
+    render(svg, config);
+
+    // Wait for KaTeX async rendering to finish, then freeze viewBox
+    // but expand it slightly to fit the mink label below-left
+    setTimeout(() => {
+      const vb = frozenViewBox.split(' ').map(Number);
+      // Expand: shift origin left by 40px, down by 40px, grow width/height
+      vb[0] -= 40;  // x origin left
+      vb[2] += 40;  // width
+      vb[3] += 40;  // height
+      svg.setAttribute('viewBox', vb.join(' '));
+      svg.style.visibility = 'visible';
+    }, 500);
+  </script>
+</body>
+</html>

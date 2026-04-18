@@ -273,8 +273,8 @@ Expected: All 191 + 11 = 202 tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/plotting/evaluator.js test/plotting-evaluator.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add math expression evaluator for plot functions (math.js)"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/plotting/evaluator.js test/plotting-evaluator.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add math expression evaluator for plot functions (math.js)"
 ```
 
 ---
@@ -884,8 +884,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/plotting/handlers.js test/plotting-handlers.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add 14 plot handlers (smooth, const, comb, bar, jump)"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/plotting/handlers.js test/plotting-handlers.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add 14 plot handlers (smooth, const, comb, bar, jump)"
 ```
 
 ---
@@ -1222,8 +1222,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/plotting/marks.js test/plotting-marks.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add 16 plot marks (*, +, x, o, square, triangle, etc.)"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/plotting/marks.js test/plotting-marks.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add 16 plot marks (*, +, x, o, square, triangle, etc.)"
 ```
 
 ---
@@ -1490,8 +1490,8 @@ Expected: All tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/plotting/ test/plotting-integration.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add top-level plot() API with TikZ-compatible options"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/plotting/ test/plotting-integration.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add top-level plot() API with TikZ-compatible options"
 ```
 
 ---
@@ -1523,7 +1523,7 @@ This section captures knowledge from the planning session that is not evident fr
 
 ### Codebase orientation
 
-- **Working directory:** `/Users/sergiop/Dropbox/Scripts/tikz-svg`
+- **Working directory:** `~/Dropbox/Scripts/tikz-svg`
 - **All development happens in `src-v2/`** — `src/` is live via symlink at `LECWeb/510/tikz-svg` and must NEVER be edited directly.
 - **Tests:** `node --test` from project root. Currently 191 tests, all passing. Tests use `node:test` with `describe`/`it`/`before` and `node:assert/strict`. Integration tests use jsdom for DOM.
 - **Package type:** `"type": "module"` in `package.json` — all files are ES modules.

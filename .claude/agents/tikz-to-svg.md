@@ -345,7 +345,7 @@ For `ifthenelse`: use JS function instead of math.js string.
 Demos MUST be served via HTTP server (not `file://`) because ES modules require same-origin:
 
 ```bash
-npx http-server /Users/sergiop/Dropbox/Scripts/tikz-svg -p 8080 -c-1
+npx http-server ~/Dropbox/Scripts/tikz-svg -p 8080 -c-1
 open http://localhost:8080/examples-v2/demo-name.html
 ```
 

@@ -169,8 +169,8 @@ Expected: All tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/core/constants.js src-v2/style/style.js test/plot-render-integration.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add plot style defaults and resolvePlotStyle"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/core/constants.js src-v2/style/style.js test/plot-render-integration.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add plot style defaults and resolvePlotStyle"
 ```
 
 ---
@@ -422,8 +422,8 @@ Expected: All tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/plot-emitter.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add emitPlot to SVG emitter for plot path + marks rendering"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/plot-emitter.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add emitPlot to SVG emitter for plot path + marks rendering"
 ```
 
 ---
@@ -791,8 +791,8 @@ Expected: All tests PASS.
 - [ ] **Step 9: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/index.js test/plot-render-integration.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: integrate plots into render() pipeline with node-at-plot-point positioning"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/index.js test/plot-render-integration.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: integrate plots into render() pipeline with node-at-plot-point positioning"
 ```
 
 ---
@@ -962,7 +962,7 @@ Create `examples-v2/plot-with-nodes-demo.html`:
 
 Run:
 ```bash
-npx http-server /Users/sergiop/Dropbox/Scripts/tikz-svg -p 8080 -c-1
+npx http-server ~/Dropbox/Scripts/tikz-svg -p 8080 -c-1
 open http://localhost:8080/examples-v2/plot-with-nodes-demo.html
 ```
 
@@ -976,8 +976,8 @@ Expected: All tests PASS.
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add examples-v2/plot-with-nodes-demo.html
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add plot-with-nodes demo showing integrated plot + node rendering"
+git -C ~/Dropbox/Scripts/tikz-svg add examples-v2/plot-with-nodes-demo.html
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add plot-with-nodes demo showing integrated plot + node rendering"
 ```
 
 ---

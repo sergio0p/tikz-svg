@@ -32,8 +32,8 @@ These already use `renderAutomaton`. The only change needed is the import path f
 **Validation:** Open each page in browser, visually compare the 7 total automata diagrams against current appearance. The rendering should be identical or improved (better label placement from node-based labels, correct outerSep).
 
 **Files:**
-- `/Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html` (6 calls)
-- `/Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html` (1 call)
+- `~/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html` (6 calls)
+- `~/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html` (1 call)
 
 ---
 
@@ -167,13 +167,13 @@ function treeToConfig(node, layout, states = {}, edges = []) {
 - [ ] **Step 1:** Update import paths in `arbitrage.html` (6 occurrences)
 ```bash
 sed -i '' 's|/tikz-svg/src/automata/automata.js|/tikz-svg/src-v2/automata/automata.js|g' \
-  /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html
+  ~/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html
 ```
 
 - [ ] **Step 2:** Update import path in `financial-markets.html` (1 occurrence)
 ```bash
 sed -i '' 's|/tikz-svg/src/automata/automata.js|/tikz-svg/src-v2/automata/automata.js|g' \
-  /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
+  ~/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
 ```
 
 - [ ] **Step 3:** Open both pages in browser and visually validate all 7 diagrams

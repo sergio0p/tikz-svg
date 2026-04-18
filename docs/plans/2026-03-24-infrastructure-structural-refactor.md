@@ -286,8 +286,8 @@ Expected: All existing tests PASS unchanged. The `StyleRegistry` constructor wit
 - [ ] **Step 10: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/style/registry.js src-v2/style/style.js test/style-registry.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add named style registry with cascade integration"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/style/registry.js src-v2/style/style.js test/style-registry.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add named style registry with cascade integration"
 ```
 
 ---
@@ -545,8 +545,8 @@ Expected: All tests PASS. `resolveGroupStyle` returns `{}` when no groups define
 - [ ] **Step 7: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/style/registry.js src-v2/style/style.js test/groups.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add node/edge groups with shared styles"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/style/registry.js src-v2/style/style.js test/groups.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add node/edge groups with shared styles"
 ```
 
 ---
@@ -764,8 +764,8 @@ Expected: All tests PASS. When `config.transform` is undefined and no groups hav
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/index.js test/pipeline-transform.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: wire Transform to render pipeline with global and per-group support"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/index.js test/pipeline-transform.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: wire Transform to render pipeline with global and per-group support"
 ```
 
 ---

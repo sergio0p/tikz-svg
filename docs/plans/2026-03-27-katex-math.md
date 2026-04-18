@@ -337,8 +337,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/core/katex-renderer.js test/katex-math.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add KaTeX math detection, rendering, and fallback module"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/core/katex-renderer.js test/katex-math.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add KaTeX math detection, rendering, and fallback module"
 ```
 
 ---
@@ -644,8 +644,8 @@ Expected: All tests PASS.
 - [ ] **Step 9: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/katex-math.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: wire KaTeX rendering into emitter with fallback"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/katex-math.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: wire KaTeX rendering into emitter with fallback"
 ```
 
 ---
@@ -723,8 +723,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/core/text-measure.js test/katex-math.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: KaTeX-aware text measurement for node auto-sizing"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/core/text-measure.js test/katex-math.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: KaTeX-aware text measurement for node auto-sizing"
 ```
 
 ---
@@ -867,8 +867,8 @@ Expected: All tests PASS.
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add examples-v2/katex-demo.html
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add KaTeX math rendering demo with fractions and subscripts"
+git -C ~/Dropbox/Scripts/tikz-svg add examples-v2/katex-demo.html
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add KaTeX math rendering demo with fractions and subscripts"
 ```
 
 ---

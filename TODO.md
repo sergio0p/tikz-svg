@@ -99,8 +99,8 @@ Migration script ready but NOT run. Pending full visual validation.
 
 ```bash
 sed -i '' 's|/tikz-svg/src/automata/automata.js|/tikz-svg/src-v2/automata/automata.js|g' \
-  /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html \
-  /Users/sergiop/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
+  ~/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html \
+  ~/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
 ```
 
 ---

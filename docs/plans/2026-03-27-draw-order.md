@@ -296,8 +296,8 @@ Expected: All tests PASS (layer-based rendering unchanged).
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/draw-order.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add drawOrder array for declaration-order rendering"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/svg/emitter.js test/draw-order.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add drawOrder array for declaration-order rendering"
 ```
 
 ---
@@ -528,8 +528,8 @@ Expected: All tests PASS (backward compat).
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/index.js test/draw-order.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add config.draw for declaration-order rendering"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/index.js test/draw-order.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add config.draw for declaration-order rendering"
 ```
 
 ---
@@ -602,8 +602,8 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add examples-v2/economics-demo.html
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: rewrite economics demo using config.draw for TikZ-faithful paint order"
+git -C ~/Dropbox/Scripts/tikz-svg add examples-v2/economics-demo.html
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: rewrite economics demo using config.draw for TikZ-faithful paint order"
 ```
 
 ---

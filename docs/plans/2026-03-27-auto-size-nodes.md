@@ -191,8 +191,8 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/core/text-measure.js test/auto-size-nodes.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: add text dimension estimation for auto-sizing nodes"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/core/text-measure.js test/auto-size-nodes.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: add text dimension estimation for auto-sizing nodes"
 ```
 
 ---
@@ -462,8 +462,8 @@ Expected: All tests PASS. Existing tests that specify explicit `radius` or dimen
 - [ ] **Step 6: Commit**
 
 ```bash
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg add src-v2/core/text-measure.js src-v2/index.js test/auto-size-nodes.test.js
-git -C /Users/sergiop/Dropbox/Scripts/tikz-svg commit -m "feat: auto-size node shapes from text content (TikZ-faithful)"
+git -C ~/Dropbox/Scripts/tikz-svg add src-v2/core/text-measure.js src-v2/index.js test/auto-size-nodes.test.js
+git -C ~/Dropbox/Scripts/tikz-svg commit -m "feat: auto-size node shapes from text content (TikZ-faithful)"
 ```
 
 ---
