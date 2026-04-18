@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><head>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+</head><body>
+<svg id="test-svg" style="width:500px; height:400px;"></svg>
+<script type="module">
+  import { render } from './src-v3/index.js';
+  const refs = render(document.getElementById('test-svg'), {
+    scale: 20, originX: 40, originY: 200, padding: 10,
+    draw: [
+      { type: 'path', points: [{x:0,y:0},{x:0,y:-8}], arrow: '->', stroke: '#586e75', strokeWidth: 2 },
+      { type: 'path', points: [{x:0,y:0},{x:6,y:0}], arrow: '->', stroke: '#586e75', strokeWidth: 2 },
+      { type: 'path', id: 'step1', frame: '1-', points: [{x:0,y:-6},{x:2,y:-6}], stroke: '#268bd2', strokeWidth: 3 },
+      { type: 'path', id: 'step2', frame: '2-', points: [{x:2,y:-6},{x:2,y:-3},{x:4,y:-3}], stroke: '#268bd2', strokeWidth: 3 },
+      { type: 'path', id: 'hidden-fill', frame: '3', points: [{x:0,y:-6},{x:2,y:-6},{x:2,y:0},{x:0,y:0}], cycle: true, fill: 'rgba(38,139,210,0.5)', stroke: 'none' },
+      { type: 'node', id: 'lbl', position: {x:3, y:-8}, label: 'P', shape: 'rectangle', fill: 'none', stroke: 'none', innerSep: 1, labelColor: '#586e75', fontSize: 16 },
+    ],
+  });
+  console.log('BYID_KEYS:' + JSON.stringify(Object.keys(refs.byId)));
+  console.log('FRAMECOUNT:' + refs.frameCount);
+  console.log('PATHS_LEN:' + refs.paths.length);
+  console.log('PLOTS_LEN:' + refs.plots.length);
+  const s1 = document.getElementById('step1');
+  const s2 = document.getElementById('step2');
+  const hf = document.getElementById('hidden-fill');
+  console.log('S1_VIS:' + (s1 ? (s1.getAttribute('visibility') || 'visible') : 'MISSING'));
+  console.log('S2_VIS:' + (s2 ? (s2.getAttribute('visibility') || 'visible') : 'MISSING'));
+  console.log('HF_VIS:' + (hf ? (hf.getAttribute('visibility') || 'visible') : 'MISSING'));
+  console.log('S1_FRAME:' + (s1 ? s1.getAttribute('data-frame') : 'MISSING'));
+  console.log('S2_FRAME:' + (s2 ? s2.getAttribute('data-frame') : 'MISSING'));
+</script>
+</body></html>
