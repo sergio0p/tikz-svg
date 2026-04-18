@@ -24,12 +24,12 @@ before(async () => {
 
 describe('Full pipeline integration', () => {
   it('renders a basic 3-state DFA', async () => {
-    const { renderAutomaton } = await import('../src/automata/automata.js');
+    const { render } = await import('../src-v2/index.js');
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     document.body.appendChild(svg);
 
-    const refs = renderAutomaton(svg, {
+    const refs = render(svg, {
       states: {
         q0: { initial: true },
         q1: { position: { right: 'q0' } },
@@ -71,12 +71,12 @@ describe('Full pipeline integration', () => {
   });
 
   it('renders NFA with self-loop', async () => {
-    const { renderAutomaton } = await import('../src/automata/automata.js');
+    const { render } = await import('../src-v2/index.js');
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     document.body.appendChild(svg);
 
-    const refs = renderAutomaton(svg, {
+    const refs = render(svg, {
       states: {
         q0: { initial: true },
         q1: { position: { right: 'q0' }, accepting: true },
@@ -94,25 +94,25 @@ describe('Full pipeline integration', () => {
   });
 
   it('validates edge endpoints', async () => {
-    const { renderAutomaton } = await import('../src/automata/automata.js');
+    const { render } = await import('../src-v2/index.js');
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
     assert.throws(() => {
-      renderAutomaton(svg, {
+      render(svg, {
         states: { q0: {} },
         edges: [{ from: 'q0', to: 'qMissing', label: 'x' }],
       });
-    }, /unknown state/);
+    }, /unknown .* state/);
   });
 
   it('handles style overrides', async () => {
-    const { renderAutomaton } = await import('../src/automata/automata.js');
+    const { render } = await import('../src-v2/index.js');
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     document.body.appendChild(svg);
 
-    const refs = renderAutomaton(svg, {
+    const refs = render(svg, {
       stateStyle: { fill: '#fecaca', shadow: true },
       states: {
         q0: { initial: true },

@@ -2,6 +2,8 @@
 
 *Created 2026-04-17. Derived from reading pgfmanual §15 "Actions on Paths" (pp. 172–189). Covers the first six items of the implications list — low-effort style-cascade additions plus one structural fix (bounding-box control).*
 
+**Status (2026-04-18):** items 1–5 implemented and tested in src-v2. Item 6 (`use as bounding box`) still outstanding.
+
 ---
 
 ## Goal
@@ -10,14 +12,14 @@ Bring src-v2's path styling cascade closer to TikZ's. All items are additive —
 
 ## Scope
 
-| # | Feature | TikZ key(s) | Effort |
-|---|---------|-------------|--------|
-| 1 | Named line-width styles | `ultra thin` … `ultra thick` | S |
-| 2 | Named dash styles | `solid`, `dotted`, `dashed`, `dash dot`, … (13) | S |
-| 3 | Line cap / line join / miter limit | `line cap`, `line join`, `miter limit` | S |
-| 4 | `color` shorthand | `color=NAME` | XS |
-| 5 | Fill rule | `nonzero rule` (default) / `even odd rule` | XS |
-| 6 | `use as bounding box` | `use as bounding box` | M |
+| # | Feature | TikZ key(s) | Effort | Status |
+|---|---------|-------------|--------|--------|
+| 1 | Named line-width styles | `ultra thin` … `ultra thick` | S | ✅ landed |
+| 2 | Named dash styles | `solid`, `dotted`, `dashed`, `dash dot`, … (13) | S | ✅ landed |
+| 3 | Line cap / line join / miter limit | `line cap`, `line join`, `miter limit` | S | ✅ landed |
+| 4 | `color` shorthand | `color=NAME` | XS | ✅ landed |
+| 5 | Fill rule | `nonzero rule` (default) / `even odd rule` | XS | ✅ landed |
+| 6 | `use as bounding box` | `use as bounding box` | M | pending |
 
 ---
 
@@ -76,10 +78,10 @@ Copy these files into `References/` if not already there, per the TikZ-reference
 
 **Tests:** `test/line-width-styles.test.js` — each name resolves to the right pt value; numeric and unknown strings pass through; cascade (config default → per-element) works.
 
-- [ ] Add `LINE_WIDTHS` constant
-- [ ] Add `resolveLineWidth()` helper
-- [ ] Apply helper in node/edge/plot/path style resolvers
-- [ ] Tests
+- [x] Add `LINE_WIDTHS` constant
+- [x] Add `resolveLineWidth()` helper
+- [x] Apply helper in node/edge/plot/path style resolvers
+- [x] Tests (`test/line-width-styles.test.js`, 14 cases)
 
 ---
 
@@ -121,11 +123,11 @@ Copy these files into `References/` if not already there, per the TikZ-reference
 
 **Tests:** `test/dash-styles.test.js` — each name emits the right dasharray; arrays emit joined with spaces; `null`/`undefined`/`'solid'` emit no attribute; legacy booleans still work.
 
-- [ ] `DASH_PATTERNS` table (verified against `tikz.code.tex`)
-- [ ] `resolveDash()` helper
-- [ ] Consolidate the three emitter call sites
-- [ ] Legacy compatibility tests (`dashed: true` unchanged)
-- [ ] Named-style tests
+- [x] `DASH_PATTERNS` table (verified against `tikz.code.tex`, `\pgflinewidth = 0.4pt`)
+- [x] `resolveDash()` helper (+ `resolveStrokeDash()` combining new + legacy keys)
+- [x] Consolidate the three emitter call sites (edge, plot, draw-path)
+- [x] Legacy compatibility (`dashed: true` → "6 4", `dotted: true` → "2 3" preserved)
+- [x] Named-style tests (`test/dash-styles.test.js`, 13 cases)
 
 ---
 
@@ -156,11 +158,11 @@ Emitter writes the SVG attribute only if the style sets a value (avoid attribute
 
 **Tests:** `test/stroke-caps-joins.test.js` — each key appears on the element when set; omitted when not; TikZ `rect` → SVG `square` translation works.
 
-- [ ] Add to style resolvers
-- [ ] Emitter writes attributes when present
-- [ ] Remove hardcoded linejoin in emitter `:355`, preserve behavior via default
-- [ ] TikZ→SVG cap-name translation (`rect` → `square`)
-- [ ] Tests
+- [x] Add to style resolvers (pass-through; plot base defaults `lineJoin: 'round'`)
+- [x] Emitter writes attributes when present (`resolveStrokeAttrs()`)
+- [x] Remove hardcoded linejoin in plot emitter, preserve behavior via `plotStyle` default
+- [x] TikZ→SVG cap-name translation (`rect` → `square`)
+- [x] Tests (`test/stroke-caps-joins.test.js`, 10 cases)
 
 ---
 
@@ -183,8 +185,13 @@ TikZ `color=NAME` sets fill, stroke, and text color together. Other keys (`draw`
 
 **Tests:** `test/color-shorthand.test.js` — `color` fills all three; per-field overrides win; unset fields unaffected.
 
-- [ ] Add `color` application in node/edge/plot/path resolvers
-- [ ] Tests
+- [x] Add `color` application in node/edge/plot/path resolvers (`spreadColor()` helper)
+- [x] Tests (`test/color-shorthand.test.js`, 12 cases)
+
+*Implementation note:* spread is limited to fields that make visual sense per element
+type — nodes get stroke+fill+labelColor; edges/plots/paths get stroke only (their
+base fill is `none`, so `color` alone does not turn a stroked plot into a filled one).
+Explicit `fill` or `stroke` in the same layer still wins.
 
 ---
 
@@ -206,9 +213,9 @@ SVG: `fill-rule="evenodd"`; default `nonzero`.
 
 **Tests:** `test/fill-rule.test.js` — attribute absent by default; `evenodd` emits on nodes, paths, plots.
 
-- [ ] Add to resolvers
-- [ ] Emitter writes attribute on fillable elements
-- [ ] Tests
+- [x] Add to resolvers (pass-through)
+- [x] Emitter writes attribute on fillable elements (`resolveStrokeAttrs()`)
+- [x] Tests (`test/fill-rule.test.js`, 6 cases)
 
 ---
 

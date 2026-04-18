@@ -1,13 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import circleShape from '../src/shapes/circle.js';
+import circleShape from '../src-v2/shapes/circle.js';
 import {
   computeStraightEdge,
   computeBentEdge,
   computeLoopEdge,
-} from '../src/geometry/edges.js';
-import { computeLabelPosition } from '../src/geometry/labels.js';
-import { getArrowDef } from '../src/geometry/arrows.js';
+} from '../src-v2/geometry/edges.js';
+import { computeLabelNode } from '../src-v2/geometry/labels.js';
+import { getArrowDef } from '../src-v2/geometry/arrows.js';
 
 const near = (a, b, eps = 0.5) => Math.abs(a - b) < eps;
 
@@ -108,18 +108,19 @@ describe('Label position', () => {
     const a = makeCircleNode(0, 0, 20);
     const b = makeCircleNode(100, 0, 20);
     const edge = computeStraightEdge(a, b);
-    const label = computeLabelPosition(edge, { pos: 0.5, distance: 0 });
-    assert.ok(near(label.x, 50, 1));
-    assert.ok(near(label.y, 0, 1));
+    const label = computeLabelNode(edge, '', { pos: 0.5, distance: 0 });
+    // Label x is at edge midpoint; y is offset above the edge by the anchor.
+    assert.ok(near(label.center.x, 50, 1));
+    assert.ok(label.center.y <= 0, `label y=${label.center.y} should be at or above the edge`);
   });
 
   it('label on curved edge is on the curve, not the chord', () => {
     const a = makeCircleNode(0, 0, 20);
     const b = makeCircleNode(100, 0, 20);
     const edge = computeBentEdge(a, b, 'left');
-    const label = computeLabelPosition(edge, { pos: 0.5, distance: 0 });
+    const label = computeLabelNode(edge, '', { pos: 0.5, distance: 0 });
     // On a bend-left rightward edge, the midpoint should be above the chord (y < 0)
-    assert.ok(label.y < 0, `label y=${label.y} should be < 0 (on the curve)`);
+    assert.ok(label.center.y < 0, `label y=${label.center.y} should be < 0 (on the curve)`);
   });
 });
 

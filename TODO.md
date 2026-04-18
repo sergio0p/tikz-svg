@@ -93,6 +93,22 @@ All 10 geometric shapes verified in browser. Demo at `examples-v2/shapes-demo.ht
 
 ---
 
+## ✅ DONE (src-v2, 2026-04-18): TikZ §15 path-actions cascade (items 1–5)
+
+Plan: `2026-04-17-path-actions-plan.md`. Shipped:
+
+- **Named line widths** (`ultra thin` … `ultra thick`): `LINE_WIDTHS` in `core/constants.js` + `resolveLineWidth()` applied in all four style resolvers. Accepted on `strokeWidth` everywhere. Legacy numeric values pass through.
+- **Named dash patterns** (12 TikZ patterns + legacy booleans): `DASH_PATTERNS` table verified against `tikz.code.tex` with `\pgflinewidth = 0.4pt`. New `dash: <name | array | string>` key; `dashed: true` / `dotted: true` booleans preserved. Three emitter call sites (edge, plot, draw-path) consolidated through `resolveStrokeDash()`.
+- **Line cap / join / miter limit**: `lineCap`, `lineJoin`, `miterLimit` pass through all resolvers. Emitter writes attributes via `resolveStrokeAttrs()` only when set. TikZ `rect` cap translates to SVG `square`. Hardcoded `stroke-linejoin: 'round'` in plot emitter removed — now lives in `plotStyle` base default so existing output is unchanged.
+- **`color` shorthand**: `spreadColor()` helper applies `color=NAME` to stroke (all elements), plus fill + labelColor for nodes. Explicit per-field keys in the same layer still win.
+- **Fill rule** (`fillRule: 'nonzero' | 'evenodd'`): pass-through in resolvers, emitter writes `fill-rule` on nodes/plots/paths/edges when set.
+
+Tests: 55 new cases across `test/color-shorthand.test.js`, `test/fill-rule.test.js`, `test/line-width-styles.test.js`, `test/dash-styles.test.js`, `test/stroke-caps-joins.test.js`.
+
+Item 6 (`use as bounding box`) from the same plan is still pending — that's the viewport-stability fix cross-referenced from `Animation/MUSTADDRESS.md`.
+
+---
+
 ## TODO: LECWeb migration
 
 Migration script ready but NOT run. Pending full visual validation.

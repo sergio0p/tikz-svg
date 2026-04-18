@@ -1,10 +1,23 @@
 /**
- * Browser shim for 'mathjs' bare import.
- * The UMD bundle exposes window.math; this re-exports it as ES module.
- * Gracefully exports null stubs when mathjs is not loaded (e.g. pages
- * that use tikz-svg for node/edge diagrams but don't need plotting).
+ * Shim for 'mathjs' bare import.
+ *
+ * In browsers: prefers `window.math` set by the UMD bundle (loaded via
+ * <script>); avoids a bare-specifier resolve that browsers can't satisfy.
+ *
+ * In Node (tests): dynamically imports the real `mathjs` package, which is
+ * listed as a dependency in package.json.
+ *
+ * Gracefully exports null stubs when neither source is available, so pages
+ * that use tikz-svg for diagrams-only don't need mathjs at all.
  */
-const m = (typeof window !== 'undefined' && window.math) || null;
+let m = (typeof window !== 'undefined' && window.math) || null;
+if (!m && typeof window === 'undefined') {
+  try {
+    m = await import('mathjs');
+  } catch {
+    m = null;
+  }
+}
 const compile = m ? m.compile : null;
 const evaluate = m ? m.evaluate : null;
 const parse = m ? m.parse : null;

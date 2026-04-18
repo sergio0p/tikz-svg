@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { Path } from '../src/core/path.js';
+import { Path } from '../src-v2/core/path.js';
 
 const near = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
 

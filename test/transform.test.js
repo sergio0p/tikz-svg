@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { Transform, TransformStack } from '../src/core/transform.js';
+import { Transform, TransformStack } from '../src-v2/core/transform.js';
 
 const near = (a, b, eps = 1e-9) => Math.abs(a - b) < eps;
 

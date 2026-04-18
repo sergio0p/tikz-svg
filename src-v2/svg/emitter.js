@@ -12,6 +12,7 @@ import { morphPath, shapeToSVGPath } from '../decorations/index.js';
 import { roundPathCorners } from '../decorations/rounded-corners.js';
 import { SeededRandom } from '../core/random.js';
 import { createLabelContent, createMathForeignObject } from '../core/katex-renderer.js';
+import { resolveStrokeDash, resolveStrokeAttrs } from '../style/style.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -242,16 +243,17 @@ function emitEdgePath(edge, prng) {
   }
 
   // Dashed
-  if (style.dashed) {
-    attrs['stroke-dasharray'] = typeof style.dashed === 'string'
-      ? style.dashed
-      : '6 4';
+  const dashArray = resolveStrokeDash(style);
+  if (dashArray) {
+    attrs['stroke-dasharray'] = dashArray;
   }
 
   // Opacity
   if (style.opacity != null && style.opacity < 1) {
     attrs.opacity = style.opacity;
   }
+
+  Object.assign(attrs, resolveStrokeAttrs(style));
 
   const pathEl = createSVGElement('path', attrs);
 
@@ -361,14 +363,15 @@ function emitPlot(plotModel, layer) {
       stroke: style.stroke ?? '#2563eb',
       'stroke-width': style.strokeWidth ?? 2,
       class: 'plot-path',
-      'stroke-linejoin': 'round',
     };
-    if (style.dashed) {
-      attrs['stroke-dasharray'] = typeof style.dashed === 'string' ? style.dashed : '6 4';
+    const plotDash = resolveStrokeDash(style);
+    if (plotDash) {
+      attrs['stroke-dasharray'] = plotDash;
     }
     if (style.opacity != null && style.opacity < 1) {
       attrs.opacity = style.opacity;
     }
+    Object.assign(attrs, resolveStrokeAttrs(style));
     pathEl = createSVGElement('path', attrs);
     if (plotModel.id) pathEl.setAttribute('id', plotModel.id);
     layer.appendChild(pathEl);
@@ -430,15 +433,16 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
     class: 'draw-path',
   };
 
-  if (style.dotted) {
-    attrs['stroke-dasharray'] = '2 3';
-  } else if (style.dashed) {
-    attrs['stroke-dasharray'] = typeof style.dashed === 'string' ? style.dashed : '6 4';
+  const drawDash = resolveStrokeDash(style);
+  if (drawDash) {
+    attrs['stroke-dasharray'] = drawDash;
   }
 
   if (style.opacity != null && style.opacity < 1) {
     attrs.opacity = style.opacity;
   }
+
+  Object.assign(attrs, resolveStrokeAttrs(style));
 
   if (arrowStartId) {
     attrs['marker-start'] = `url(#${arrowStartId})`;
@@ -758,6 +762,7 @@ function createShapeElement(geom, style, opts = {}) {
   const stroke = style.stroke ?? DEFAULTS.nodeStroke;
   const strokeWidth = style.strokeWidth ?? DEFAULTS.nodeStrokeWidth;
   const shapeName = style.shape ?? 'circle';
+  const extra = resolveStrokeAttrs(style);
 
   // Decoration: convert shape to path string, morph, emit as <path>
   if (style.decoration && opts.prng) {
@@ -775,7 +780,7 @@ function createShapeElement(geom, style, opts = {}) {
     if (pathStr) {
       const decorated = morphPath(pathStr, { ...style.decoration, prng: opts.prng });
       return createSVGElement('path', {
-        d: decorated, fill, stroke, 'stroke-width': strokeWidth,
+        d: decorated, fill, stroke, 'stroke-width': strokeWidth, ...extra,
       });
     }
   }
@@ -789,6 +794,7 @@ function createShapeElement(geom, style, opts = {}) {
       const attrs = {
         x: -hw, y: -hh, width: hw * 2, height: hh * 2,
         fill, stroke, 'stroke-width': strokeWidth,
+        ...extra,
       };
       if (rc > 0) {
         // Clamp to half the shorter side (matches TikZ clamping behavior)
@@ -803,14 +809,14 @@ function createShapeElement(geom, style, opts = {}) {
       const rx = Math.max(0, geom.rx - outerSep - inset);
       const ry = Math.max(0, geom.ry - outerSep - inset);
       return createSVGElement('ellipse', {
-        cx: 0, cy: 0, rx, ry, fill, stroke, 'stroke-width': strokeWidth,
+        cx: 0, cy: 0, rx, ry, fill, stroke, 'stroke-width': strokeWidth, ...extra,
       });
     }
 
     case 'circle': {
       const r = Math.max(0, (geom.radius ?? DEFAULTS.nodeRadius) - outerSep - inset);
       return createSVGElement('circle', {
-        cx: 0, cy: 0, r, fill, stroke, 'stroke-width': strokeWidth,
+        cx: 0, cy: 0, r, fill, stroke, 'stroke-width': strokeWidth, ...extra,
       });
     }
 
@@ -834,13 +840,13 @@ function createShapeElement(geom, style, opts = {}) {
           d = roundPathCorners(d, rc);
         }
         return createSVGElement('path', {
-          d, fill, stroke, 'stroke-width': strokeWidth,
+          d, fill, stroke, 'stroke-width': strokeWidth, ...extra,
         });
       }
       // Final fallback: circle
       const r = Math.max(0, (geom.radius ?? DEFAULTS.nodeRadius) - outerSep - inset);
       return createSVGElement('circle', {
-        cx: 0, cy: 0, r, fill, stroke, 'stroke-width': strokeWidth,
+        cx: 0, cy: 0, r, fill, stroke, 'stroke-width': strokeWidth, ...extra,
       });
     }
   }

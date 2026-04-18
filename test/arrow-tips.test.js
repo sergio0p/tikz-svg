@@ -4,7 +4,7 @@ import {
   ArrowTipRegistry,
   defaultRegistry,
   createMarker,
-} from '../src/core/arrow-tips.js';
+} from '../src-v2/core/arrow-tips.js';
 
 // ────────────────────────────────────────────
 // Registry basics
