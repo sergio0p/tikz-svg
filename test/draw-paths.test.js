@@ -146,7 +146,7 @@ describe('resolvePathStyle', () => {
       paths: [{ points: [] }],
       pathStyle: { stroke: 'red', strokeWidth: 3 },
     });
-    assert.strictEqual(style.stroke, 'red');
+    assert.strictEqual(style.stroke, '#ff0000');
     assert.strictEqual(style.strokeWidth, 3);
   });
 
@@ -155,7 +155,7 @@ describe('resolvePathStyle', () => {
       paths: [{ points: [], stroke: 'green' }],
       pathStyle: { stroke: 'red' },
     });
-    assert.strictEqual(style.stroke, 'green');
+    assert.strictEqual(style.stroke, '#00ff00');
   });
 
   it('thick sets strokeWidth to 2.4', () => {
@@ -287,7 +287,7 @@ describe('render() with config.paths', () => {
       paths: [{ points: [{ x: 0, y: 0 }, { x: 50, y: 0 }], stroke: 'red', thick: true }],
     });
     const path = svg.querySelector('.draw-path');
-    assert.strictEqual(path.getAttribute('stroke'), 'red');
+    assert.strictEqual(path.getAttribute('stroke'), '#ff0000');
     assert.strictEqual(path.getAttribute('stroke-width'), '2.4');
   });
 

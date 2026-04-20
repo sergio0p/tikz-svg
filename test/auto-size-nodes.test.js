@@ -131,7 +131,7 @@ describe('auto-size nodes from text', () => {
     });
     const rect = svg.querySelector('#node-lbl rect');
     assert.ok(rect, 'should have a background rect');
-    assert.strictEqual(rect.getAttribute('fill'), 'white');
+    assert.strictEqual(rect.getAttribute('fill'), '#ffffff');
     const w = parseFloat(rect.getAttribute('width'));
     assert.ok(w > 5, `rect width ${w} should cover text`);
   });

@@ -113,7 +113,7 @@ describe('color shorthand: omitted', () => {
   it('no color → defaults unchanged', () => {
     const s = resolveNodeStyle('q0', { states: { q0: {} } });
     assert.strictEqual(s.stroke, '#000000');
-    assert.strictEqual(s.fill, '#FFFFFF');
+    assert.strictEqual(s.fill, '#ffffff');
     assert.strictEqual(s.labelColor, '#000000');
   });
 });

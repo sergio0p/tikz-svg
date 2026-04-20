@@ -68,8 +68,8 @@ describe('Named style in cascade', () => {
       states: { q0: { style: 'accent', opacity: 0.8 } },
     };
     const resolved = resolveNodeStyle('q0', config);
-    assert.strictEqual(resolved.fill, 'red');
-    assert.strictEqual(resolved.stroke, 'blue');
+    assert.strictEqual(resolved.fill, '#ff0000');
+    assert.strictEqual(resolved.stroke, '#0000ff');
     assert.strictEqual(resolved.opacity, 0.8);
     assert.strictEqual(resolved.fontSize, 18);
   });
@@ -80,7 +80,7 @@ describe('Named style in cascade', () => {
       states: { q0: { style: 'accent', fill: 'green' } },
     };
     const resolved = resolveNodeStyle('q0', config);
-    assert.strictEqual(resolved.fill, 'green');
+    assert.strictEqual(resolved.fill, '#00ff00');
   });
 
   it('named style expands in edge resolution', () => {
@@ -89,13 +89,13 @@ describe('Named style in cascade', () => {
       edges: [{ from: 'q0', to: 'q1', style: 'warn', label: 'a' }],
     };
     const resolved = resolveEdgeStyle(0, config);
-    assert.strictEqual(resolved.stroke, 'orange');
+    assert.strictEqual(resolved.stroke, '#ff8000');
     assert.strictEqual(resolved.dashed, true);
   });
 
   it('works with no styles defined', () => {
     const config = { states: { q0: { fill: 'green' } } };
     const resolved = resolveNodeStyle('q0', config);
-    assert.strictEqual(resolved.fill, 'green');
+    assert.strictEqual(resolved.fill, '#00ff00');
   });
 });

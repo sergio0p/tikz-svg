@@ -44,6 +44,19 @@ export function isKaTeXAvailable() {
   return !!(typeof window !== 'undefined' && window.katex && typeof window.katex.renderToString === 'function');
 }
 
+// User-defined KaTeX macros, applied to every math render until overridden.
+// Set via setKatexMacros() at the start of render() in index.js.
+let _katexMacros = {};
+
+/**
+ * Register user-defined KaTeX macros for subsequent math rendering.
+ * Passing null or an empty object clears the registry.
+ * @param {Object|null} macros - e.g. { "\\pay": "\\phantom{-}#1,#2" }
+ */
+export function setKatexMacros(macros) {
+  _katexMacros = macros && typeof macros === 'object' ? macros : {};
+}
+
 /**
  * Render a math label to KaTeX HTML string.
  * Handles mixed text+math: segments outside $...$ are plain text,
@@ -61,6 +74,7 @@ function renderMathToHTML(label) {
         html += window.katex.renderToString(tex, {
           throwOnError: false,
           displayMode: false,
+          macros: _katexMacros,
         });
       } catch {
         html += escapeHTML(tex);

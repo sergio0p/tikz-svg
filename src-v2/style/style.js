@@ -1,5 +1,16 @@
 import { DEFAULTS, LINE_WIDTHS, DASH_PATTERNS } from '../core/constants.js';
+import { resolveColor } from '../core/color.js';
 import { StyleRegistry, resolveGroupStyle } from './registry.js';
+
+/**
+ * Normalize color-bearing fields on a resolved style, in place.
+ * Supports TikZ mix syntax and a curated named-color set via `resolveColor`.
+ */
+function normalizeColors(style, fields) {
+  for (const f of fields) {
+    if (style[f] != null) style[f] = resolveColor(style[f]);
+  }
+}
 
 /**
  * Resolve a strokeWidth value: TikZ named widths → pt number; numbers pass through.
@@ -124,6 +135,7 @@ export function resolveNodeStyle(nodeId, config) {
     merged.fontSize = FONT_SIZE_MAP[merged.fontSize] ?? DEFAULTS.fontSize;
   }
   merged.strokeWidth = resolveLineWidth(merged.strokeWidth);
+  normalizeColors(merged, nodeColorFields);
   return merged;
 }
 
@@ -162,6 +174,7 @@ export function resolveEdgeStyle(edgeIndex, config) {
   const expandedProps = spreadColor(registry.expand(edgeProps), edgeColorFields);
   const merged = { ...base, ...edgeStyle, ...groupStyle, ...expandedProps };
   merged.strokeWidth = resolveLineWidth(merged.strokeWidth);
+  normalizeColors(merged, edgeColorFields);
   return merged;
 }
 
@@ -199,6 +212,7 @@ export function resolvePlotStyle(plotIndex, config) {
   const expandedProps = spreadColor(registry.expand(plotProps), plotColorFields);
   const merged = { ...base, ...plotStyle, ...expandedProps };
   merged.strokeWidth = resolveLineWidth(merged.strokeWidth);
+  normalizeColors(merged, plotColorFields);
   return merged;
 }
 
@@ -255,6 +269,7 @@ export function resolvePathStyle(pathIndex, config) {
   merged.arrowStart = arrowSpec.start;
   merged.arrowEnd = arrowSpec.end;
 
+  normalizeColors(merged, pathColorFields);
   return merged;
 }
 

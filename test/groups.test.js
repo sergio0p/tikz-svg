@@ -11,9 +11,9 @@ describe('Node groups', () => {
     const q0 = resolveNodeStyle('q0', config);
     const q1 = resolveNodeStyle('q1', config);
     const q2 = resolveNodeStyle('q2', config);
-    assert.strictEqual(q0.fill, 'red');
-    assert.strictEqual(q1.fill, 'red');
-    assert.notStrictEqual(q2.fill, 'red'); // q2 not in group
+    assert.strictEqual(q0.fill, '#ff0000');
+    assert.strictEqual(q1.fill, '#ff0000');
+    assert.notStrictEqual(q2.fill, '#ff0000'); // q2 not in group
   });
 
   it('per-node prop overrides group style', () => {
@@ -22,8 +22,8 @@ describe('Node groups', () => {
       states: { q0: { fill: 'green' } },
     };
     const q0 = resolveNodeStyle('q0', config);
-    assert.strictEqual(q0.fill, 'green');   // per-node wins
-    assert.strictEqual(q0.stroke, 'blue');  // group fills in
+    assert.strictEqual(q0.fill, '#00ff00');   // per-node wins
+    assert.strictEqual(q0.stroke, '#0000ff'); // group fills in
   });
 
   it('group can reference a named style', () => {
@@ -33,8 +33,8 @@ describe('Node groups', () => {
       states: { q0: {} },
     };
     const q0 = resolveNodeStyle('q0', config);
-    assert.strictEqual(q0.fill, 'red');
-    assert.strictEqual(q0.stroke, 'blue');
+    assert.strictEqual(q0.fill, '#ff0000');
+    assert.strictEqual(q0.stroke, '#0000ff');
   });
 
   it('stateStyle is overridden by group style', () => {
@@ -44,7 +44,7 @@ describe('Node groups', () => {
       states: { q0: {} },
     };
     const q0 = resolveNodeStyle('q0', config);
-    assert.strictEqual(q0.fill, 'red');
+    assert.strictEqual(q0.fill, '#ff0000');
   });
 
   it('multiple groups — last group wins on overlap', () => {
@@ -56,13 +56,13 @@ describe('Node groups', () => {
       states: { q0: {} },
     };
     const q0 = resolveNodeStyle('q0', config);
-    assert.strictEqual(q0.fill, 'blue');
+    assert.strictEqual(q0.fill, '#0000ff');
   });
 
   it('works with no groups defined', () => {
     const config = { states: { q0: { fill: 'green' } } };
     const q0 = resolveNodeStyle('q0', config);
-    assert.strictEqual(q0.fill, 'green');
+    assert.strictEqual(q0.fill, '#00ff00');
   });
 
   it('per-node named style overrides group style', () => {
@@ -72,8 +72,8 @@ describe('Node groups', () => {
       states: { q0: { style: 'accent' } },
     };
     const q0 = resolveNodeStyle('q0', config);
-    assert.strictEqual(q0.fill, 'gold');   // named style on node wins over group
-    assert.strictEqual(q0.stroke, 'blue'); // group fills in stroke
+    assert.strictEqual(q0.fill, 'gold');   // 'gold' not in curated map — passes through
+    assert.strictEqual(q0.stroke, '#0000ff'); // group fills in stroke
   });
 });
 
@@ -98,6 +98,6 @@ describe('Edge groups', () => {
       edges: [{ from: 'q0', to: 'q1', stroke: 'blue' }],
     };
     const e0 = resolveEdgeStyle(0, config);
-    assert.strictEqual(e0.stroke, 'blue');
+    assert.strictEqual(e0.stroke, '#0000ff');
   });
 });

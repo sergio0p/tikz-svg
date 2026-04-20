@@ -40,7 +40,7 @@ import { estimateTextDimensions } from './core/text-measure.js';
 import { plot as computePlot } from './plotting/index.js';
 import { getMarkFillMode } from './plotting/marks.js';
 import { buildPathGeometry, computePathLabelPosition } from './geometry/paths.js';
-import { registerPendingReRender } from './core/katex-renderer.js';
+import { registerPendingReRender, setKatexMacros } from './core/katex-renderer.js';
 
 function round4(v) {
   const r = Math.round(v * 10000) / 10000;
@@ -86,6 +86,9 @@ function transformPlotPath(path, sx, sy, ox, oy) {
 export function render(svgEl, config) {
   // ── PHASE 1: PARSE ──────────────────────────────────────────────────
   // Validate and normalise the incoming configuration.
+
+  // User-defined KaTeX macros (e.g. { "\\pay": "\\phantom{-}#1,#2" }).
+  setKatexMacros(config.katexMacros);
 
   // Global scale: TikZ [scale=3.5] equivalent.
   // Multiplies all path/plot coordinates. origin shifts the coordinate system.

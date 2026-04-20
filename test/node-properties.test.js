@@ -122,6 +122,44 @@ describe('xshift and yshift', () => {
     assert.ok(transform.includes('120'), 'x should be shifted +20');
     assert.ok(transform.includes('90'), 'y should be shifted -10');
   });
+
+  it('applies xshift/yshift on top of a relative position', () => {
+    const svg = makeSVG();
+    render(svg, {
+      // onGrid defaults to true → right-of offset is exactly nodeDistance (90) on x.
+      states: {
+        a: { position: { x: 100, y: 100 }, label: 'A' },
+        b: { position: { right: 'a' }, xshift: 5, yshift: -3, label: 'B' },
+      },
+      edges: [],
+    });
+    // a at (100, 100); b = a + (90, 0) + shift (5, -3) = (195, 97)
+    const nodeB = svg.querySelector('#node-b');
+    const match = nodeB.getAttribute('transform').match(/translate\((-?[\d.]+),?\s*(-?[\d.]+)\)/);
+    assert.ok(match, 'b should have a translate transform');
+    assert.strictEqual(parseFloat(match[1]), 195, 'b.x should be 100 + 90 + 5');
+    assert.strictEqual(parseFloat(match[2]), 97,  'b.y should be 100 + 0 + (-3)');
+  });
+
+  it('propagates xshift/yshift to downstream relative nodes', () => {
+    const svg = makeSVG();
+    render(svg, {
+      // Chain: c is placed right-of b, and b's shift must already be baked
+      // into the position c anchors against (TikZ coordinate-transform semantics).
+      states: {
+        a: { position: { x: 0, y: 0 }, label: 'A' },
+        b: { position: { right: 'a' }, xshift: 10, yshift: 0, label: 'B' },
+        c: { position: { right: 'b' }, label: 'C' },
+      },
+      edges: [],
+    });
+    // a: (0, 0); b: (90, 0) + (10, 0) = (100, 0); c: (100, 0) + (90, 0) = (190, 0)
+    const nodeC = svg.querySelector('#node-c');
+    const match = nodeC.getAttribute('transform').match(/translate\((-?[\d.]+),?\s*(-?[\d.]+)\)/);
+    assert.ok(match, 'c should have a translate transform');
+    assert.strictEqual(parseFloat(match[1]), 190, 'c.x should include b.xshift propagated');
+    assert.strictEqual(parseFloat(match[2]), 0);
+  });
 });
 
 describe('anchor positioning', () => {

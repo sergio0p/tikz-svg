@@ -31,7 +31,7 @@ describe('resolvePlotStyle', () => {
       plotStyle: { stroke: 'red', strokeWidth: 3 },
     };
     const style = resolvePlotStyle(0, config);
-    assert.strictEqual(style.stroke, 'red');
+    assert.strictEqual(style.stroke, '#ff0000');
     assert.strictEqual(style.strokeWidth, 3);
     assert.strictEqual(style.fill, 'none');
   });
@@ -42,7 +42,7 @@ describe('resolvePlotStyle', () => {
       plotStyle: { stroke: 'red' },
     };
     const style = resolvePlotStyle(0, config);
-    assert.strictEqual(style.stroke, 'green');
+    assert.strictEqual(style.stroke, '#00ff00');
   });
 
   it('includes handler and mark options', () => {
