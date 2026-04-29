@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Orioli–Tavernari Family Tree</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+
+<style>
+  :root {
+    --bg: #ffffff;
+    --tavernari: #8b4513;
+    --orioli: #1a3a5c;
+    --merged: #2c4a2e;
+    --historical: #888;
+    --node-fill: #f8f6f2;
+    --node-stroke: #2c2c2c;
+    --edge: #bbb;
+    --edge-marriage: #ccc;
+    --edge-partner: #aaa;
+    --annotation: #999;
+    --hover-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    --soft-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg);
+    color: #2c2c2c;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .title-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding: 22px 36px 16px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.92) 60%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+  }
+  .title-bar h1 {
+    margin: 0;
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    color: #1a1a1a;
+  }
+  .title-bar .subtitle {
+    margin-top: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    font-size: 13px;
+    color: #888;
+    letter-spacing: 0.02em;
+  }
+
+  /* Branch legend */
+  .legend {
+    position: fixed;
+    top: 28px;
+    right: 36px;
+    z-index: 50;
+    display: flex;
+    gap: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #555;
+    pointer-events: none;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .legend-dot {
+    width: 9px; height: 9px;
+    border-radius: 2px;
+  }
+
+  /* Viewport / canvas */
+  .viewport {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    cursor: grab;
+    background: var(--bg);
+  }
+  .viewport.dragging { cursor: grabbing; }
+
+  .canvas {
+    position: absolute;
+    width: 4400px;
+    height: 2300px;
+    top: 0;
+    left: 0;
+    will-change: transform;
+  }
+
+  #tree-svg {
+    width: 4400px;
+    height: 2300px;
+    display: block;
+    overflow: visible;
+  }
+
+  /* Cards layer — overlays the SVG; SVG holds invisible rects for edge geometry */
+  .cards-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 4400px;
+    height: 2300px;
+    pointer-events: none; /* let pan drag pass through; cards re-enable below */
+  }
+
+  .node-card {
+    position: absolute;
+    background: var(--node-fill);
+    border: 1px solid var(--node-stroke);
+    border-radius: 8px;
+    padding: 9px 14px 9px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: var(--soft-shadow);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    pointer-events: auto;
+    box-sizing: border-box;
+    font-size: 15px;
+  }
+  .node-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--hover-shadow);
+  }
+  .node-card .accent {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 4px;
+    border-radius: 8px 0 0 8px;
+  }
+  .node-card.tavernari .accent { background: var(--tavernari); }
+  .node-card.orioli    .accent { background: var(--orioli); }
+  .node-card.merged    .accent { background: var(--merged); }
+  .node-card.historical .accent { background: var(--historical); }
+
+  .node-card.key {
+    background: #fffdf7;
+    border-color: #1a1a1a;
+  }
+  .node-card.key .name { font-weight: 700; font-size: 1.0667em; }
+
+  .node-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 1em;
+    color: #1a1a1a;
+    line-height: 1.18;
+    letter-spacing: -0.005em;
+    white-space: normal;
+  }
+  .node-dates {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8em;
+    color: #888;
+    margin-top: 3px;
+    letter-spacing: 0.02em;
+  }
+  .node-loc {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7em;
+    font-style: italic;
+    margin-top: 2px;
+    line-height: 1.25;
+    white-space: normal;
+    overflow: hidden;
+  }
+  .node-card.tavernari .node-loc { color: var(--tavernari); }
+  .node-card.orioli    .node-loc { color: var(--orioli); }
+  .node-card.merged    .node-loc { color: var(--merged); }
+  .node-card.historical .node-loc { color: var(--historical); }
+
+  /* Hover card */
+  .hover-card {
+    position: fixed;
+    z-index: 200;
+    max-width: 320px;
+    padding: 16px 18px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #eee;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #333;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  .hover-card.visible { opacity: 1; transform: translateY(0); }
+  .hover-card .hc-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 2px;
+    color: #1a1a1a;
+  }
+  .hover-card .hc-meta {
+    font-size: 11.5px;
+    color: #999;
+    margin-bottom: 10px;
+    letter-spacing: 0.03em;
+  }
+  .hover-card .hc-bio { color: #444; }
+
+  /* Annotations */
+  .annotation {
+    position: absolute;
+    z-index: 5;
+    max-width: 280px;
+    padding: 14px 16px 14px 18px;
+    background: #fafaf8;
+    border: 1px solid #e8e4dc;
+    border-left: 2px solid #c9c2b3;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-style: italic;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #555;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.04);
+  }
+  .annotation .ann-tag {
+    display: block;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #b29b6e;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  /* Hint */
+  .hint {
+    position: fixed;
+    bottom: 36px;
+    right: 36px;
+    z-index: 50;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    color: #aaa;
+    letter-spacing: 0.05em;
+    text-align: right;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="title-bar">
+  <h1>The Orioli–Tavernari Family Tree</h1>
+  <div class="subtitle">Concordia sulla Secchia · Sustinente · Porto Real · 1820 — today</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--tavernari)"></span>Tavernari</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--orioli)"></span>Orioli</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--merged)"></span>Merged</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--historical)"></span>Imperial Court</div>
+</div>
+
+<div class="viewport" id="viewport">
+  <div class="canvas" id="canvas">
+    <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 2400"></svg>
+    <div class="cards-layer" id="cards"></div>
+    <!-- Annotations are inserted by JS below -->
+  </div>
+</div>
+
+<div class="hover-card" id="hover-card"></div>
+
+<div class="hint">drag · scroll · hover</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "tikz-svg": "./src-v2/index.js"
+  }
+}
+</script>
+
+<script type="module">
+import { render } from './src-v2/index.js';
+
+/* ============================================================
+   PEOPLE — full data, including coordinates and biography
+   ============================================================ */
+
+const PEOPLE = {
+  // ─── TAVERNARI BRANCH ──────────────────────────────────────
+  domenico: {
+    name: 'Domenico Bonaventura Tavernari',
+    dates: '–1860',
+    loc: 'Concordia sulla Secchia, Modena',
+    branch: 'tavernari',
+    pos: { x: 450, y: 240 },
+    bio: 'Patriarch of the Tavernari family of Concordia sulla Secchia. Father of Clementina, Eugenio, and Luigi.',
+  },
+  rosaComi: {
+    name: 'Rosa Comi',
+    dates: '–1860',
+    loc: 'Concordia sulla Secchia, Modena',
+    branch: 'tavernari',
+    pos: { x: 750, y: 240 },
+    bio: 'Wife of Domenico Tavernari. Mother of Clementina, the colony founder.',
+  },
+  eugenio: {
+    name: 'Eugenio Tavernari',
+    dates: '1819–?',
+    loc: 'Concordia sulla Secchia, Modena',
+    branch: 'tavernari',
+    pos: { x: 200, y: 540 },
+    bio: 'Elder brother of Clementina Tavernari.',
+  },
+  clementina: {
+    name: 'Clementina Placida Tavernari',
+    dates: '1820–1875',
+    loc: 'Concordia → Rio de Janeiro',
+    branch: 'tavernari',
+    pos: { x: 600, y: 540 },
+    key: true,
+    bio: 'Freemason and revolutionary. Exiled after the 1848 uprisings, fled to Switzerland then to Brazil with Alfonso Malavasi. After Alfonso\'s death in 1873, received an imperial mandate from Dom Pedro II to recruit 50 Italian farming families. Returned to Italy, organized the emigration aboard the Anna Pizzorno. Died of yellow fever on 17 April 1875 in Rio de Janeiro — four months after the families arrived, before seeing the colony flourish. Known in Brazil as Madama Adelina Malavasi.',
+  },
+  alfonso: {
+    name: 'Alfonso Malavasi',
+    dates: '–1873',
+    loc: 'Emilia-Romagna → Rio de Janeiro',
+    branch: 'historical',
+    pos: { x: 900, y: 540 },
+    bio: 'Flautist from Emilia-Romagna. His concerts in Rio de Janeiro won him an invitation to perform at the imperial court before Emperor Dom Pedro II and Empress Maria Teresa Cristina di Borbone. The music forged a deep personal friendship between the couple and the Brazilian imperial family. Without this connection — a flute and an emperor\'s ear — there would have been no mandate, no Anna Pizzorno, no Porto Real. Alfonso died of yellow fever in Rio de Janeiro in 1873.',
+  },
+  luigi: {
+    name: 'Luigi Tavernari',
+    dates: '1822–1869',
+    loc: 'Concordia sulla Secchia, Modena',
+    branch: 'tavernari',
+    pos: { x: 1300, y: 540 },
+    bio: 'Younger brother of Clementina. Married Domenica Maria Malvezzi. Father of nine children including Eleuterio and Cleonice. Died in Italy in 1869, leaving his children as orphans under Clementina\'s care.',
+  },
+  domenicaMalvezzi: {
+    name: 'Domenica Maria Malvezzi',
+    dates: '1821–1901',
+    loc: 'Concordia sulla Secchia, Modena',
+    branch: 'tavernari',
+    pos: { x: 1600, y: 540 },
+    bio: 'Wife of Luigi Tavernari. Mother of nine children. Survived her husband by 32 years.',
+  },
+  adelina: {
+    name: 'Adelina Elisa Maria Tavernari',
+    dates: '1856–1873',
+    loc: 'Rio de Janeiro',
+    branch: 'tavernari',
+    pos: { x: 350, y: 840 },
+    bio: 'Daughter of Luigi Tavernari. Brought to Rio de Janeiro in 1873 by her aunt Clementina to be educated. Died of yellow fever at age 17 — one year before the Porto Real colony was founded.',
+  },
+  rosaEmilia: {
+    name: 'Rosa Emilia Tavernari',
+    dates: '1851–1928',
+    loc: 'Italy',
+    branch: 'tavernari',
+    pos: { x: 650, y: 840 },
+    bio: 'Daughter of Luigi Tavernari and Domenica Malvezzi.',
+  },
+  eleuterio: {
+    name: 'Eleuterio Tavernari',
+    dates: '1845–1914',
+    loc: 'Concordia → São Sebastião de Barra Mansa',
+    branch: 'tavernari',
+    pos: { x: 1000, y: 840 },
+    bio: 'Eldest son of Luigi Tavernari and nephew of Clementina. Emigrated to Brazil with the Porto Real colony. Married Rosa Maretti on 10 January 1877. Father of Amelia, who married Romualdo Orioli.',
+  },
+  rosaMaretti: {
+    name: 'Rosa Maretti',
+    dates: '1855–1941',
+    loc: 'São Sebastião de Barra Mansa',
+    branch: 'tavernari',
+    pos: { x: 1300, y: 840 },
+    bio: 'Wife of Eleuterio Tavernari. Married 10 January 1877 in São Sebastião de Barra Mansa. Mother of Amelia Fiorita Maria Tavernari.',
+  },
+  cleonice: {
+    name: 'Cleonice Filomena Tavernari',
+    dates: '1855–1897',
+    loc: 'Concordia → Barra Mansa',
+    branch: 'tavernari',
+    pos: { x: 1700, y: 840 },
+    bio: 'Daughter of Luigi Tavernari, niece of Clementina. Brought to Rio de Janeiro in 1873 alongside her sister Adelina. Survived the yellow fever epidemic. Married Enrico Secchi on 16 August 1875 in Barra Mansa — six months after arriving in Brazil.',
+  },
+  enricoSecchi: {
+    name: 'Enrico Secchi',
+    dates: '1851–1931',
+    loc: 'Concordia → Porto Real',
+    branch: 'tavernari',
+    pos: { x: 2000, y: 840 },
+    key: true,
+    bio: 'Schoolteacher from Concordia sulla Secchia and co-organizer of the Porto Real emigration. Kept a meticulous diary of the entire voyage and colony founding — the essential historical source for this story. Married Cleonice Tavernari on 16 August 1875. Completed his diary around 1920; discovered posthumously in São Paulo. Published as “Un sogno: la Merica! I miei 56 anni di Brasile” (Baraldini Editore, Finale Emilia, 1998, bilingual Italian/Portuguese).',
+  },
+  bonaventura2: {
+    name: 'Bonaventura Tavernari',
+    dates: '1860–1933',
+    loc: 'Italy / Brazil',
+    branch: 'tavernari',
+    pos: { x: 2300, y: 840 },
+    bio: 'Son of Luigi Tavernari and Domenica Malvezzi.',
+  },
+  angelo: {
+    name: 'Angelo Domenico Bonaventura Tavernari',
+    dates: '1864–?',
+    loc: 'Italy / Brazil',
+    branch: 'tavernari',
+    pos: { x: 2600, y: 840 },
+    bio: 'Son of Luigi Tavernari and Domenica Malvezzi.',
+  },
+  adelaide: {
+    name: 'Adelaide Tavernari',
+    dates: '1890–?',
+    loc: 'Porto Real, Rio de Janeiro',
+    branch: 'tavernari',
+    pos: { x: 1000, y: 1140 },
+    bio: 'Sister of Amelia Tavernari. Daughter of Eleuterio and Rosa Maretti.',
+  },
+  amelia: {
+    name: 'Amelia Fiorita Maria Tavernari',
+    dates: '1888–1975',
+    loc: 'Porto Real, Rio de Janeiro',
+    branch: 'tavernari',
+    pos: { x: 1300, y: 1440 },
+    key: true,
+    bio: 'Daughter of Eleuterio Tavernari and Rosa Maretti. Great-niece of Clementina, the colony founder. Born in the colony 13 years after its founding. Married Romualdo Orioli on 9 November 1908 in Porto Real, uniting the two founding families of the colony. Had nine children. Lived to 87 years old.',
+  },
+
+  // ─── ORIOLI BRANCH ────────────────────────────────────────
+  francesco: {
+    name: 'Francesco Orioli',
+    dates: 'abt 1825–?',
+    loc: 'Sustinente, Mantova → Porto Real',
+    branch: 'orioli',
+    fsId: 'G9PZ-C1T',
+    pos: { x: 3450, y: 240 },
+    bio: 'Head of the Orioli family of Sustinente — a small comune on the left bank of the Po river, province of Mantova. Led his family to Brazil as one of the original 50 capifamiglia. Gathered at the Locanda della Rondine in Modena on 3 December 1874, then traveled by train to Genoa in the snow.',
+  },
+  fenicola: {
+    name: 'Fenicola Maria Marassi',
+    dates: '1835–1910',
+    loc: 'Quingentole, Mantova → Porto Real',
+    branch: 'orioli',
+    fsId: 'LYDM-4Z4',
+    pos: { x: 3750, y: 240 },
+    bio: 'Wife of Francesco Orioli. Mother of Alessio. Born 18 February 1835 in Quingentole, Mantova. Emigrated to Brazil aboard the Anna Pizzorno, December 1874. Died 6 May 1910 in Porto Real.',
+  },
+  alessio: {
+    name: 'Alessio Orioli',
+    dates: '1860–1933',
+    loc: 'Sustinente → Porto Real',
+    branch: 'orioli',
+    pos: { x: 3450, y: 540 },
+    key: true,
+    bio: 'Born 9 May 1860 in Sustinente, Mantova. Baptized at the Chiesa di San Michele Arcangelo. Boarded the Anna Pizzorno in Genoa on 22 December 1874 at age 14. Arrived Rio de Janeiro 16 February 1875. Spent his entire adult life in Porto Real. Married Delmira Fontanesi on 22 December 1892 — exactly 18 years to the day after the ship left Genoa.',
+  },
+  delmira: {
+    name: 'Delmira Enrichetta Caterina Fontanesi',
+    dates: '1868–1941',
+    loc: 'Suzzara, Mantova → São Paulo',
+    branch: 'orioli',
+    fsId: 'LTNZ-9J5',
+    pos: { x: 3750, y: 540 },
+    bio: 'Wife of Alessio Orioli. Born 4 May 1868 in Suzzara, Mantova — same province as Francesco Orioli — and emigrated to Brazil with her family. Married Alessio on 22 December 1892 in Porto Real. Died 25 April 1941 in São Paulo. The Fontanesi surname is characteristic of the Mantova/Reggio Emilia area where Clementina recruited the original 50 colonist families.',
+  },
+
+  // ─── MERGED BRANCH ────────────────────────────────────────
+  romualdo: {
+    name: 'Romualdo Orioli',
+    dates: '1887–1959',
+    loc: 'Porto Real, Rio de Janeiro',
+    branch: 'merged',
+    pos: { x: 1600, y: 1440 },
+    key: true,
+    bio: 'Son of Alessio Orioli and Delmira Fontanesi. Born in Porto Real, second generation of the colony. Married Amelia Tavernari on 9 November 1908 — uniting the Orioli colonists with the Tavernari founding family. Had nine children: Manoel, Omar Hermes, Helio Aleixo, Zilda, Raul João, Antonieta Maria, Alvaro, Irene, Dilma Joanna. Note: his son Helio bears the name “Aleixo” — honoring grandfather Alessio.',
+  },
+  omar: {
+    name: 'Omar Hermes Orioli',
+    dates: '1911–1993',
+    loc: 'Porto Real, Rio de Janeiro',
+    branch: 'merged',
+    pos: { x: 1300, y: 1740 },
+    bio: 'Son of Romualdo Orioli and Amelia Tavernari. Third generation of the Porto Real colony. Named “Hermes” likely in honor of President Hermes da Fonseca (1910–1914), the year before his birth. Married Francelina Barbosa da Silva on 15 November 1944 in Porto Real.',
+  },
+  francelina: {
+    name: 'Francelina Barbosa da Silva',
+    dates: '1923–1988',
+    loc: 'Porto Real, Rio de Janeiro',
+    branch: 'merged',
+    pos: { x: 1600, y: 1740 },
+    bio: 'Wife of Omar Hermes Orioli. Married 15 November 1944 in Porto Real. Mother of Ieda Maria Orioli.',
+  },
+  ieda: {
+    name: 'Ieda Maria Orioli',
+    dates: '1946–',
+    loc: 'Rio de Janeiro',
+    branch: 'merged',
+    pos: { x: 1450, y: 2040 },
+    key: true,
+    bio: 'Daughter of Omar Hermes Orioli and Francelina Barbosa da Silva. Fourth generation of the Porto Real colony. Great-great-granddaughter of Alessio Orioli, who crossed the Atlantic as a 14-year-old boy in 1874. Through her grandmother Amelia, she is also the great-great-niece of Clementina Tavernari — the woman whose imperial connections, born of a flautist\'s music, made the whole journey possible.',
+  },
+};
+
+/* ============================================================
+   RELATIONSHIPS
+   ============================================================ */
+
+// Marriages (dashed horizontal edge, no arrow)
+const MARRIAGES = [
+  ['domenico', 'rosaComi'],
+  ['luigi', 'domenicaMalvezzi'],
+  ['eleuterio', 'rosaMaretti'],
+  ['cleonice', 'enricoSecchi'],
+  ['francesco', 'fenicola'],
+  ['alessio', 'delmira'],
+  ['amelia', 'romualdo'],   // The convergence
+  ['omar', 'francelina'],
+];
+
+// Partners (dotted, no arrow)
+const PARTNERS = [
+  ['clementina', 'alfonso'],
+];
+
+// Joints: parent unit → list of children. Joint position = midpoint of pair.
+const JOINTS = [
+  { id: 'jDomRosa',   pair: ['domenico','rosaComi'],          children: ['eugenio','clementina','luigi'] },
+  { id: 'jLuigi',     pair: ['luigi','domenicaMalvezzi'],     children: ['adelina','rosaEmilia','eleuterio','cleonice','bonaventura2','angelo'] },
+  { id: 'jEleut',     pair: ['eleuterio','rosaMaretti'],      children: ['adelaide','amelia'] },
+  { id: 'jFranFen',   pair: ['francesco','fenicola'],         children: ['alessio'] },
+  { id: 'jAlessio',   pair: ['alessio','delmira'],            children: ['romualdo'] },
+  { id: 'jAmelRom',   pair: ['amelia','romualdo'],            children: ['omar'] },
+  { id: 'jOmarFran',  pair: ['omar','francelina'],            children: ['ieda'] },
+];
+
+/* ============================================================
+   ANNOTATIONS — floating cards on the canvas
+   ============================================================ */
+
+const ANNOTATIONS = [
+  // Positioned in clear empty zones. Z2 = right side of Tavernari rows,
+  // Z3 = vertical corridor between Tavernari and Orioli, Z4 = right of Orioli,
+  // Z6 = below convergence, Z7 = bottom-left (below Adelaide).
+  { id: 'a1',  tag: 'Rio de Janeiro · 1850s',
+    text: 'Alfonso Malavasi’s flute performances at the imperial court won the deep personal friendship of Emperor Dom Pedro II and Empress Maria Teresa Cristina di Borbone. A musician’s gift would open the door for fifty Italian farming families to cross an ocean.',
+    pos: { x: 2900, y: 240 } },
+  { id: 'a2',  tag: '1873 · The Mandate',
+    text: 'Alfonso dies of yellow fever. Dom Pedro II, honoring their friendship, grants Clementina an imperial mandate: return to Italy, recruit fifty farming families, found a colony in the province of Santa Catarina — to be named for the Empress.',
+    pos: { x: 2900, y: 540 } },
+  { id: 'a3',  tag: 'Rio · 1873',
+    text: 'Clementina brings her nieces Cleonice and Adelina to be educated in Rio. Adelina dies of yellow fever at seventeen. The epidemic that took Alfonso has now taken her niece. Clementina returns to Italy anyway.',
+    pos: { x: 60, y: 1120 } },
+  { id: 'a4',  tag: '1874 · The Lowlands of the Po',
+    text: 'When Clementina opened her registration office in Concordia, emigration fever swept the provinces of Modena, Mantova, Ferrara, Reggio Emilia, Parma. Hundreds of families rushed to sign up. Mayors withheld clearance papers. Prefects refused passports. A parliamentary intervention finally freed the first fifty.',
+    pos: { x: 60, y: 1380 } },
+  { id: 'a5',  tag: '3 December 1874 · Modena',
+    text: 'The fifty capifamiglia gather at the Locanda della Rondine in Piazza Castello. It is snowing. Among them: Francesco Orioli from Sustinente, with his fourteen-year-old son Alessio. The next morning, by train to Genoa.',
+    pos: { x: 4100, y: 240 } },
+  { id: 'a6',  tag: '22 December 1874 · The Anna Pizzorno',
+    text: 'The four-masted vessel — about six hundred passengers — leaves Genoa. On 15 February 1875, the Brazilian coast appears at Cabo Frio. A cry goes up from the hold: “Ades sì ca sem in Merica!!! Viva il Brasilio!!”',
+    pos: { x: 4100, y: 540 } },
+  { id: 'a7',  tag: '17 April 1875 · Rio de Janeiro',
+    text: 'Four months after the families arrived, Clementina Tavernari dies of yellow fever in Rio de Janeiro. She is fifty-five. Enrico Secchi continues in her place. A commemorative bust is later erected in Porto Real.',
+    pos: { x: 60, y: 1660 } },
+  { id: 'a8',  tag: '16 August 1875 · Barra Mansa',
+    text: 'Six months after landing in Brazil, Cleonice Tavernari marries Enrico Secchi — the schoolteacher who organized the emigration beside her aunt. The diarist marries the founder’s niece.',
+    pos: { x: 2900, y: 840 } },
+  { id: 'a9',  tag: '10 January 1877 · The Colony Takes Root',
+    text: 'Sugarcane grows on 156 lots. The Engenho Central rises on the Paraíba river. The Associação Italiana Vittorio Emanuele II is founded. Eleuterio Tavernari, Clementina’s nephew, marries Rosa Maretti.',
+    pos: { x: 2900, y: 1140 } },
+  { id: 'a10', tag: '22 December 1892 · Porto Real',
+    text: 'Alessio Orioli — the boy from Sustinente — marries Delmira Fontanesi. Exactly eighteen years to the day since the Anna Pizzorno left Genoa. Both grew up in the colony their parents built.',
+    pos: { x: 4100, y: 840 } },
+  { id: 'a11', tag: '9 November 1908 · Convergence',
+    text: 'Romualdo Orioli — son of the boy from Sustinente — marries Amelia Tavernari — great-niece of the woman who brought his father to Brazil. Two families, one colony, one story.',
+    pos: { x: 2900, y: 1440 } },
+  { id: 'a12', tag: 'The Colony Lives',
+    text: 'Porto Real still carries its name. The Associação Vittorio Emanuele II reaches twenty-two countries on four continents. And somewhere in this chain: a flute, an emperor, a snowstorm in Modena, and a fourteen-year-old boy watching the lights of Genoa disappear.',
+    pos: { x: 2900, y: 2000 } },
+];
+
+/* ============================================================
+   BUILD tikz-svg CONFIG
+   ============================================================ */
+
+const HALF_W      = 125;
+const HALF_H      = 52;
+const KEY_HALF_W  = 135;
+const KEY_HALF_H  = 58;
+
+// Build state config for tikz-svg. The SVG nodes are INVISIBLE — they only
+// supply geometry so the library can route edges to the right border. The
+// visible cards (name + dates + location + accent strip) are HTML divs
+// absolutely positioned over the canvas.
+const states = {};
+for (const [id, p] of Object.entries(PEOPLE)) {
+  const isKey = !!p.key;
+  states[id] = {
+    shape: 'rectangle',
+    position: { x: p.pos.x, y: p.pos.y },
+    halfWidth:  isKey ? KEY_HALF_W : HALF_W,
+    halfHeight: isKey ? KEY_HALF_H : HALF_H,
+    label: '',
+    fill: 'none',
+    stroke: 'none',
+    innerSep: 0,
+  };
+}
+
+const edges = [];
+
+// Marriage edges (dashed, no arrow)
+for (const [a, b] of MARRIAGES) {
+  edges.push({
+    from: a, to: b,
+    arrow: 'none',
+    dashed: '6 5',
+    stroke: '#c8c2b6',
+    strokeWidth: 1.2,
+  });
+}
+
+// Partner edge (dotted)
+for (const [a, b] of PARTNERS) {
+  edges.push({
+    from: a, to: b,
+    arrow: 'none',
+    dashed: '1.5 4',
+    stroke: '#a8a8a8',
+    strokeWidth: 1.2,
+  });
+}
+
+// Parent → child connections as elbow paths (standard family-tree routing):
+// short drop from marriage-line midpoint → horizontal trunk → drop into each
+// child's north anchor. All children of one joint share the trunk segment.
+const paths = [];
+for (const j of JOINTS) {
+  const [a, b] = j.pair;
+  const A = PEOPLE[a], B = PEOPLE[b];
+  const halfH_A = A.key ? KEY_HALF_H : HALF_H;
+  const parentY = A.pos.y;
+  const parentSouth = parentY + halfH_A;
+  const midX = (A.pos.x + B.pos.x) / 2;
+
+  const minChildTop = Math.min(...j.children.map(c => {
+    const ch = PEOPLE[c];
+    return ch.pos.y - (ch.key ? KEY_HALF_H : HALF_H);
+  }));
+  const trunkY = (parentSouth + minChildTop) / 2;
+
+  for (const childId of j.children) {
+    const child = PEOPLE[childId];
+    const cHalfH = child.key ? KEY_HALF_H : HALF_H;
+    const childNorth = child.pos.y - cHalfH;
+    paths.push({
+      points: [
+        { x: midX,         y: parentSouth },   // marriage-line midpoint (south anchor)
+        { x: midX,         y: trunkY      },   // drop to trunk
+        { x: child.pos.x,  y: trunkY      },   // across to child column
+        { x: child.pos.x,  y: childNorth  },   // drop into child north
+      ],
+      stroke: '#bcbcbc',
+      strokeWidth: 1.2,
+    });
+  }
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+
+const svg = document.getElementById('tree-svg');
+
+render(svg, {
+  states,
+  edges,
+  paths,
+  padding: 0,
+});
+
+// Force the canvas-sized viewBox (override library auto-fit). The library
+// re-renders after fonts load to fix KaTeX measurement and resets the
+// viewBox — observe and re-apply to keep SVG aligned with HTML cards.
+const FIXED_VIEWBOX = '0 0 4400 2300';
+function pinViewBox() {
+  if (svg.getAttribute('viewBox') !== FIXED_VIEWBOX) {
+    svg.setAttribute('viewBox', FIXED_VIEWBOX);
+  }
+  svg.setAttribute('width', '4400');
+  svg.setAttribute('height', '2300');
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+}
+pinViewBox();
+new MutationObserver(pinViewBox).observe(svg, { attributes: true, attributeFilter: ['viewBox', 'width', 'height'] });
+
+/* ============================================================
+   PERSON CARDS — absolute-positioned HTML divs over the canvas
+   (the SVG holds invisible rects purely for edge geometry)
+   ============================================================ */
+
+const cardsLayer = document.getElementById('cards');
+const cardEls = {};
+
+for (const [id, p] of Object.entries(PEOPLE)) {
+  const isKey = !!p.key;
+  const halfW = isKey ? KEY_HALF_W : HALF_W;
+  const halfH = isKey ? KEY_HALF_H : HALF_H;
+
+  const card = document.createElement('div');
+  card.className = 'node-card ' + p.branch + (isKey ? ' key' : '');
+  card.dataset.personId = id;
+  card.style.left   = (p.pos.x - halfW) + 'px';
+  card.style.top    = (p.pos.y - halfH) + 'px';
+  card.style.width  = (halfW * 2) + 'px';
+  card.style.height = (halfH * 2) + 'px';
+
+  card.innerHTML = `
+    <div class="accent"></div>
+    <div class="node-name">${p.name}</div>
+    <div class="node-dates">${p.dates}</div>
+    <div class="node-loc">${p.loc}</div>
+  `;
+
+  cardsLayer.appendChild(card);
+  cardEls[id] = card;
+}
+
+/* ============================================================
+   ANNOTATIONS — DOM elements positioned on the canvas
+   ============================================================ */
+
+const canvas = document.getElementById('canvas');
+
+const annotationEls = [];
+for (const a of ANNOTATIONS) {
+  const el = document.createElement('div');
+  el.className = 'annotation';
+  el.style.left = a.pos.x + 'px';
+  el.style.top  = a.pos.y + 'px';
+  el.innerHTML = `<span class="ann-tag">${a.tag}</span>${a.text}`;
+  canvas.appendChild(el);
+  annotationEls.push({ ...a, el });
+}
+
+/* ============================================================
+   ANNOTATION PROXIMITY REVEAL — constants + updater
+   (declared BEFORE pan code because applyPan() calls updateAnnotations)
+   ============================================================ */
+
+const ANN_THRESHOLD = 0.45; // 45% of viewport dims
+const MAX_VISIBLE = 3;
+const annotationStates = new Map(); // id -> 'visible' | 'hidden'
+
+function updateAnnotations() {
+  const vw = viewport.clientWidth;
+  const vh = viewport.clientHeight;
+  const cx = vw / 2;
+  const cy = vh / 2;
+  const tx = ANN_THRESHOLD * vw;
+  const ty = ANN_THRESHOLD * vh;
+
+  const candidates = annotationEls.map(a => {
+    const sx = a.pos.x + panX + 140;
+    const sy = a.pos.y + panY + 40;
+    const dx = (sx - cx) / tx;
+    const dy = (sy - cy) / ty;
+    const score = dx * dx + dy * dy;
+    return { ...a, score, inRange: score <= 1 };
+  });
+
+  candidates.sort((a, b) => a.score - b.score);
+
+  const visible = new Set();
+  for (const c of candidates) {
+    if (c.inRange && visible.size < MAX_VISIBLE) visible.add(c.id);
+  }
+
+  for (const a of annotationEls) {
+    const want = visible.has(a.id) ? 'visible' : 'hidden';
+    if (annotationStates.get(a.id) === want) continue;
+    annotationStates.set(a.id, want);
+    if (want === 'visible') {
+      gsap.fromTo(a.el,
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' });
+    } else {
+      gsap.to(a.el, { opacity: 0, y: 8, duration: 0.3, ease: 'power2.in' });
+    }
+  }
+}
+
+/* ============================================================
+   PAN / SCROLL
+   ============================================================ */
+
+const viewport = document.getElementById('viewport');
+const CANVAS_W = 4400, CANVAS_H = 2300;
+// title bar overlays the top of the viewport — let users pull the canvas
+// down past it (positive panY) so top-row cards aren't trapped under the title.
+const TITLE_PAD    = 130;
+// also let users overscroll a bit to the left/right and below for breathing room.
+const SIDE_PAD     = 80;
+const BOTTOM_PAD   = 120;
+
+let panX = 0, panY = 0;          // current canvas translate
+const panState = { x: 0, y: 0 }; // for GSAP tweening
+
+function clampPan(x, y) {
+  const vw = viewport.clientWidth;
+  const vh = viewport.clientHeight;
+  const minX = Math.min(SIDE_PAD, vw - CANVAS_W - SIDE_PAD);
+  const maxX = SIDE_PAD;
+  const minY = Math.min(TITLE_PAD, vh - CANVAS_H - BOTTOM_PAD);
+  const maxY = TITLE_PAD;
+  return {
+    x: Math.max(minX, Math.min(maxX, x)),
+    y: Math.max(minY, Math.min(maxY, y)),
+  };
+}
+
+function applyPan() {
+  canvas.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
+  updateAnnotations();
+}
+
+function setPan(x, y) {
+  const c = clampPan(x, y);
+  panX = c.x; panY = c.y;
+  applyPan();
+}
+
+function tweenPanTo(x, y, duration = 0.6) {
+  const target = clampPan(x, y);
+  panState.x = panX;
+  panState.y = panY;
+  gsap.to(panState, {
+    x: target.x, y: target.y,
+    duration,
+    ease: 'power3.out',
+    onUpdate: () => {
+      panX = panState.x; panY = panState.y;
+      applyPan();
+    },
+  });
+}
+
+// Initial pan: center on Clementina
+function centerOn(canvasX, canvasY) {
+  const vw = viewport.clientWidth;
+  const vh = viewport.clientHeight;
+  setPan(vw / 2 - canvasX, vh / 2 - canvasY);
+}
+centerOn(900, 420);
+
+// Drag to pan
+let dragging = false, dragStart = null, dragOrigin = null;
+viewport.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  dragging = true;
+  dragStart = { x: e.clientX, y: e.clientY };
+  dragOrigin = { x: panX, y: panY };
+  viewport.classList.add('dragging');
+  hideHover();
+});
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - dragStart.x;
+  const dy = e.clientY - dragStart.y;
+  setPan(dragOrigin.x + dx, dragOrigin.y + dy);
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  viewport.classList.remove('dragging');
+});
+
+// Mouse wheel / trackpad: pan in both axes. Hold shift to swap mouse-wheel
+// vertical motion to horizontal pan.
+viewport.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  let dx = e.deltaX;
+  let dy = e.deltaY;
+  if (e.shiftKey && dx === 0) { dx = dy; dy = 0; }
+  setPan(panX - dx, panY - dy);
+}, { passive: false });
+
+// Keyboard
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft')  tweenPanTo(panX + 400, panY, 0.4);
+  if (e.key === 'ArrowRight') tweenPanTo(panX - 400, panY, 0.4);
+  if (e.key === 'ArrowUp')    tweenPanTo(panX, panY + 300, 0.4);
+  if (e.key === 'ArrowDown')  tweenPanTo(panX, panY - 300, 0.4);
+});
+
+// Resize
+window.addEventListener('resize', () => setPan(panX, panY));
+
+/* ============================================================
+   HOVER CARD
+   ============================================================ */
+
+const hoverCard = document.getElementById('hover-card');
+let hoverTimeout = null;
+
+function showHover(personId, screenX, screenY) {
+  const p = PEOPLE[personId];
+  if (!p) return;
+  hoverCard.innerHTML = `
+    <div class="hc-name">${p.name}</div>
+    <div class="hc-meta">${p.dates} · ${p.loc}</div>
+    <div class="hc-bio">${p.bio}</div>
+  `;
+  // Position above the cursor by default; flip below if too high
+  const cardW = 320, cardH = 220;
+  let left = screenX - cardW / 2;
+  let top  = screenY - cardH - 14;
+  if (top < 12) top = screenY + 22;
+  left = Math.max(12, Math.min(window.innerWidth - cardW - 12, left));
+  hoverCard.style.left = left + 'px';
+  hoverCard.style.top  = top + 'px';
+  hoverCard.classList.add('visible');
+}
+
+function hideHover() {
+  hoverCard.classList.remove('visible');
+}
+
+// Delegate hover events on the canvas
+canvas.addEventListener('mouseover', (e) => {
+  if (dragging) return;
+  const card = e.target.closest('.node-card');
+  if (!card) return;
+  const id = card.dataset.personId;
+  if (!id) return;
+  const rect = card.getBoundingClientRect();
+  showHover(id, rect.left + rect.width / 2, rect.top);
+});
+
+canvas.addEventListener('mouseout', (e) => {
+  const card = e.target.closest('.node-card');
+  if (!card) return;
+  // Hide if mouse leaves the card (and isn't entering a child)
+  if (!e.relatedTarget || !e.relatedTarget.closest('.node-card')) {
+    hideHover();
+  }
+});
+
+// Hide hover when starting a drag
+viewport.addEventListener('mousedown', hideHover);
+</script>
+
+</body>
+</html>
