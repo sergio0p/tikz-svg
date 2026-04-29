@@ -137,7 +137,7 @@
     transition: transform 0.18s ease, box-shadow 0.18s ease;
     pointer-events: auto;
     box-sizing: border-box;
-    font-size: 15px;
+    font-size: 18px;
   }
   .node-card:hover {
     transform: translateY(-1px);
@@ -515,12 +515,12 @@ const PEOPLE = {
     loc: 'Porto Real, Rio de Janeiro',
     branch: 'merged',
     pos: { x: 1600, y: 1740 },
-    bio: 'Wife of Omar Hermes Orioli. Married 15 November 1944 in Porto Real. Mother of Ieda Maria Orioli.',
+    bio: 'Wife of Omar Hermes Orioli. Married 15 November 1944 in Porto Real. Mother of Iêda Maria Orioli.',
   },
   ieda: {
-    name: 'Ieda Maria Orioli',
+    name: 'Iêda Maria Orioli',
     dates: '1946–',
-    loc: 'Rio de Janeiro',
+    loc: 'Niterói',
     branch: 'merged',
     pos: { x: 1450, y: 2040 },
     key: true,
@@ -711,12 +711,15 @@ render(svg, {
 // viewBox — observe and re-apply to keep SVG aligned with HTML cards.
 const FIXED_VIEWBOX = '0 0 4400 2300';
 function pinViewBox() {
-  if (svg.getAttribute('viewBox') !== FIXED_VIEWBOX) {
-    svg.setAttribute('viewBox', FIXED_VIEWBOX);
+  // guard every write — setAttribute fires MutationObserver records even on
+  // same-value writes, which would create a runaway feedback loop with the
+  // observer attached below.
+  if (svg.getAttribute('viewBox') !== FIXED_VIEWBOX) svg.setAttribute('viewBox', FIXED_VIEWBOX);
+  if (svg.getAttribute('width')  !== '4400')         svg.setAttribute('width',  '4400');
+  if (svg.getAttribute('height') !== '2300')         svg.setAttribute('height', '2300');
+  if (svg.getAttribute('preserveAspectRatio') !== 'xMidYMid meet') {
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   }
-  svg.setAttribute('width', '4400');
-  svg.setAttribute('height', '2300');
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 }
 pinViewBox();
 new MutationObserver(pinViewBox).observe(svg, { attributes: true, attributeFilter: ['viewBox', 'width', 'height'] });
