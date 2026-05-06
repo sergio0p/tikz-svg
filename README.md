@@ -1,335 +1,253 @@
 # tikz-svg
 
-A pure JavaScript library that renders TikZ/PGF graphics as SVG. No LaTeX required — runs entirely in the browser.
+A pure JavaScript library that renders TikZ/PGF graphics as SVG in the browser. No LaTeX required — pure ES modules, runs entirely client-side.
 
-Currently supports the automata library. Moving toward general-purpose TikZ coverage including shapes.callouts and more.
+The library targets general-purpose TikZ rendering: shapes, paths, plots, callouts, labels, decorations, layers, KaTeX math, and animation metadata. The original automata wrapper has been retired to `deprecated/`; new work uses the general `render()` API.
 
-## Usage
+**Status (2026-05-06):** 756 tests passing, 205 suites. Production code in `src-v2/`. Animation sandbox in `src-v3/`.
+
+## Quick Start
 
 ```html
-<svg id="automaton"></svg>
+<svg id="diagram" width="400" height="300"></svg>
 
 <script type="module">
-  import { renderAutomaton } from './src/automata/automata.js';
+  import { render } from './src-v2/index.js';
 
-  const svg = document.getElementById('automaton');
-
-  renderAutomaton(svg, {
-    nodeDistance: 80,
-    onGrid: true,
-    stateStyle: {
-      radius: 22,
-      fill: '#f97316',
-      stroke: 'none',
-      labelColor: '#ffffff',
-      fontSize: 16,
-      fontFamily: 'serif',
-    },
-    edgeStyle: {
-      stroke: '#333',
-      strokeWidth: 2,
-      arrow: 'stealth',
-    },
+  render(document.getElementById('diagram'), {
     states: {
-      q0: { initial: true, label: 'q₀' },
-      q1: { position: { 'above right': 'q0' }, label: 'q₁' },
-      q2: { position: { 'below right': 'q0' }, label: 'q₂' },
-      q3: { position: { 'below right': 'q1' }, label: 'q₃', accepting: true },
+      q0: { label: 'q₀', initial: true },
+      q1: { label: 'q₁', position: { 'right': 'q0' }, accepting: true },
     },
     edges: [
-      { from: 'q0', to: 'q1', label: '0' },
-      { from: 'q0', to: 'q2', label: '1' },
-      { from: 'q1', to: 'q3', label: '1' },
-      { from: 'q1', to: 'q1', label: '0', loop: 'above' },
-      { from: 'q2', to: 'q3', label: '0' },
-      { from: 'q2', to: 'q2', label: '1', loop: 'below' },
+      { from: 'q0', to: 'q1', label: 'a' },
+      { from: 'q1', to: 'q1', label: 'b', loop: 'above' },
     ],
+    stateStyle: { radius: 22, fill: '#dbeafe' },
+    edgeStyle: { stroke: '#333', arrow: 'stealth' },
   });
 </script>
 ```
 
 ## API
 
-### `renderAutomaton(svgEl, config)`
+### `render(svgEl, config)` — `src-v2/index.js`
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `svgEl` | `SVGElement` | Target SVG element |
-| `config` | `Object` | Configuration object (see below) |
+The top-level entry point. Takes an SVG element and a configuration object describing nodes, edges, plots, paths, and styles. Returns `{ nodes, edges, labels, plots, refs }` for downstream consumers.
 
-#### Config
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `states` | `Object` | *required* | Map of state IDs to state configs |
-| `edges` | `Array` | `[]` | Array of edge objects |
-| `stateStyle` | `Object` | `{}` | Default style for all states |
-| `edgeStyle` | `Object` | `{}` | Default style for all edges |
-| `styles` | `Object` | `{}` | Named style definitions (see below) |
-| `groups` | `Array` | `[]` | Node/edge groups with shared styles (see below) |
-| `transform` | `Transform` | — | Global coordinate transform (see below) |
-| `nodeDistance` | `number` | `60` | Distance between nodes for relative positioning |
-| `onGrid` | `boolean` | `false` | Snap positions to grid |
-
-#### State config
+#### Top-level config keys
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `label` | `string` | Display label (defaults to state ID) |
-| `position` | `Object` | Relative position, e.g. `{ 'above right': 'q0' }` |
-| `initial` | `boolean` | Show initial arrow |
-| `accepting` | `boolean` | Show accepting (double) circle |
-| `fill` | `string` | Per-state fill override |
-| `stroke` | `string` | Per-state stroke override |
-| `radius` | `number` | Per-state radius override |
-| `shadow` | `Object` | Drop shadow: `{ dx, dy, blur, color }` |
-| `style` | `string` | Reference to a named style in `config.styles` |
+| `states` | `Object` | Map of node ID → node config |
+| `edges` | `Array` | Edges between nodes (directed by default) |
+| `plots` | `Array` | Function plots (math.js / JS expressions) |
+| `paths` | `Array` | Free-form `\draw`-style polylines + arrows |
+| `styles` | `Object` | Named style bundles |
+| `groups` | `Array` | Node/edge groups with shared styles |
+| `layers` | `Array` | Z-order layer declarations |
+| `draw` | `Array` | Explicit draw-order overrides |
+| `stateStyle` `edgeStyle` `plotStyle` `pathStyle` | `Object` | Per-layer defaults |
+| `transform` | `Transform` | Global coordinate transform (positions remapped) |
+| `transformCanvas` | `Transform` | Low-level graphics transform (also scales strokes) |
+| `scale` `scaleX` `scaleY` `originX` `originY` | `number` | Coordinate scaling |
+| `nodeDistance` `onGrid` | — | Layout knobs |
+| `padding` `background` | — | ViewBox controls |
+| `katexMacros` | `Object` | KaTeX macros (e.g. `{"\\R": "\\mathbb{R}"}`) |
+| `seed` | `number` | PRNG seed for deterministic decorations |
 
-Supported positions: `above`, `below`, `left`, `right`, `above left`, `above right`, `below left`, `below right`.
+#### Node config
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `label` | `string \| Array` | Display label; arrays render multipart shapes |
+| `position` | `Object` | Relative (`{ 'above right': 'q0' }`) or absolute (`{ x, y }`) |
+| `shape` | `string` | One of 23 registered shapes (default `circle`) |
+| `initial` `accepting` | `boolean` | Initial-arrow / double-circle (automata sugar) |
+| `radius` `rx` `ry` `halfWidth` `halfHeight` | `number` | Geometry |
+| `minimumWidth` `minimumHeight` | `number` | Floors for auto-sizing |
+| `textWidth` `align` | — | Wrapped text |
+| `fill` `stroke` `strokeWidth` `dash` `opacity` | — | Style |
+| `xshift` `yshift` `rotate` | `number` | Per-node transforms |
+| `partFills` `partAlign` `drawSplits` | — | Multipart shape options |
+| `style` | `string` | Reference to a named style |
+| `className` | `string` | CSS class on the node `<g>` |
+| `frame` | `string` | Animation frame spec (v3 only) |
 
 #### Edge config
 
 | Key | Type | Description |
 |-----|------|-------------|
-| `from` | `string` | Source state ID |
-| `to` | `string` | Target state ID |
-| `label` | `string` | Edge label text |
-| `bend` | `string\|number` | `'left'`, `'right'`, or angle in degrees |
-| `loop` | `string` | Self-loop direction: `'above'`, `'below'`, `'left'`, `'right'` |
-| `looseness` | `number` | Loop/bend looseness multiplier |
-| `style` | `string` | Reference to a named style in `config.styles` |
+| `from` `to` | `string` | Source / target node IDs |
+| `label` | `string` | Edge label (KaTeX-aware) |
+| `bend` | `string \| number` | `'left'`, `'right'`, or angle |
+| `out` `in` | `number` | Departure / arrival angles in degrees |
+| `looseness` | `number` | Bend / loop control-point multiplier |
+| `loop` | `string` | Self-loop direction (`'above'`, etc.) |
+| `arrow` `arrowSize` | — | Arrow tip + size |
+| `shortenStart` `shortenEnd` | `number` | Path shortening |
+| `labelPos` `labelSide` `labelDistance` `sloped` | — | Label placement |
+| `dashed` `dotted` `dash` `lineCap` `lineJoin` `miterLimit` `fillRule` | — | Stroke style |
+| `style` `className` `frame` | — | Style ref / CSS / animation |
 
-#### Named Styles
+### Shapes (23)
 
-Define reusable style bundles in `config.styles` and reference them by name via the `style` property on any node or edge. Per-element properties override the named style.
+`circle`, `rectangle`, `ellipse`, `diamond`, `star`, `regular polygon`, `trapezium`, `semicircle`, `isosceles triangle`, `kite`, `dart`, `circular sector`, `cylinder`, `parallelogram`, `cloud`, `document`, `preparation`, `rectangle split`, `circle split`, `ellipse split`, `rectangle callout`, `ellipse callout`, `cloud callout`.
+
+Multipart shapes accept `partFills: [...]`, `partAlign: 'left'|'center'|'right'`, `drawSplits`, and array labels (`label: ['A', 'B']`).
+
+Callouts accept `pointer: { x, y }` (absolute pointer target), `pointerWidth`, and a `pointerShorten`.
+
+### Arrow tips
+
+18 base tips + 9 aliases:
+
+**Base (18):** Stealth, Latex, Kite, Square, Circle, Straight Barb, Hooks, Arc Barb, Tee Barb, Classical TikZ Rightarrow, Computer Modern Rightarrow, Implies, Round Cap, Butt Cap, Triangle Cap, Fast Triangle, Fast Round, Rays.
+
+**Aliases (9):** To, Bar, Bracket, LaTeX, Triangle, Rectangle, Ellipse, Diamond, Parenthesis.
+
+Each supports `length`, `width`, `inset`, `lineWidth`, and `open`. Path data is auto-shortened to match the tip via `pgfcorearrows.code.tex` semantics. `arrow: 'none'` suppresses the head.
+
+### Plotting — `src-v2/plotting/`
 
 ```js
-renderAutomaton(svg, {
-  styles: {
-    blueNode: { fill: '#dbeafe', stroke: '#93c5fd', strokeWidth: 2 },
-    dangerEdge: { stroke: 'red', dashed: true },
+plots: [
+  {
+    expr: 'sin(x)',          // string for math.js, or JS function
+    domain: [-Math.PI, Math.PI],
+    samples: 80,
+    handler: 'curveto',       // lineto | curveto | barchart | ybar | closedcurve | ecdf | const | jump
+    mark: 'circle',           // 16 marks available
+    scaleX: 50, scaleY: 30,
   },
-  states: {
-    q0: { style: 'blueNode', initial: true },
-    q1: { style: 'blueNode', fill: '#fdf' }, // fill overrides blueNode.fill
+],
+```
+
+Plot expressions can be math.js strings or JS functions (piecewise logic). Marks render at sampled points, with `repeat`, `phase`, and `indices` controls. Plots integrate with `paths` / `nodes` via `at: { plot, point }` for placing nodes on a plotted curve.
+
+### Free-form paths
+
+```js
+paths: [
+  {
+    points: [{x: 0, y: 0}, {x: 100, y: 50}, {x: 200, y: 0}],
+    arrow: '<->',                  // '->' | '<-' | '<->'
+    cycle: false,
+    dashed: true,
+    nodes: [{ at: 0.5, label: 'mid', anchor: 'south' }],
   },
-  edges: [
-    { from: 'q0', to: 'q1', style: 'dangerEdge', label: 'a' },
-  ],
-});
+],
 ```
 
-**Cascade order:** `DEFAULTS → stateStyle/edgeStyle → group style → named style + per-element props`
+### Decorations — `src-v2/decorations/`
 
-#### Groups
+`morphPath()` post-processes any path data string. Currently implemented:
 
-Group nodes or edges to apply shared styles. Group styles sit between picture-level (`stateStyle`/`edgeStyle`) and per-element styles in the cascade. Groups can reference named styles.
+- **`random steps`** — PGF-style amplitude-driven offsets with seeded PRNG
+- **`rounded corners`** — corner smoothing (also usable on its own)
+
+Apply via the `decoration` style key on edges, paths, or node borders, or call `morphPath()` directly. Pending: `zigzag`, `snake`, `coil` (PGF §34).
+
+### KaTeX math
+
+Labels wrapped in `$…$` render as KaTeX inside `<foreignObject>`. Define macros via `config.katexMacros: { "\\R": "\\mathbb{R}" }`. Falls back to plain text with `$` stripped if KaTeX isn't loaded. Auto-sizing accounts for KaTeX-measured dimensions.
+
+### Layers and draw order
 
 ```js
-renderAutomaton(svg, {
-  styles: { red: { fill: '#fee', stroke: 'red' } },
-  groups: [
-    { nodes: ['q0', 'q1'], style: { fill: '#ddf', stroke: 'blue' } },
-    { nodes: ['q2', 'q3'], style: 'red' },  // named style reference
-    { edges: [0, 1], style: { dashed: true } },
-  ],
-  states: { q0: {}, q1: { fill: '#fdf' }, q2: {}, q3: {} },
-  edges: [ /* ... */ ],
-});
+layers: ['back', 'main', 'front'],
+draw: [
+  { type: 'node', id: 'q0', layer: 'back' },
+  { type: 'edge', index: 0, layer: 'front' },
+],
 ```
 
-#### Coordinate Transforms
+Default layer is `'main'`. Within a layer, declaration order is preserved.
 
-Apply global or per-group coordinate transforms using the `Transform` class. Transforms are applied as coordinate transforms (positions are remapped), not SVG `transform` attributes.
+### Named styles, groups, and transforms
 
 ```js
-import { Transform } from './src-v2/core/transform.js';
-
-renderAutomaton(svg, {
-  transform: new Transform().rotate(45),  // rotate entire picture
-  groups: [
-    {
-      nodes: ['q2', 'q3'],
-      style: { fill: 'blue' },
-      transform: new Transform().translate(100, 0),  // shift group
-    },
-  ],
-  states: { /* ... */ },
-  edges: [ /* ... */ ],
-});
+styles: {
+  blue: { fill: '#dbeafe', stroke: '#3b82f6' },
+  danger: { stroke: 'red', dash: 'dashed' },
+},
+groups: [
+  { nodes: ['q0', 'q1'], style: 'blue', transform: new Transform().rotate(15) },
+  { edges: [0, 2], style: 'danger' },
+],
+transform: new Transform().translate(0, 50),
 ```
 
-#### Style options
+Cascade: `DEFAULTS → stateStyle/edgeStyle → group → named style → per-element`.
 
-**`stateStyle`**: `radius`, `fill`, `stroke`, `strokeWidth`, `labelColor`, `fontSize`, `fontFamily`, `shadow`, `outerSep`, `shape`.
+### Color
 
-Shapes (14): `'circle'`, `'rectangle'`, `'ellipse'`, `'diamond'`, `'star'`, `'regular polygon'`, `'trapezium'`, `'semicircle'`, `'isosceles triangle'`, `'kite'`, `'dart'`, `'circular sector'`, `'cylinder'`, `'rectangle split'`.
+Hex passthrough, 17+ named colors, and TikZ mix syntax `red!50!blue` / `blue!20`. The `color` shorthand applies to stroke (all elements) and to fill+labelColor (nodes), with explicit per-field keys overriding.
 
-**`edgeStyle`**: `stroke`, `strokeWidth`, `arrow`, `arrowSize`, `shortenStart`, `shortenEnd`, `labelDistance`, `innerSep`.
+### Path actions (TikZ §15)
 
-Arrow tips (18): `'stealth'`, `'latex'`, `'to'`, `'bar'`, `'circle'`, `'bracket'`, `'kite'`, `'square'`, `'straight barb'`, `'hooks'`, `'arc barb'`, `'tee barb'`, `'implies'`, `'triangle'`, `'diamond'`, `'rectangle'`, `'parenthesis'`, `'none'`. Plus caps: `'round cap'`, `'butt cap'`, `'triangle cap'`, `'fast triangle'`, `'fast round'`, `'rays'`.
+Items 1–5 implemented (commit `66bf309`):
 
-### Core Modules
+- Named line widths (`ultra thin` … `ultra thick`)
+- Named dash patterns (12 TikZ patterns, plus `dashed: true` / `dotted: true`)
+- `lineCap` / `lineJoin` / `miterLimit`
+- `color` shorthand
+- `fillRule: 'nonzero' | 'evenodd'`
 
-The following modules are available for standalone use. They are not required by the automata API but provide building blocks for general-purpose TikZ rendering.
+Item 6 (`use as bounding box`) is pending — see `Animation/MUSTADDRESS.md` for cross-reference.
 
-#### `Transform` / `TransformStack` — `src/core/transform.js`
+## Repository layout
 
-2D affine transformation matrix with a scoped stack, mirroring PGF's coordinate transformation system.
-
-```js
-import { Transform, TransformStack } from './src/core/transform.js';
-
-const t = new Transform();
-t.translate(10, 20).rotate(45).scale(2);
-const pt = t.apply({ x: 1, y: 0 }); // → transformed point
-
-const inv = t.invert();
-inv.apply(pt); // → back to {x: 1, y: 0}
-
-t.toSVG(); // → "matrix(1.414..,1.414..,-1.414..,1.414..,10,20)"
-
-const stack = new TransformStack();
-stack.push();
-stack.current.translate(50, 0);
-stack.pop(); // restored to previous state
 ```
+src-v2/                         — production library (default import)
+  index.js                    — render() entry point
+  core/                       — math, constants, transforms, arrow tips, color, KaTeX, PRNG, text-measure, path
+  shapes/                     — 23 shapes + registry
+  geometry/                   — edges, arrows, labels, paths
+  positioning/                — topological layout
+  style/                      — registry + cascade resolvers
+  decorations/                — random steps, rounded corners, path utils
+  plotting/                   — evaluator, handlers, marks, plot orchestrator
+  svg/                        — SVG emitter
+  legacy-callouts.js          — legacy callout factory (not wired into render)
 
-**Transform methods:** `translate(dx, dy)`, `scale(sx, sy?)`, `rotate(angleDeg)`, `slantX(s)`, `slantY(s)`, `concat(a,b,c,d,tx,ty)`, `apply({x,y})`, `invert()`, `clone()`, `get()`, `set(matrix)`, `reset()`, `isIdentity()`, `toSVG()`.
+src-v3/                         — animation sandbox
+  ...                         — copy of src-v2 plus animation metadata
+                                (`frame`, `className`, `idPrefix` namespacing)
+                                See docs/plans/2026-04-10-animation-layer-design.md
+                                Layer 1 (emitter metadata) implemented;
+                                Layers 2 (controller) and 3 (authoring agent) pending.
 
-**TransformStack methods:** `push()`, `pop()`, `.current` (getter).
+deprecated/                     — historical APIs
+  automata-wrapper/           — old renderAutomaton() (still used by some legacy pages)
+  src-v1/                     — original prototype
 
-#### `ArrowTipRegistry` / `defaultRegistry` — `src/core/arrow-tips.js`
-
-Registry of named arrow tip definitions, each producing SVG path data. Replaces the single hard-coded stealth arrow with a pluggable system.
-
-```js
-import { defaultRegistry, createMarker, ArrowTipRegistry } from './src/core/arrow-tips.js';
-
-// Query built-in tips (18 tips + aliases)
-defaultRegistry.names(); // → ['Stealth', 'Latex', 'Kite', 'Square', 'Circle', 'Straight Barb', ...]
-
-// Generate path data for an arrow tip
-const stealth = defaultRegistry.get('Stealth');
-const { d, lineEnd, tipEnd, fillMode } = stealth.path({ length: 8, width: 6 });
-
-// Create an SVG <marker> element
-const { element, id } = createMarker(document, 'Latex', { length: 6 }, { color: '#333' });
-svgDefs.appendChild(element);
-path.setAttribute('marker-end', `url(#${id})`);
+Animation/                      — animation R&D (vocabulary, cheatsheet, plans)
+docs/                           — plans, specs, audit, guides, References
+examples-v2/                    — 21 demos (incl. blind-audition comparisons against TikZ PNGs)
+test/                           — 57 test files, 756 tests, 205 suites
+deprecated/, tex/, References/  — legacy sources, native-TikZ comparison sources
 ```
-
-**Built-in tips (18):** Stealth, Latex, Kite, Square, Circle (geometric/filled); Straight Barb, Hooks, Arc Barb, Tee Barb, Classical TikZ Rightarrow, Computer Modern Rightarrow, Implies (barbs/stroked); Round Cap, Butt Cap, Triangle Cap, Fast Triangle, Fast Round (caps); Rays (special). Plus aliases: To, Bar, Bracket, LaTeX, Triangle, Rectangle, Ellipse, Diamond, Parenthesis. Each supports `length`, `width`, `inset`, `lineWidth`, and `open` parameters.
-
-**`path()` returns:** `{ d, lineEnd, tipEnd, visualBackEnd, fillMode }` where `fillMode` is `'filled'`, `'stroke'`, or `'both'`.
-
-#### `Path` — `src/core/path.js`
-
-Path builder that accumulates segments as a structured list (the PGF "soft path" concept). Supports inspection, manipulation, and SVG serialization.
-
-```js
-import { Path } from './src/core/path.js';
-
-const p = new Path();
-p.moveTo(0, 0).lineTo(100, 0).lineTo(100, 100).lineTo(0, 100).close();
-p.toSVGPath(); // → "M 0 0 L 100 0 L 100 100 L 0 100 Z"
-
-// Rounded corners
-const rounded = p.roundCorners(10);
-rounded.toSVGPath(); // → corners replaced with cubic Bézier arcs
-
-// Shapes
-new Path().circle(50, 50, 30).toSVGPath();
-new Path().ellipse(50, 50, 40, 20).toSVGPath();
-new Path().rect(10, 10, 80, 60).toSVGPath();
-new Path().arc(50, 50, 30, 0, 180).toSVGPath();
-
-// Inspection
-p.bbox();      // → { minX, minY, maxX, maxY }
-p.lastPoint(); // → { x, y }
-p.isEmpty();   // → false
-
-// Composition
-const p2 = p.clone();
-p.append(new Path().circle(50, 50, 10));
-
-// Transform integration (with Transform from transform.js)
-import { Transform } from './src/core/transform.js';
-const t = new Transform().translate(10, 20).scale(2);
-const transformed = p.transform(t); // → new Path with all points transformed
-```
-
-**Builder methods** (chainable): `moveTo`, `lineTo`, `curveTo`, `close`, `rect`, `circle`, `ellipse`, `arc`.
-
-**Processing:** `roundCorners(radius)` — returns a new Path with line-segment corners replaced by cubic Bézier arcs.
-
-**Query:** `toSVGPath()`, `bbox()`, `clone()`, `append(path)`, `isEmpty()`, `lastPoint()`, `transform(t)`.
 
 ## Examples
 
-Open `examples/index.html` in a browser to browse all demos, or open individual files:
+Serve the repo over HTTP (file:// breaks ES module imports):
 
-- `examples/tikz-diamond.html` — Orange diamond DFA with shadows
-- `examples/example4-blue-styled.html` — Blue-styled DFA with loops
-- `examples/example5-orange-shadow.html` — Orange states with accepting state
-- `examples/example6-turing.html` — 5-state Turing machine with bends
-
-## Architecture
-
-```
-src-v2/                          (development sandbox — src/ is live, don't edit)
-  index.js                     — 6-phase render pipeline + 14 shape imports
-  automata/automata.js         — renderAutomaton() wrapper (shortenEnd: 1)
-
-  core/
-    math.js                    — vector math, Bézier curves, angles
-    constants.js               — direction table, defaults (outerSep, labelDistance, loopLooseness)
-    resolve-point.js           — coordinate resolver
-    transform.js               — 2D affine transform matrix + scoped stack
-    arrow-tips.js              — arrow tip registry + 18 built-in tips + aliases
-    path.js                    — soft-path builder with segment model + SVG serialization
-
-  shapes/
-    shape.js                   — registry + createShape factory + polygonBorderPoint
-    circle.js                  — circle (hand-rolled, outerSep)
-    rectangle.js               — rectangle (hand-rolled, outerSep)
-    ellipse.js                 — ellipse (hand-rolled, outerSep)
-    diamond.js                 — diamond (factory)
-    star.js                    — N-pointed star (factory)
-    regular-polygon.js         — N-sided polygon (factory)
-    trapezium.js               — trapezium with angled sides (factory)
-    semicircle.js              — half circle (factory)
-    isosceles-triangle.js      — triangle with apex (factory)
-    kite.js                    — kite quadrilateral (factory)
-    dart.js                    — arrowhead shape (factory)
-    circular-sector.js         — pie slice (factory)
-    cylinder.js                — 3D cylinder (factory)
-    rectangle-split.js         — N-part divided rectangle (factory)
-
-  positioning/
-    positioning.js             — topological sort + direction-based layout
-
-  geometry/
-    edges.js                   — straight, bent, loop + shorten post-processing
-    arrows.js                  — bridges arrow-tips registry to pipeline + auto-shortening
-    labels.js                  — node-based label positioning with TikZ anchor selection
-
-  style/
-    registry.js                — named style registry + group style resolution
-    style.js                   — style resolution cascade (outerSep, innerSep, shortenEnd)
-
-  svg/
-    emitter.js                 — SVG DOM + generic backgroundPath fallback for new shapes
-
-References/                    — PGF/TikZ .tex source files (from TeX Live 2025)
+```bash
+npx http-server /Users/sergiop/Dropbox/Scripts/tikz-svg -p 8080 -c-1
+open http://localhost:8080/examples-v2/index.html
 ```
 
-### Design principles
+Highlights:
 
-- **No LaTeX dependency.** All TikZ/PGF geometry is reimplemented in JavaScript by studying the PGF source files in `References/`.
-- **Additive modules.** New core modules (`transform.js`, `arrow-tips.js`, `path.js`) export standalone utilities. They don't modify existing code — the render pipeline can adopt them incrementally.
-- **PGF-informed, not PGF-ported.** The APIs are idiomatic JavaScript (classes, method chaining, `{x, y}` point objects), not literal TeX macro translations.
-- **Segment-based paths.** The `Path` class stores typed segments (`M`/`L`/`C`/`Z`) as an inspectable array, enabling post-processing like `roundCorners()` and `transform()` before SVG serialization.
+- `shapes-demo.html`, `split-shapes-demo.html` — shape catalog
+- `plotting-demo.html`, `plot-with-nodes-demo.html` — function plots and nodes-on-plots
+- `draw-paths-demo.html` — free-form path drawing
+- `katex-demo.html` — KaTeX math in labels
+- `layers-demo.html` — explicit z-order
+- `decoration-demo.html` — random steps decoration
+- `economics-demo.html`, `newton-polygon-test.html` — domain-specific composites
+- `callout-blind-audition.html`, `flowchart-blind-audition.html`, `positioning-blind-audition.html`, `rounded-corners-blind-audition.html` — side-by-side TikZ-vs-tikz-svg comparisons (see `DEMO.md` for the protocol)
 
 ## Tests
 
@@ -337,29 +255,33 @@ References/                    — PGF/TikZ .tex source files (from TeX Live 202
 npm test
 ```
 
-Runs 191 tests using `node --test` with jsdom for DOM support.
+Runs 756 tests across 205 suites with `node --test` + jsdom. Coverage spans shapes, callouts, multipart, decorations, plotting (evaluator/handlers/marks), KaTeX, layers, auto-IDs (v2 + v3), auto-sizing, geometry (edges, arrows, labels, anchors), styling (color-mix, dash, line-width, caps/joins, fill-rule, named styles, groups), pipeline transforms, viewBox/scale/zoom, paths, and integration.
 
-| Suite | Tests | Covers |
-|-------|-------|--------|
-| Transform + TransformStack | 19 | affine ops, composition order, inversion, push/pop |
-| ArrowTipRegistry + built-in tips | 35 | registry CRUD, 6 tip geometries, fillMode, scaling, marker DOM |
-| Path | 30 | segments, shapes, bbox, clone, append, roundCorners, transform |
-| Geometry (edges, labels, arrows) | 12 | straight/bent/loop edges, label placement, arrow defs |
-| Shapes (circle, rect, ellipse) | 20 | anchors, border points, background paths |
-| Positioning | 15 | spec parsing, topological sort, on-grid, cycles |
-| Style registry | 10 | named style storage, expansion, cascade integration |
-| Groups | 9 | node/edge groups, cascade order, named style interaction |
-| Pipeline transforms | 4 | global transform, rotation, per-group transform |
-| Integration | 4 | full pipeline with jsdom, style overrides |
+## Roadmap
 
-### Roadmap
+| # | Module | Status | Notes |
+|---|--------|--------|-------|
+| 1 | Core renderer (`render()`) | ✅ done | 23 shapes, full API |
+| 2 | Plotting | ✅ done | 8 handlers, 16 marks, math.js + JS expressions |
+| 3 | Free-form paths (`config.paths`) | ✅ done | Inline labels, cycle, arrows |
+| 4 | Layers / z-order | ✅ done | `config.layers` + `config.draw` |
+| 5 | KaTeX math labels | ✅ done | `katexMacros` config, async fallback |
+| 6 | Named styles + groups + transforms | ✅ done | Full cascade |
+| 7 | Path actions (TikZ §15) | 🟡 partial | Items 1–5 done; item 6 (bounding box) pending |
+| 8 | Decorations | 🟡 partial | Random steps + rounded corners done; zigzag/snake/coil pending |
+| 9 | Animation Layer 1 (metadata) | ✅ done | In `src-v3/` (sandbox) |
+| 10 | Animation Layer 2 (controller) | ⬜ planned | Frame navigation, transitions, camera verbs |
+| 11 | Animation Layer 3 (authoring agent) | ⬜ planned | Markdown-to-frames vocabulary |
+| 12 | Polar coordinates `(angle:radius)` | ⬜ planned | Math exists, no user syntax |
+| 13 | `calc` expressions `($(A)!0.5!(B)$)` | ⬜ planned | — |
+| 14 | Smooth curves / Catmull-Rom / tension | ⬜ planned | All curves are explicit Bézier today |
+| 15 | Tree layout (Reingold–Tilford) | ⬜ planned | No `child` keyword |
+| 16 | Patterns / shadings / clip / gradient fill | ⬜ planned | SVG primitives available, no user-facing hook |
 
-Planned modules that will build on the current core:
+## Design principles
 
-| # | Module | Builds on |
-|---|--------|-----------|
-| 4 | Decorations (zigzag, snake, coil) | Path soft-path segments |
-| 5 | Full soft-path subsystem | Path segment model |
-| 6 | Plotting (`\pgfpathplot`) | Path builder |
-| 7 | Layers / z-order | TransformStack scopes |
-| 8 | Patterns & shadings | Path + SVG `<pattern>` / `<linearGradient>` |
+- **No LaTeX dependency.** All TikZ/PGF geometry is reimplemented in JavaScript by reading the PGF source files in `docs/References/`.
+- **PGF-informed, not PGF-ported.** APIs are idiomatic JavaScript (classes, method chaining, `{x, y}` points), not literal TeX macro translations.
+- **Additive modules.** Core utilities (`Transform`, `ArrowTipRegistry`, `Path`, `morphPath`) export standalone APIs the pipeline can adopt incrementally.
+- **Segment-based paths.** `Path` stores typed segments (`M`/`L`/`C`/`Z`) as an inspectable array, enabling post-processing (`roundCorners()`, `transform()`, `morphPath()`) before SVG serialization.
+- **Reference-first fixes.** When in doubt, check the PGF source before guessing visual semantics.

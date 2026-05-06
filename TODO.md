@@ -1,190 +1,137 @@
-# TikZ-SVG: Remaining Tasks
+# tikz-svg — TODO
 
-## Status: Major improvements in src-v2/ (2026-03-23), QA ongoing
-
----
-
-## ✅ DONE (src-v2): Label-size-aware edge label placement
-
-Node-based labels with TikZ-faithful anchor selection. See `docs/superpowers/specs/2026-03-22-anchor-based-label-positioning-design.md`.
-
-## ✅ DONE (src-v2): Outer sep (edge-to-node clearance)
-
-All 14 shapes support `outerSep`. Default: `0.5 × strokeWidth`. Source: `pgfmoduleshapes.code.tex` lines 1249-1327.
-
-## ✅ DONE (src-v2): Path shortening (shorten < / shorten >)
-
-All edge types. Automata default: `shortenEnd: 1`. Source: `tikz.code.tex` lines 1198-1199.
-
-## ✅ DONE (src-v2): Loop geometry
-
-TikZ-faithful angles, looseness=8, minDistance=20. Source: `tikzlibrarytopaths.code.tex` lines 364-375.
-
-## ✅ DONE (src-v2): 16 shapes total
-
-circle, rectangle, ellipse (hand-rolled) + diamond, star, regular polygon, trapezium, semicircle, isosceles triangle, kite, dart, circular sector, cylinder, rectangle split, circle split, ellipse split (via `createShape` factory). Source: `pgflibraryshapes.geometric.code.tex`, `pgflibraryshapes.multipart.code.tex`.
-
-### Multipart shapes (rectangle split, circle split, ellipse split)
-- **partFills**: array of fill colors, one per part — uses SVG clipPath + per-part rects
-- **partAlign**: `'left'` | `'center'` | `'right'` — text alignment following shape boundary curve
-- **Array labels**: `label: ['A', 'B', ...]` renders one text per part
-- **drawSplits**: toggle chord/divider line visibility
-- Shared helpers in `shapes/split-utils.js`
-
-## ✅ DONE (src-v2): Generic emitter fallback
-
-New shapes render via `shape.backgroundPath()` as `<path>` elements. No new switch cases needed for future shapes.
+**Last refreshed:** 2026-05-06.
+**Canonical task list:** [`docs/TODO.md`](docs/TODO.md). This file tracks high-level status and open feature work. Per-spec details and the full historical archive live in `docs/`.
 
 ---
 
-## ✅ DONE (src-v2): Arrow tip registry (18 tips + aliases)
+## Current State
 
-ArrowTipRegistry with 18 built-in tips + 9 aliases from `pgflibraryarrows.meta.code.tex`, fully wired to the render pipeline via `geometry/arrows.js`. Auto-shortening from `pgfcorearrows.code.tex`. Supports `fillMode` (filled/stroke/both) and `open` parameter.
-
-## ✅ DONE (src-v2): Named styles, groups, and pipeline transforms
-
-Style registry (`style/registry.js`) with `config.styles` for reusable named bundles. Node/edge groups (`config.groups`) for shared styles. Global and per-group coordinate transforms (`config.transform`). Cascade: `DEFAULTS → stateStyle/edgeStyle → group → named style + per-element`.
-
-## ✅ DONE (src-v2): Decorations (path morphing)
-
-`decorations/` module with `morphPath()` pipeline — random steps + rounded corners. Supports edges and node borders via `decoration` style property. Seeded PRNG (`core/random.js`) for determinism. Built-in named style `wavy`. Source: `pgfmoduledecorations.code.tex`, `pgflibrarydecorations.pathmorphing.code.tex`.
+- **Production library:** `src-v2/` — 23 shapes, 18 base + 9 alias arrow tips, plotting, paths, layers, KaTeX, named styles, groups, transforms, decorations (random steps + rounded corners). 756 tests / 205 suites passing.
+- **Animation sandbox:** `src-v3/` — fork of `src-v2` with Layer 1 metadata (`frame`, `className`, `idPrefix` namespacing). Not imported by production. See `docs/plans/2026-04-10-animation-layer-design.md`.
+- **Deprecated:** `deprecated/automata-wrapper/` (old `renderAutomaton()`), `deprecated/src-v1/` (original prototype).
 
 ---
 
-## ✅ DONE (src-v2): KaTeX math rendering in node/label content
+## Open Work — Library
 
-`$...$` labels rendered via KaTeX `<foreignObject>`. Optional CDN dependency — falls back to plain text with `$` stripped. Works in nodes, edge labels, path inline labels. KaTeX-aware auto-sizing.
+### TikZ §15 path actions
+- [x] Item 1: named line widths
+- [x] Item 2: named dash patterns
+- [x] Item 3: line cap / line join / miter limit
+- [x] Item 4: `color` shorthand
+- [x] Item 5: fill rule (nonzero / evenodd)
+- [ ] **Item 6: `use as bounding box`** — viewport control. Cross-references `Animation/MUSTADDRESS.md` (camera verbs / dynamic viewBox). Plan: `2026-04-17-path-actions-plan.md` §6.
+
+### Decorations
+- [x] Random steps (`pgflibrarydecorations.pathmorphing.code.tex` lines 86–101)
+- [x] Rounded corners
+- [ ] **Zigzag, snake, coil** (`pgflibrarydecorations.pathmorphing.code.tex`)
+- [ ] Ticks / dimensioning decorations (`pgflibrarydecorations.markings.code.tex`)
+
+### Animation Layer 2 (controller)
+- [ ] Frame navigation (arrows / scroll / API)
+- [ ] CSS / SMIL / WAAPI translation of action verbs
+- [ ] Phase sequencing (`in` / `during` / `out`) with easing
+- [ ] Camera verbs (zoom, pan, focus → viewBox manipulation)
+- [ ] Integration with existing `scroll-animations.js` in lecture pages
+- [ ] Plan: `docs/plans/2026-04-10-animation-layer-design.md` §"Layer 2"
+
+### Animation Layer 3 (authoring agent)
+- [ ] Markdown-instruction → render-config compiler
+- [ ] Natural-language element references resolver
+- [ ] Vocabulary: 30+ verbs, 7 categories (see `Animation/2026-03-31-animation-vocabulary-design.md`)
+
+### src-v3 maintenance
+- [ ] Backport recent src-v2 fixes:
+  - viewBox scientific-notation regex (commit `d37b742`)
+  - stroke-width inclusion in bbox (`expandBBoxFromElement`, see BUGREPORT.md)
+  - scale-aware `nodeDistance` adjustment (commit `76166aa`)
+  - position-rounding optimization
+
+### Missing TikZ surface (from audit, still unimplemented)
+
+#### Coordinate system
+- [ ] Polar coordinates `(angle:radius)` user syntax (math exists in `vecFromAngle`)
+- [ ] `++` / `+` relative path coords exposed
+- [ ] Unit conversion (`pt` / `mm` / `cm`)
+- [ ] `calc` expressions `($(A)!0.5!(B)$)`
+- [ ] Intersection coordinates
+
+#### Path features
+- [ ] Smooth curves (`..`, Catmull-Rom, tension) — currently all curves are explicit Bézier
+- [ ] Multi-waypoint edges — each edge connects exactly two nodes
+- [ ] Arc as edge type (Path.arc exists for shapes, not edges)
+
+#### Path actions (beyond §15)
+- [ ] Shade / gradient fill
+- [ ] Clip (`<clipPath>` available, not exposed)
+- [ ] Pattern fills
+
+#### Trees & graphs
+- [ ] Tree layout algorithm (Reingold–Tilford)
+- [ ] Edge chains (`a -> b -> c`)
+- [ ] Automatic graph layouts (Sugiyama, force-based)
+
+#### Transforms
+- [ ] Nested scope-based coordinate transforms (`[rotate=45]` blocks)
 
 ---
 
-## ✅ DONE: Skill — tikz-svg library builder
+## Open Bugs
 
-Skill at `.claude/skills/tikz-svg-builder/`. Invoked via `/tikz-svg-builder`.
+See `BUGREPORT.md` and `labelDistance-bug.md` for full repros.
 
----
-
-## ✅ DONE (src-v2): Free-form path drawing (config.paths)
-
-TikZ `\draw` equivalent via `config.paths`: arbitrary point-to-point lines, arrows on either/both ends (`<->`, `->`, `<-`), `dashed`/`dotted`/`thick` styles, inline node labels (`nodes: [{ at, label, anchor }]`), `cycle` (closed paths). Global `config.scale` multiplies all path/plot/node coordinates (TikZ `[scale=N]` equivalent). JS functions accepted as plot expressions for piecewise logic.
-
----
-
-## ✅ DONE (src-v2): Text width / wrapping in node labels
-
-`textWidth` with `<tspan>` word-wrap, `align` (left/center/right), explicit `\\` line breaks.
+| Bug | File | Severity | Notes |
+|-----|------|----------|-------|
+| Empty-string label falls through to node ID | `src-v2/svg/emitter.js` (label resolution) | Medium | Workaround: `label: ' '`. Fix: check `'label' in config` not truthiness. |
+| `expandBBoxFromElement` ignores stroke width → right-edge clipping | `src-v2/svg/emitter.js:86-89` | Low | Add `strokeWidth/2` per side for circle/ellipse/rect/path children. |
+| `labelDistance` asymmetric between left/right sides | `src-v2/geometry/labels.js:203` | Medium | Guard `if (distance > 0)` should be `!== 0`; verify sign logic. |
+| ViewBox recomputed after async KaTeX render | `src-v2/svg/emitter.js` | Medium | Need `viewBox` config to opt out of auto-sizing, or stable post-KaTeX freeze. |
+| Relative positioning + `scale` blows up viewBox | `src-v2/positioning/positioning.js` | Medium | `nodeDistance` not scale-aware; needs `nodeDistanceScaled` or scale-multiplied default. |
 
 ---
 
-## ✅ DONE (src-v2): Auto-sizing node backgrounds from text content
+## Pending Migrations
 
-Nodes auto-size to fit text + innerSep. Explicit dimensions serve as floor, not cap — shapes always grow to fit text (no overflow). Plan: `docs/superpowers/plans/2026-03-27-auto-size-nodes.md`.
-
----
-
-## ✅ DONE (src-v2): PGF-style user-configurable layers
-
-`config.layers` declares layer order, draw items get `layer` property. Items route to their assigned layer's `<g>` group. Within a layer, declaration order preserved. Default layer: `'main'`. 447 tests passing.
-
----
-
-## ✅ DONE (src-v2): Visual QA of new shapes
-
-All 10 geometric shapes verified in browser. Demo at `examples-v2/shapes-demo.html`.
-
----
-
-## ✅ DONE (src-v2, 2026-04-18): TikZ §15 path-actions cascade (items 1–5)
-
-Plan: `2026-04-17-path-actions-plan.md`. Shipped:
-
-- **Named line widths** (`ultra thin` … `ultra thick`): `LINE_WIDTHS` in `core/constants.js` + `resolveLineWidth()` applied in all four style resolvers. Accepted on `strokeWidth` everywhere. Legacy numeric values pass through.
-- **Named dash patterns** (12 TikZ patterns + legacy booleans): `DASH_PATTERNS` table verified against `tikz.code.tex` with `\pgflinewidth = 0.4pt`. New `dash: <name | array | string>` key; `dashed: true` / `dotted: true` booleans preserved. Three emitter call sites (edge, plot, draw-path) consolidated through `resolveStrokeDash()`.
-- **Line cap / join / miter limit**: `lineCap`, `lineJoin`, `miterLimit` pass through all resolvers. Emitter writes attributes via `resolveStrokeAttrs()` only when set. TikZ `rect` cap translates to SVG `square`. Hardcoded `stroke-linejoin: 'round'` in plot emitter removed — now lives in `plotStyle` base default so existing output is unchanged.
-- **`color` shorthand**: `spreadColor()` helper applies `color=NAME` to stroke (all elements), plus fill + labelColor for nodes. Explicit per-field keys in the same layer still win.
-- **Fill rule** (`fillRule: 'nonzero' | 'evenodd'`): pass-through in resolvers, emitter writes `fill-rule` on nodes/plots/paths/edges when set.
-
-Tests: 55 new cases across `test/color-shorthand.test.js`, `test/fill-rule.test.js`, `test/line-width-styles.test.js`, `test/dash-styles.test.js`, `test/stroke-caps-joins.test.js`.
-
-Item 6 (`use as bounding box`) from the same plan is still pending — that's the viewport-stability fix cross-referenced from `Animation/MUSTADDRESS.md`.
-
----
-
-## TODO: LECWeb migration
-
-Migration script ready but NOT run. Pending full visual validation.
+### LECWeb live-page imports
+The original migration was `src/` → `src-v2/`. Since `src/` was removed, any page still pointing at `src/automata/automata.js` is already broken. Search and update:
 
 ```bash
-sed -i '' 's|/tikz-svg/src/automata/automata.js|/tikz-svg/src-v2/automata/automata.js|g' \
-  ~/Dropbox/Teaching/Projects/LECWeb/510/arbitrage.html \
-  ~/Dropbox/Teaching/Projects/LECWeb/510/financial-markets.html
+grep -rl "tikz-svg/src/" ~/Dropbox/Teaching/Projects/LECWeb/ \
+  | xargs sed -i '' 's|tikz-svg/src/|tikz-svg/deprecated/automata-wrapper/|g'
 ```
+
+(Or migrate to `src-v2/index.js` + `render()` directly — preferred for new pages.)
+
+### Pixel-level TikZ comparison
+Compile `tex/example6-turing.tex` natively and compare against our rendering. Not yet attempted.
 
 ---
 
-## TODO: Pixel-level comparison with native TikZ
+## Documentation Debt
 
-Compile `example6-turing.tex` natively and compare against our rendering.
-
----
-
-## Architecture reference
-
-```
-src-v2/
-  core/math.js          — vector math, Bézier, angles
-  core/constants.js     — DIRECTIONS table, DEFAULTS
-  core/resolve-point.js — universal coordinate resolver
-  core/transform.js     — 2D affine transform matrix + scoped stack
-  core/arrow-tips.js    — arrow tip registry + 18 built-in tip definitions + aliases
-  core/path.js          — soft-path builder with segment model + SVG serialization
-  core/random.js        — seeded PRNG for deterministic decorations
-  shapes/shape.js       — shape registry + createShape factory + polygonBorderPoint
-  shapes/circle.js      — circle (hand-rolled, outerSep)
-  shapes/rectangle.js   — rectangle (hand-rolled, outerSep)
-  shapes/ellipse.js     — ellipse (hand-rolled, outerSep)
-  shapes/diamond.js     — diamond (factory)
-  shapes/star.js        — N-pointed star (factory)
-  shapes/regular-polygon.js — N-sided polygon (factory)
-  shapes/trapezium.js   — trapezium with angled sides (factory)
-  shapes/semicircle.js  — half circle (factory)
-  shapes/isosceles-triangle.js — triangle with apex (factory)
-  shapes/kite.js        — kite quadrilateral (factory)
-  shapes/dart.js        — arrowhead shape (factory)
-  shapes/circular-sector.js — pie slice (factory)
-  shapes/cylinder.js    — 3D cylinder projection (factory)
-  shapes/split-utils.js — shared helpers for multipart shapes
-  shapes/rectangle-split.js — N-part divided rectangle (factory, multipart)
-  shapes/circle-split.js    — N-part divided circle (factory, multipart)
-  shapes/ellipse-split.js   — N-part divided ellipse (factory, multipart)
-  positioning/positioning.js — topological sort + direction table positioning
-  geometry/edges.js     — straight, bent, loop edges + shorten
-  geometry/arrows.js    — bridges arrow-tips registry to pipeline + auto-shortening
-  geometry/labels.js    — node-based label positioning with anchor selection
-  geometry/paths.js     — free-form path geometry + label position interpolation
-  decorations/index.js  — morphPath() pipeline + decoration style integration
-  decorations/path-utils.js  — SVG path parsing, sampling, reconstruction
-  decorations/random-steps.js — random steps decoration
-  decorations/rounded-corners.js — rounded corners decoration
-  style/registry.js     — named style registry + group style resolution
-  style/style.js        — resolveNodeStyle, resolveEdgeStyle, collectShadowFilters
-  svg/emitter.js        — SVG DOM construction + generic shape fallback + multipart rendering
-  index.js              — 6-phase render pipeline (16 shapes registered)
-  automata/automata.js  — renderAutomaton() wrapper (shortenEnd: 1)
-```
-
-### Key conventions
-- ES modules, no external deps
-- SVG DOM via `document.createElementNS`
-- TikZ angles: 0°=east, CCW positive; SVG: y-down
-- Style cascade: DEFAULTS → stateStyle/edgeStyle → group → named style + per-element
-- 447 tests pass: `npm test` (uses `node --test`)
-- TikZ-reference-first: always check PGF source before fixing visual issues
+- `SKILL-GAPS.md` is partially obsolete — its arrow-tip claim ("only stealth and none exist") was true for `src/`, false for `src-v2/`. The skill it audits (`LECWeb/.claude/skills/tikz-svg/SKILL.md`) lives outside this repo. Either update the LECWeb skill against current `src-v2` API or retire this file.
+- `docs/audit/00-summary.md` through `09-*.md` are 2026-03-24 snapshots. Many "missing" items now exist. Treat as historical, not current status.
+- `CHANGELOG-2026-04-09.md` is a one-day note, not a maintained changelog. Consider rolling it into commit history and removing.
+- `CONFIGTODO.md` is a thinking note about `setDefaults()` — fold into roadmap or close.
 
 ---
 
-## The subagent
+## Resources
 
-`.claude/agents/tikz-to-svg.md` — converts TikZ automata source to `renderAutomaton()` calls. Invoke from Claude Code with:
-```
-Use the tikz-to-svg agent to convert examples/tikz-sources/example4-blue-styled.tex
-```
+- **Plans (`docs/plans/`)**: 17 plan files spanning 2026-03-23 → 2026-04-10. All but `2026-04-10-animation-layer-design.md` are completed.
+- **Specs (`docs/specs/`)**: anchor-based label positioning, visual QA lessons, cloud shape design.
+- **Guides (`docs/guides/`)**: `tikz-to-src-v3-animation-howto.md` — end-to-end TikZ-animation porting pipeline.
+- **PGF reference**: `docs/References/` (TeX Live 2025 sources). Always check before fixing visual issues.
+
+---
+
+## Conventions
+
+- ES modules, `mathjs` is the only runtime dependency (UMD bundle + `examples-v2/mathjs-shim.js` re-exporter).
+- SVG DOM via `document.createElementNS`.
+- TikZ angles: `0°` = east, CCW positive. SVG: y-down. Conversion happens in `core/math.js`.
+- Style cascade: `DEFAULTS → stateStyle/edgeStyle/plotStyle/pathStyle → group → named style → per-element`.
+- TikZ-reference-first: always check PGF source under `docs/References/` before fixing visual issues.
+- Tests run with `node --test test/*.test.js`.
