@@ -1,6 +1,8 @@
 node_modules/
 .DS_Store
 firebase-debug.log
+# infinite-canvas is an independent nested git repo (subproject)
+infinite-canvas/
 pgfmanual.pdf
 tex/*.aux
 tex/*.log
