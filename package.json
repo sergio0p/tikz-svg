@@ -9,12 +9,15 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "build": "esbuild src-v2/index.js --bundle --minify --format=esm --target=es2022 --external:mathjs --sourcemap --outfile=dist/tikz-svg.min.js",
+    "sync:lecweb": "npm run build && rsync -a src-v2/ '/Users/sergio/Library/CloudStorage/Dropbox/Teaching/Projects/E510/LECWeb/tikz-svg/src-v2/' && cp dist/tikz-svg.min.js dist/tikz-svg.min.js.map '/Users/sergio/Library/CloudStorage/Dropbox/Teaching/Projects/E510/LECWeb/tikz-svg/dist/'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "jsdom": "^28.1.0"
   },
   "dependencies": {

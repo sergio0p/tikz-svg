@@ -1181,6 +1181,24 @@ function applyScaledSize(svgEl, viewBox, scaleX, scaleY) {
 }
 
 /**
+ * Apply explicit viewport overrides from the config (runs last, wins over
+ * the auto-computed viewBox and any transformCanvas adjustment).
+ *
+ * `viewBox: [x, y, w, h]` (or a raw string) is the escape hatch for when
+ * auto-bounds get it wrong. `width` / `height` set the SVG element's
+ * attributes so display size can be controlled from the config instead of
+ * per-diagram CSS.
+ */
+function applyExplicitViewport(svgEl, viewBox, width, height) {
+  if (viewBox != null) {
+    const vb = Array.isArray(viewBox) ? viewBox.join(' ') : String(viewBox);
+    svgEl.setAttribute('viewBox', vb);
+  }
+  if (width != null) svgEl.setAttribute('width', width);
+  if (height != null) svgEl.setAttribute('height', height);
+}
+
+/**
  * TikZ `transform canvas` equivalent.  Wraps all rendered content (everything
  * after <defs>) in a <g transform="scale(...)"> so fonts, strokes, arrows,
  * and node shapes all scale uniformly.  Adjusts viewBox to encompass the
@@ -1243,6 +1261,9 @@ export function emitSVG(svgEl, resolved) {
     layers,
     seed,
     padding: configPadding,
+    viewBox: configViewBox,
+    width: configWidth,
+    height: configHeight,
     globalScaleX = 1,
     globalScaleY = 1,
     transformCanvas,
@@ -1352,6 +1373,7 @@ export function emitSVG(svgEl, resolved) {
     svgEl.setAttribute('viewBox', viewBox);
     applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
     applyTransformCanvas(svgEl, transformCanvas);
+    applyExplicitViewport(svgEl, configViewBox, configWidth, configHeight);
     refs.frameCount = frameTracker.max;
     return refs;
   }
@@ -1440,6 +1462,7 @@ export function emitSVG(svgEl, resolved) {
   svgEl.setAttribute('viewBox', viewBox);
   applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
   applyTransformCanvas(svgEl, transformCanvas);
+  applyExplicitViewport(svgEl, configViewBox, configWidth, configHeight);
 
   // 10. Return refs
   refs.frameCount = frameTracker.max;

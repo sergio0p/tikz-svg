@@ -1,13 +1,14 @@
 # tikz-svg — TODO
 
-**Last refreshed:** 2026-05-06.
+**Last refreshed:** 2026-06-11.
 **Canonical task list:** [`docs/TODO.md`](docs/TODO.md). This file tracks high-level status and open feature work. Per-spec details and the full historical archive live in `docs/`.
 
 ---
 
 ## Current State
 
-- **Production library:** `src-v2/` — 23 shapes, 18 base + 9 alias arrow tips, plotting, paths, layers, KaTeX, named styles, groups, transforms, decorations (random steps + rounded corners). 756 tests / 205 suites passing.
+- **Production library:** `src-v2/` — 23 shapes, 18 base + 9 alias arrow tips, plotting, paths, layers, KaTeX, named styles, groups, transforms, decorations (random steps + rounded corners). 765 tests / 207 suites passing.
+- **Single-file bundle:** `npm run build` → `dist/tikz-svg.min.js` (~108 KB ESM, mathjs external). `npm run sync:lecweb` builds and pushes src-v2 + bundle into the LECWeb vendored copy. Deployment plan: `docs/plans/2026-06-11-deployment-and-bbox-roadmap.md`.
 - **Animation sandbox:** `src-v3/` — fork of `src-v2` with Layer 1 metadata (`frame`, `className`, `idPrefix` namespacing). Not imported by production. See `docs/plans/2026-04-10-animation-layer-design.md`.
 - **Deprecated:** `deprecated/automata-wrapper/` (old `renderAutomaton()`), `deprecated/src-v1/` (original prototype).
 
@@ -21,7 +22,7 @@
 - [x] Item 3: line cap / line join / miter limit
 - [x] Item 4: `color` shorthand
 - [x] Item 5: fill rule (nonzero / evenodd)
-- [ ] **Item 6: `use as bounding box`** — viewport control. Cross-references `Animation/MUSTADDRESS.md` (camera verbs / dynamic viewBox). Plan: `2026-04-17-path-actions-plan.md` §6.
+- [~] **Item 6: `use as bounding box`** — config-level viewport control done 2026-06-11 (`config.viewBox` / `width` / `height` override auto-bounds). The per-path `useAsBoundingBox` flag remains. Plans: `2026-04-17-path-actions-plan.md` §6, `2026-06-11-deployment-and-bbox-roadmap.md` §4.
 
 ### Decorations
 - [x] Random steps (`pgflibrarydecorations.pathmorphing.code.tex` lines 86–101)
@@ -43,7 +44,8 @@
 - [ ] Vocabulary: 30+ verbs, 7 categories (see `Animation/2026-03-31-animation-vocabulary-design.md`)
 
 ### src-v3 maintenance
-- [ ] Backport recent src-v2 fixes:
+- [x] 2026-06-11 fixes applied to v3 alongside v2: `config.viewBox`/`width`/`height`, math-free re-render skip, KaTeX measurement cache, in-library mathjs-shim.
+- [ ] Backport older src-v2 fixes:
   - viewBox scientific-notation regex (commit `d37b742`)
   - stroke-width inclusion in bbox (`expandBBoxFromElement`, see BUGREPORT.md)
   - scale-aware `nodeDistance` adjustment (commit `76166aa`)
@@ -87,7 +89,7 @@ See `BUGREPORT.md` and `labelDistance-bug.md` for full repros.
 | Empty-string label falls through to node ID | `src-v2/svg/emitter.js` (label resolution) | Medium | Workaround: `label: ' '`. Fix: check `'label' in config` not truthiness. |
 | `expandBBoxFromElement` ignores stroke width → right-edge clipping | `src-v2/svg/emitter.js:86-89` | Low | Add `strokeWidth/2` per side for circle/ellipse/rect/path children. |
 | `labelDistance` asymmetric between left/right sides | `src-v2/geometry/labels.js:203` | Medium | Guard `if (distance > 0)` should be `!== 0`; verify sign logic. |
-| ViewBox recomputed after async KaTeX render | `src-v2/svg/emitter.js` | Medium | Need `viewBox` config to opt out of auto-sizing, or stable post-KaTeX freeze. |
+| ViewBox recomputed after async KaTeX render | `src-v2/svg/emitter.js` | ~~Medium~~ Fixed 2026-06-11 | `config.viewBox` opts out of auto-sizing; math-free configs no longer re-render on fonts.ready. |
 | Relative positioning + `scale` blows up viewBox | `src-v2/positioning/positioning.js` | Medium | `nodeDistance` not scale-aware; needs `nodeDistanceScaled` or scale-multiplied default. |
 
 ---
@@ -129,7 +131,7 @@ Compile `tex/example6-turing.tex` natively and compare against our rendering. No
 
 ## Conventions
 
-- ES modules, `mathjs` is the only runtime dependency (UMD bundle + `examples-v2/mathjs-shim.js` re-exporter).
+- ES modules, `mathjs` is the only runtime dependency (UMD bundle + `src-v2/core/mathjs-shim.js`; `examples-v2/mathjs-shim.js` is a back-compat re-export).
 - SVG DOM via `document.createElementNS`.
 - TikZ angles: `0°` = east, CCW positive. SVG: y-down. Conversion happens in `core/math.js`.
 - Style cascade: `DEFAULTS → stateStyle/edgeStyle/plotStyle/pathStyle → group → named style → per-element`.

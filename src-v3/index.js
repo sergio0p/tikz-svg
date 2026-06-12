@@ -40,11 +40,33 @@ import { estimateTextDimensions } from './core/text-measure.js';
 import { plot as computePlot } from './plotting/index.js';
 import { getMarkFillMode } from './plotting/marks.js';
 import { buildPathGeometry, computePathLabelPosition } from './geometry/paths.js';
-import { registerPendingReRender } from './core/katex-renderer.js';
+import { registerPendingReRender, isMathLabel } from './core/katex-renderer.js';
 
 function round4(v) {
   const r = Math.round(v * 10000) / 10000;
   return Object.is(r, -0) ? 0 : r;
+}
+
+/**
+ * True if any label in the config contains $…$ math. Only KaTeX-rendered
+ * labels are measured from live DOM (font-dependent), so math-free configs
+ * render identically before and after web fonts load.
+ */
+function configHasMathLabels(config) {
+  const hasMath = (l) =>
+    Array.isArray(l) ? l.some(hasMath) : l != null && isMathLabel(String(l));
+  for (const node of Object.values(config.states ?? {})) {
+    if (node && hasMath(node.label)) return true;
+  }
+  for (const edge of config.edges ?? []) {
+    if (edge && hasMath(edge.label)) return true;
+  }
+  for (const path of config.paths ?? []) {
+    for (const n of path?.nodes ?? []) {
+      if (n && hasMath(n.label)) return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -697,6 +719,9 @@ export function render(svgEl, config) {
     layers: config._layers,
     seed: config.seed,
     padding: config.padding,
+    viewBox: config.viewBox,
+    width: config.width,
+    height: config.height,
     globalScaleX,
     globalScaleY,
     transformCanvas,
@@ -751,8 +776,12 @@ export function render(svgEl, config) {
 
   const refs = emitSVG(svgEl, model);
 
-  // Schedule a re-render after fonts load to fix KaTeX measurement
-  registerPendingReRender(svgEl, config, render);
+  // Schedule a re-render after fonts load to fix KaTeX measurement.
+  // Math-free configs measure identically before and after fonts load, so
+  // skip the second render pass (and the viewBox recompute it implies).
+  if (configHasMathLabels(config)) {
+    registerPendingReRender(svgEl, config, render);
+  }
 
   return refs;
 }

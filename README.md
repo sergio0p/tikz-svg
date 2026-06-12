@@ -4,7 +4,7 @@ A pure JavaScript library that renders TikZ/PGF graphics as SVG in the browser. 
 
 The library targets general-purpose TikZ rendering: shapes, paths, plots, callouts, labels, decorations, layers, KaTeX math, and animation metadata. The original automata wrapper has been retired to `deprecated/`; new work uses the general `render()` API.
 
-**Status (2026-05-06):** 756 tests passing, 205 suites. Production code in `src-v2/`. Animation sandbox in `src-v3/`.
+**Status (2026-06-11):** 765 tests passing, 207 suites. Production code in `src-v2/`. Animation sandbox in `src-v3/`. Single-file bundle via `npm run build` → `dist/tikz-svg.min.js`.
 
 ## Quick Start
 
@@ -28,6 +28,23 @@ The library targets general-purpose TikZ rendering: shapes, paths, plots, callou
   });
 </script>
 ```
+
+### Single-file bundle (recommended for production pages)
+
+```bash
+npm run build        # → dist/tikz-svg.min.js (~108 KB, esbuild)
+```
+
+Importing `src-v2/index.js` directly pulls in ~54 separate module files — fine
+locally, but over HTTP (e.g. GitHub Pages) that's a waterfall of ~50 requests
+per page. Production pages should import the bundle instead:
+
+```js
+import { render } from './tikz-svg.min.js';
+```
+
+Same API, one request. `mathjs` stays external (load the UMD bundle via
+`<script>` only on pages that use plots).
 
 ## API
 
@@ -53,6 +70,8 @@ The top-level entry point. Takes an SVG element and a configuration object descr
 | `scale` `scaleX` `scaleY` `originX` `originY` | `number` | Coordinate scaling |
 | `nodeDistance` `onGrid` | — | Layout knobs |
 | `padding` `background` | — | ViewBox controls |
+| `viewBox` | `Array \| string` | Explicit viewBox `[x, y, w, h]` — overrides auto-computed bounds |
+| `width` `height` | `number \| string` | Set the SVG element's width/height attributes (e.g. `400` or `'100%'`) |
 | `katexMacros` | `Object` | KaTeX macros (e.g. `{"\\R": "\\mathbb{R}"}`) |
 | `seed` | `number` | PRNG seed for deterministic decorations |
 
@@ -151,6 +170,8 @@ Apply via the `decoration` style key on edges, paths, or node borders, or call `
 ### KaTeX math
 
 Labels wrapped in `$…$` render as KaTeX inside `<foreignObject>`. Define macros via `config.katexMacros: { "\\R": "\\mathbb{R}" }`. Falls back to plain text with `$` stripped if KaTeX isn't loaded. Auto-sizing accounts for KaTeX-measured dimensions.
+
+Configs containing math labels are automatically re-rendered once web fonts finish loading (measurements change when the real KaTeX fonts arrive); math-free configs render exactly once. KaTeX measurements are memoized per (html, fontSize) and the cache is invalidated on font load.
 
 ### Layers and draw order
 
