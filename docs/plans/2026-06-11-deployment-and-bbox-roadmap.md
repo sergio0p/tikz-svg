@@ -42,20 +42,19 @@ were implemented same-day (see §Done below). This plan covers what remains.
 
 ## Remaining work, ranked
 
-### 1. Switch production pages to the single-file bundle (high impact)
+### 1. Switch production pages to the single-file bundle — DONE 2026-06-12
 
-- **Tropical pages (GitHub Pages)**: commit + push this repo (Pages serves
-  `main`), then change the import in both `newton-polygon-113*.html` to
-  `https://sergio0p.github.io/tikz-svg/dist/tikz-svg.min.js`.
-  ~50 requests → 1. Verify each page renders in a browser before/after.
-- **LECWeb pages**: change `./tikz-svg/src-v2/index.js` →
-  `./tikz-svg/dist/tikz-svg.min.js` in the 6 pages that call `render()`
-  (`repeated-games`, `arbitrage`, `tree-cutting`, `search-osd`,
-  `financial-markets`, `automaton_2period` — check the last one for legacy
-  `renderAutomaton` first). Same API, so a mechanical sed + visual check
-  per page. Do this during a teaching lull; verify with a local server.
-- Caveat: pages using plots must keep loading the mathjs UMD `<script>`
-  (bundle keeps mathjs external).
+- Committed + pushed; GitHub Pages serves `dist/tikz-svg.min.js` (verified
+  byte-identical to the local build, and renders correctly in jsdom).
+- Both Tropical pages now import the Pages bundle URL.
+- All 4 LECWeb pages that actually use tikz-svg (`arbitrage` ×6 diagrams,
+  `repeated-games` ×2, `financial-markets`, `automaton_2period`) now import
+  `./tikz-svg/dist/tikz-svg.min.js`. (`tree-cutting` and `search-osd` define
+  their own local `render()` functions — they never used tikz-svg.)
+- Remaining manual step: **open each of the 6 pages in a browser once** to
+  visually confirm. Automated checks passed, but no human eyeballs yet.
+- Caveat unchanged: pages using string-expression plots need the mathjs UMD
+  `<script>` (bundle keeps mathjs external).
 
 ### 2. Bounding box: parse rotate/scale in node transforms (medium)
 
@@ -92,9 +91,13 @@ Current regex-over-path-data includes control points → convex hull →
 slightly oversized but never clipping. Exact extrema would tighten bounds
 for sharply-bent edges. Only worth it if oversized boxes become visible.
 
-## Deployment routine (until #1 is done)
+## Deployment routine
 
 After any src-v2 change:
 1. `npm test`
-2. `npm run sync:lecweb`
-3. Commit + push (GitHub Pages serves the Tropical pages from `main`).
+2. `npm run sync:lecweb` (rebuilds the bundle + syncs the LECWeb copy)
+3. Commit + push (GitHub Pages serves the bundle to the Tropical pages
+   from `main`).
+
+All consumer pages now import the bundle, so step 2's rsync of raw
+`src-v2/` is belt-and-suspenders; the bundle copy is what the pages load.
