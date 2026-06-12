@@ -68,56 +68,145 @@ function expandBBox(bbox, x, y) {
 }
 
 /**
+ * Parse a group transform string into an affine map.
+ * Handles `translate(tx,ty) [rotate(a)] [scale(sx[,sy])]` in the order
+ * emitNode writes them. Returns null when there is no translate component.
+ * Convention matches SVG matrices: p' = [a c; b d]·p + [tx ty].
+ */
+function parseGroupTransform(transform) {
+  const t = transform.match(/translate\(\s*([-\d.eE+]+)[,\s]+([-\d.eE+]+)\s*\)/);
+  const r = transform.match(/rotate\(\s*([-\d.eE+]+)\s*\)/);
+  const s = transform.match(/scale\(\s*([-\d.eE+]+)(?:[,\s]+([-\d.eE+]+))?\s*\)/);
+  if (!t && !r && !s) return null;
+  let a = 1, b = 0, c = 0, d = 1;
+  if (r) {
+    const rad = (parseFloat(r[1]) * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    a = cos; b = sin; c = -sin; d = cos;
+  }
+  if (s) {
+    const sx = parseFloat(s[1]);
+    const sy = s[2] != null ? parseFloat(s[2]) : sx;
+    a *= sx; b *= sx; c *= sy; d *= sy;
+  }
+  return {
+    a, b, c, d,
+    tx: t ? parseFloat(t[1]) : 0,
+    ty: t ? parseFloat(t[2]) : 0,
+  };
+}
+
+/**
+ * Expand bbox with the image of an axis-aligned local box under affine m.
+ * All four corners are mapped so rotation/negative scale stay conservative.
+ */
+function expandTransformedBox(bbox, m, x0, y0, x1, y1) {
+  expandBBox(bbox, m.a * x0 + m.c * y0 + m.tx, m.b * x0 + m.d * y0 + m.ty);
+  expandBBox(bbox, m.a * x1 + m.c * y0 + m.tx, m.b * x1 + m.d * y0 + m.ty);
+  expandBBox(bbox, m.a * x0 + m.c * y1 + m.tx, m.b * x0 + m.d * y1 + m.ty);
+  expandBBox(bbox, m.a * x1 + m.c * y1 + m.tx, m.b * x1 + m.d * y1 + m.ty);
+}
+
+/**
+ * Map marker id → safe radius in user units: the largest distance from the
+ * marker's ref point to any corner of its viewBox, scaled to marker size.
+ * Markers orient along the path, so a disc of this radius around the
+ * attachment point bounds the tip in every direction.
+ */
+function buildMarkerExtentMap(svgEl) {
+  const map = new Map();
+  for (const marker of svgEl.querySelectorAll('defs marker')) {
+    const id = marker.getAttribute('id');
+    if (!id) continue;
+    const refX = parseFloat(marker.getAttribute('refX')) || 0;
+    const refY = parseFloat(marker.getAttribute('refY')) || 0;
+    const mw = parseFloat(marker.getAttribute('markerWidth'));
+    const mh = parseFloat(marker.getAttribute('markerHeight'));
+    const vb = (marker.getAttribute('viewBox') || '').split(/[\s,]+/).filter(Boolean).map(Number);
+    let x0 = 0, y0 = 0, vw = mw || 0, vh = mh || 0, sx = 1, sy = 1;
+    if (vb.length === 4) {
+      [x0, y0, vw, vh] = vb;
+      if (mw && vw) sx = mw / vw;
+      if (mh && vh) sy = mh / vh;
+    }
+    const dx = Math.max(refX - x0, x0 + vw - refX) * sx;
+    const dy = Math.max(refY - y0, y0 + vh - refY) * sy;
+    map.set(id, Math.hypot(dx, dy));
+  }
+  return map;
+}
+
+/**
+ * Half the painted stroke width of an element — 0 when stroke is "none".
+ */
+function halfStroke(el) {
+  if (el.getAttribute('stroke') === 'none') return 0;
+  return (parseFloat(el.getAttribute('stroke-width')) || 0) / 2;
+}
+
+/**
+ * Expand bbox by the marker disc attached at (x, y) via marker-start/-end.
+ */
+function expandMarkerDisc(bbox, el, attr, x, y, markerExtents) {
+  const ref = el.getAttribute(attr);
+  if (!ref) return;
+  const idMatch = ref.match(/url\(#([^)]+)\)/);
+  if (!idMatch) return;
+  const radius = markerExtents.get(idMatch[1]);
+  if (!radius) return;
+  expandBBox(bbox, x - radius, y - radius);
+  expandBBox(bbox, x + radius, y + radius);
+}
+
+/**
  * Expand the bounding box to include an SVG element's visual extent.
  * Falls back to transform-based center ± estimated radius for node groups.
  * @param {Object} bbox
  * @param {SVGElement} el
+ * @param {Map<string,number>} [markerExtents] - marker id → safe radius
  */
-function expandBBoxFromElement(bbox, el) {
-  // For <g> with a translate transform, parse center and scan children
+function expandBBoxFromElement(bbox, el, markerExtents) {
+  // For <g> with a translate transform, map child extents through the
+  // group's full affine (translate + optional rotate/scale, as emitNode
+  // writes them) so rotated or nodeScale'd nodes don't clip.
   const transform = el.getAttribute('transform');
-  if (transform) {
-    const match = transform.match(/translate\(\s*([-\d.eE+]+)[,\s]+([-\d.eE+]+)\s*\)/);
-    if (match) {
-      const cx = parseFloat(match[1]);
-      const cy = parseFloat(match[2]);
-      // Scan immediate children for radius/size hints.
-      // Include half the stroke width so the bbox covers the full painted extent.
-      for (const child of el.children) {
-        const tag = child.tagName;
-        const half = (parseFloat(child.getAttribute('stroke-width')) || 0) / 2;
-        if (tag === 'circle') {
-          const r = parseFloat(child.getAttribute('r')) || 0;
-          expandBBox(bbox, cx - r - half, cy - r - half);
-          expandBBox(bbox, cx + r + half, cy + r + half);
-        } else if (tag === 'ellipse') {
-          const rx = parseFloat(child.getAttribute('rx')) || 0;
-          const ry = parseFloat(child.getAttribute('ry')) || 0;
-          expandBBox(bbox, cx - rx - half, cy - ry - half);
-          expandBBox(bbox, cx + rx + half, cy + ry + half);
-        } else if (tag === 'rect' || tag === 'foreignObject') {
-          const x = parseFloat(child.getAttribute('x')) || 0;
-          const y = parseFloat(child.getAttribute('y')) || 0;
-          const w = parseFloat(child.getAttribute('width')) || 0;
-          const h = parseFloat(child.getAttribute('height')) || 0;
-          expandBBox(bbox, cx + x - half, cy + y - half);
-          expandBBox(bbox, cx + x + w + half, cy + y + h + half);
-        } else if (tag === 'path') {
-          // Generic shape rendered as <path> — parse d-attribute coordinates
-          const d = child.getAttribute('d');
-          if (d) {
-            const nums = d.match(/-?[\d.]+/g);
-            if (nums && nums.length >= 2) {
-              for (let j = 0; j < nums.length - 1; j += 2) {
-                expandBBox(bbox, cx + parseFloat(nums[j]) - half, cy + parseFloat(nums[j + 1]) - half);
-                expandBBox(bbox, cx + parseFloat(nums[j]) + half, cy + parseFloat(nums[j + 1]) + half);
-              }
+  const m = transform ? parseGroupTransform(transform) : null;
+  if (m) {
+    // Scan immediate children for radius/size hints.
+    // Include half the stroke width so the bbox covers the full painted extent.
+    for (const child of el.children) {
+      const tag = child.tagName;
+      const half = halfStroke(child);
+      if (tag === 'circle') {
+        const r = parseFloat(child.getAttribute('r')) || 0;
+        expandTransformedBox(bbox, m, -r - half, -r - half, r + half, r + half);
+      } else if (tag === 'ellipse') {
+        const rx = parseFloat(child.getAttribute('rx')) || 0;
+        const ry = parseFloat(child.getAttribute('ry')) || 0;
+        expandTransformedBox(bbox, m, -rx - half, -ry - half, rx + half, ry + half);
+      } else if (tag === 'rect' || tag === 'foreignObject') {
+        const x = parseFloat(child.getAttribute('x')) || 0;
+        const y = parseFloat(child.getAttribute('y')) || 0;
+        const w = parseFloat(child.getAttribute('width')) || 0;
+        const h = parseFloat(child.getAttribute('height')) || 0;
+        expandTransformedBox(bbox, m, x - half, y - half, x + w + half, y + h + half);
+      } else if (tag === 'path') {
+        // Generic shape rendered as <path> — parse d-attribute coordinates
+        const d = child.getAttribute('d');
+        if (d) {
+          const nums = d.match(/-?[\d.]+/g);
+          if (nums && nums.length >= 2) {
+            for (let j = 0; j < nums.length - 1; j += 2) {
+              const px = parseFloat(nums[j]);
+              const py = parseFloat(nums[j + 1]);
+              expandTransformedBox(bbox, m, px - half, py - half, px + half, py + half);
             }
           }
         }
       }
-      return;
     }
+    return;
   }
 
   // For <path> elements, parse the d-attribute start point as a rough estimate
@@ -126,8 +215,17 @@ function expandBBoxFromElement(bbox, el) {
     // Extract all numeric coordinate pairs from the path
     const nums = d.match(/-?[\d.]+/g);
     if (nums && nums.length >= 2) {
+      const half = halfStroke(el);
       for (let i = 0; i < nums.length - 1; i += 2) {
-        expandBBox(bbox, parseFloat(nums[i]), parseFloat(nums[i + 1]));
+        expandBBox(bbox, parseFloat(nums[i]) - half, parseFloat(nums[i + 1]) - half);
+        expandBBox(bbox, parseFloat(nums[i]) + half, parseFloat(nums[i + 1]) + half);
+      }
+      if (markerExtents) {
+        const n = nums.length;
+        expandMarkerDisc(bbox, el, 'marker-start',
+          parseFloat(nums[0]), parseFloat(nums[1]), markerExtents);
+        expandMarkerDisc(bbox, el, 'marker-end',
+          parseFloat(nums[n - 2]), parseFloat(nums[n - 1]), markerExtents);
       }
     }
     return;
@@ -142,6 +240,15 @@ function expandBBoxFromElement(bbox, el) {
     const estWidth = textLen * fontSize * 0.6;
     expandBBox(bbox, tx - estWidth / 2, ty - fontSize / 2);
     expandBBox(bbox, tx + estWidth / 2, ty + fontSize / 2);
+    return;
+  }
+
+  // Transform-less containers (e.g. initial-arrow groups) hold children with
+  // absolute coordinates — recurse so their extents aren't silently dropped.
+  if (el.children && el.children.length > 0) {
+    for (const child of el.children) {
+      expandBBoxFromElement(bbox, child, markerExtents);
+    }
   }
 }
 
@@ -453,6 +560,7 @@ function emitDrawPath(pathModel, edgeLayer, labelLayer) {
 
   const pathEl = createSVGElement('path', attrs);
   if (pathModel.id) pathEl.setAttribute('id', pathModel.id);
+  if (pathModel.useAsBoundingBox) pathEl.setAttribute('data-use-as-bbox', '1');
   edgeLayer.appendChild(pathEl);
 
   if (labelNodes) {
@@ -938,9 +1046,10 @@ function emitInitialArrow(node, arrowMarkerId, arrowDef) {
  */
 function computeContentBBox(svgEl) {
   const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+  const markerExtents = buildMarkerExtentMap(svgEl);
   for (const layer of svgEl.querySelectorAll('.edge-layer, .label-layer, .node-layer, .draw-layer, g[class^="layer-"]')) {
     for (const child of layer.children) {
-      expandBBoxFromElement(bbox, child);
+      expandBBoxFromElement(bbox, child, markerExtents);
     }
   }
   return bbox;
@@ -1081,13 +1190,31 @@ function emitBackground(svgEl, bg) {
  * @param {number} [padding=40]
  * @returns {string}
  */
-function computeViewBox(svgEl, padding = 40) {
+function computeViewBox(svgEl, padding) {
+  const markerExtents = buildMarkerExtentMap(svgEl);
+
+  // Paths flagged `useAsBoundingBox` define the viewport by themselves
+  // (TikZ §15 `use as bounding box`): other content may overflow. The path
+  // extent IS the bounding box, so padding defaults to 0 here; an explicit
+  // config.padding is still honored.
+  const bboxSources = svgEl.querySelectorAll('[data-use-as-bbox]');
+  if (bboxSources.length > 0) {
+    const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
+    for (const el of bboxSources) {
+      expandBBoxFromElement(bbox, el, markerExtents);
+    }
+    if (isFinite(bbox.minX)) {
+      const pad = padding ?? 0;
+      return `${bbox.minX - pad} ${bbox.minY - pad} ${bbox.maxX - bbox.minX + pad * 2} ${bbox.maxY - bbox.minY + pad * 2}`;
+    }
+  }
+
   const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
 
   // Walk all direct children of layers (initial arrows are in edge-layer)
   for (const layer of svgEl.querySelectorAll('.background-layer, .edge-layer, .label-layer, .node-layer, .draw-layer, g[class^="layer-"]')) {
     for (const child of layer.children) {
-      expandBBoxFromElement(bbox, child);
+      expandBBoxFromElement(bbox, child, markerExtents);
     }
   }
 
@@ -1096,10 +1223,11 @@ function computeViewBox(svgEl, padding = 40) {
     return '0 0 100 100';
   }
 
-  const x = bbox.minX - padding;
-  const y = bbox.minY - padding;
-  const w = bbox.maxX - bbox.minX + padding * 2;
-  const h = bbox.maxY - bbox.minY + padding * 2;
+  const pad = padding ?? 40;
+  const x = bbox.minX - pad;
+  const y = bbox.minY - pad;
+  const w = bbox.maxX - bbox.minX + pad * 2;
+  const h = bbox.maxY - bbox.minY + pad * 2;
 
   return `${x} ${y} ${w} ${h}`;
 }
@@ -1386,3 +1514,11 @@ export function emitSVG(svgEl, resolved) {
   // 10. Return refs
   return refs;
 }
+
+// Internal helpers exposed for unit tests only — not part of the public API.
+export const __testables = {
+  expandBBoxFromElement,
+  parseGroupTransform,
+  buildMarkerExtentMap,
+  computeViewBox,
+};

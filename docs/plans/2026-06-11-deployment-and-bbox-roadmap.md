@@ -56,27 +56,40 @@ were implemented same-day (see §Done below). This plan covers what remains.
 - Caveat unchanged: pages using string-expression plots need the mathjs UMD
   `<script>` (bundle keeps mathjs external).
 
-### 2. Bounding box: parse rotate/scale in node transforms (medium)
+### 2. Bounding box: parse rotate/scale in node transforms — DONE 2026-06-12
 
-`expandBBoxFromElement()` (src-v2/svg/emitter.js:80) only extracts
-`translate(...)` from the transform string; `rotate`/`scale` on the same
-node are ignored, so rotated or `nodeScale`d nodes can clip. Fix: parse all
-three components, apply a 2×2 transform to the child-extent corners before
-`expandBBox`. ~30 lines + tests (rotated rectangle near viewBox edge).
+`parseGroupTransform()` now builds a full affine from
+`translate/rotate/scale` and child extents are mapped through all four
+corners (`expandTransformedBox`). Bonus fixes shipped in the same pass:
+- transform-less `<g>` wrappers (initial-arrow groups) were invisible to
+  the bbox walk — now recursed into, so initial arrows + "start" labels
+  count toward bounds;
+- top-level paths (edges, draw-paths) now include half stroke-width;
+- `stroke="none"` elements no longer get stroke expansion;
+- both fixes backported to src-v3, which also picked up the long-pending
+  d37b742 scientific-notation and stroke-width backports for free.
+Tests: `test/bbox-transforms.test.js`; internals exposed via
+`__testables` export (regex source-extraction in viewbox-stroke.test.js
+replaced with that import).
 
-### 3. Bounding box: include arrow-marker extents (low)
+### 3. Bounding box: include arrow-marker extents — DONE 2026-06-12
 
-Markers live in `<defs>` and never contribute bounds; tips poking past the
-viewBox edge are currently hidden by the default 40px padding. Proper fix
-requires mapping marker refX/markerWidth to each use site. Low urgency.
+`buildMarkerExtentMap()` maps each `<defs>` marker to a safe radius (max
+distance from refX/refY to its viewBox corners, scaled; markers are
+`userSpaceOnUse` so no stroke scaling). Elements with
+`marker-start`/`marker-end` expand a disc of that radius at the first/last
+path coordinate — orientation-independent, slightly conservative.
 
-### 4. `use as bounding box` path flag (TikZ §15 item 6)
+### 4. `use as bounding box` path flag (TikZ §15 item 6) — DONE 2026-06-12
 
-`config.viewBox` now covers the explicit-viewport case. The remaining piece
-is the per-path flag (`useAsBoundingBox: true` on a path = viewport follows
-that path, other content may overflow). Spec:
-`docs/plans/2026-04-17-path-actions-plan.md` §6. Also feeds Animation
-Layer 2 camera verbs (`Animation/MUSTADDRESS.md` item 5).
+`paths[i].useAsBoundingBox: true` → the emitted path carries
+`data-use-as-bbox` and `computeViewBox()` uses only flagged paths
+(union if several). TikZ-exact: no padding unless `config.padding` is set
+explicitly. `config.viewBox` still wins. Use `stroke: 'none'` for an
+invisible frame. Note: the spec file previously referenced
+(`2026-04-17-path-actions-plan.md`) never existed — designed straight from
+TikZ semantics. TikZ §15 path actions now complete (items 1–6).
+Feeds Animation Layer 2 camera verbs (`Animation/MUSTADDRESS.md` item 5).
 
 ### 5. Bundle hygiene (nice-to-have)
 

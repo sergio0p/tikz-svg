@@ -692,6 +692,7 @@ export function render(svgEl, config) {
       id: pathDef.id ?? `path-${i}`,
       frame: pathDef.frame ?? null,
       className: pathDef.className ?? null,
+      useAsBoundingBox: pathDef.useAsBoundingBox === true,
     });
   }
 

@@ -708,6 +708,7 @@ export function render(svgEl, config) {
       arrowEndId,
       labelNodes,
       id: pathDef.id ?? `path-${i}`,
+      useAsBoundingBox: pathDef.useAsBoundingBox === true,
     });
   }
 

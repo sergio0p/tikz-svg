@@ -6,13 +6,17 @@
  * 2. Scientific notation in translate() coordinates (the actual root cause
  *    of node clipping: e.g. translate(113, -3.55e-15) was not parsed)
  */
-import { describe, it } from 'node:test';
+import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { readFileSync } from 'node:fs';
 
-const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
-global.document = dom.window.document;
+let expandBBoxFromElement;
+before(async () => {
+  const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+  global.document = dom.window.document;
+  global.window = dom.window;
+  ({ __testables: { expandBBoxFromElement } } = await import('../src-v2/svg/emitter.js'));
+});
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -36,27 +40,11 @@ function buildTestSVG(nodes) {
   return svg;
 }
 
-// Extract expandBBoxFromElement from the real emitter source
-function expandBBox(bbox, x, y) {
-  if (x < bbox.minX) bbox.minX = x;
-  if (y < bbox.minY) bbox.minY = y;
-  if (x > bbox.maxX) bbox.maxX = x;
-  if (y > bbox.maxY) bbox.maxY = y;
-}
-
-const emitterSrc = readFileSync(new URL('../src-v2/svg/emitter.js', import.meta.url), 'utf-8');
-const fnMatch = emitterSrc.match(/function expandBBoxFromElement\(bbox, el\) \{[\s\S]*?\n\}/);
-if (!fnMatch) throw new Error('Could not extract expandBBoxFromElement from emitter.js');
-
-const expandBBoxFromElement = new Function('expandBBox', 'bbox', 'el',
-  fnMatch[0].replace('function expandBBoxFromElement(bbox, el) {', '').replace(/\}$/, '')
-);
-
 function getBBox(svg) {
   const bbox = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
   for (const layer of svg.querySelectorAll('.node-layer')) {
     for (const child of layer.children) {
-      expandBBoxFromElement(expandBBox, bbox, child);
+      expandBBoxFromElement(bbox, child);
     }
   }
   return bbox;

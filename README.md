@@ -4,7 +4,7 @@ A pure JavaScript library that renders TikZ/PGF graphics as SVG in the browser. 
 
 The library targets general-purpose TikZ rendering: shapes, paths, plots, callouts, labels, decorations, layers, KaTeX math, and animation metadata. The original automata wrapper has been retired to `deprecated/`; new work uses the general `render()` API.
 
-**Status (2026-06-11):** 765 tests passing, 207 suites. Production code in `src-v2/`. Animation sandbox in `src-v3/`. Single-file bundle via `npm run build` → `dist/tikz-svg.min.js`.
+**Status (2026-06-12):** 780 tests passing, 212 suites. Production code in `src-v2/`. Animation sandbox in `src-v3/`. Single-file bundle via `npm run build` → `dist/tikz-svg.min.js`.
 
 ## Quick Start
 
@@ -72,6 +72,7 @@ The top-level entry point. Takes an SVG element and a configuration object descr
 | `padding` `background` | — | ViewBox controls |
 | `viewBox` | `Array \| string` | Explicit viewBox `[x, y, w, h]` — overrides auto-computed bounds |
 | `width` `height` | `number \| string` | Set the SVG element's width/height attributes (e.g. `400` or `'100%'`) |
+| `paths[i].useAsBoundingBox` | `boolean` | TikZ `use as bounding box`: the viewport follows this path's extent exactly (no padding unless `padding` is set); other content may overflow. Combine with `stroke: 'none'` for an invisible frame. `config.viewBox` still wins. |
 | `katexMacros` | `Object` | KaTeX macros (e.g. `{"\\R": "\\mathbb{R}"}`) |
 | `seed` | `number` | PRNG seed for deterministic decorations |
 
@@ -276,7 +277,7 @@ Highlights:
 npm test
 ```
 
-Runs 756 tests across 205 suites with `node --test` + jsdom. Coverage spans shapes, callouts, multipart, decorations, plotting (evaluator/handlers/marks), KaTeX, layers, auto-IDs (v2 + v3), auto-sizing, geometry (edges, arrows, labels, anchors), styling (color-mix, dash, line-width, caps/joins, fill-rule, named styles, groups), pipeline transforms, viewBox/scale/zoom, paths, and integration.
+Runs 780 tests across 212 suites with `node --test` + jsdom. Coverage spans shapes, callouts, multipart, decorations, plotting (evaluator/handlers/marks), KaTeX, layers, auto-IDs (v2 + v3), auto-sizing, geometry (edges, arrows, labels, anchors), styling (color-mix, dash, line-width, caps/joins, fill-rule, named styles, groups), pipeline transforms, viewBox/scale/zoom, paths, and integration.
 
 ## Roadmap
 
@@ -288,7 +289,7 @@ Runs 756 tests across 205 suites with `node --test` + jsdom. Coverage spans shap
 | 4 | Layers / z-order | ✅ done | `config.layers` + `config.draw` |
 | 5 | KaTeX math labels | ✅ done | `katexMacros` config, async fallback |
 | 6 | Named styles + groups + transforms | ✅ done | Full cascade |
-| 7 | Path actions (TikZ §15) | 🟡 partial | Items 1–5 done; item 6 (bounding box) pending |
+| 7 | Path actions (TikZ §15) | ✅ done | All 6 items, incl. `useAsBoundingBox` (2026-06-12) |
 | 8 | Decorations | 🟡 partial | Random steps + rounded corners done; zigzag/snake/coil pending |
 | 9 | Animation Layer 1 (metadata) | ✅ done | In `src-v3/` (sandbox) |
 | 10 | Animation Layer 2 (controller) | ⬜ planned | Frame navigation, transitions, camera verbs |
