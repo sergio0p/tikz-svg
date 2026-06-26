@@ -172,7 +172,7 @@ Apply via the `decoration` style key on edges, paths, or node borders, or call `
 
 Labels wrapped in `$…$` render as KaTeX inside `<foreignObject>`. Define macros via `config.katexMacros: { "\\R": "\\mathbb{R}" }`. Falls back to plain text with `$` stripped if KaTeX isn't loaded. Auto-sizing accounts for KaTeX-measured dimensions.
 
-Configs containing math labels are automatically re-rendered once web fonts finish loading (measurements change when the real KaTeX fonts arrive); math-free configs render exactly once. KaTeX measurements are memoized per (html, fontSize) and the cache is invalidated on font load.
+Configs containing math labels are automatically re-rendered when the KaTeX web fonts (lazily) load — measurements change once the real fonts arrive; math-free configs render exactly once. KaTeX measurements are memoized per (html, fontSize). Because `document.fonts.ready` is an unreliable "fonts usable" signal (KaTeX faces are lazy and a CDN `katex.min.css` may still be parsing), the cache is invalidated and every math diagram re-fitted on each KaTeX `loadingdone` event — not just once — and a measurement taken while a face is still loading is returned but never pinned. A bounded backstop covers the rare case where no font event ever fires. See `katex-font-collapse-bug.md`.
 
 ### Layers and draw order
 

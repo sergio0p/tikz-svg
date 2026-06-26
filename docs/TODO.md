@@ -109,6 +109,7 @@ Many items below come from `docs/audit/00-summary.md` (2026-03-24). Re-checked 2
 | ViewBox stroke-width not included → right-edge clipping | Low | `src-v2/svg/emitter.js:86-89` | Add `strokeWidth/2` per side for `<circle>`, `<ellipse>`, `<rect>`, `<path>` children. |
 | `labelDistance` asymmetric on left vs right side | Medium | `src-v2/geometry/labels.js:203` | Guard `if (distance > 0)` should be `!== 0`; verify sign logic on both sides. |
 | ViewBox recomputed after async KaTeX | Medium | `src-v2/svg/emitter.js` | Need fixed-viewBox opt-out, or stable post-KaTeX freeze. Cross-refs viewport-stability item in Animation/MUSTADDRESS.md. |
+| ~~KaTeX labels collapse to (0,0) when `fonts.ready` resolves before faces load~~ | ~~Medium~~ | `src-v2/core/katex-renderer.js` | ✅ Fixed 2026-06-25. Replaced one-shot `fonts.ready` trust with recurring `loadingdone` convergence: discover KaTeX faces by family, re-armable per-`svgEl` queue, cache invalidated + re-fit per font batch, cache-write gated on settled fonts, bounded backstop. Test: `test/katex-font-race.test.js`. Report: `katex-font-collapse-bug.md`. |
 | `scale` + relative positioning shrinks diagram | Medium | `src-v2/positioning/positioning.js` | `nodeDistance` not scale-aware. Add `nodeDistanceScaled` or auto-multiply by `scale`. |
 
 ---

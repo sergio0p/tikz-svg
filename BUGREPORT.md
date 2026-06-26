@@ -118,3 +118,31 @@ In `expandBBoxFromElement`, when processing `<circle>`, `<ellipse>`, `<rect>`, a
 ## Found in
 
 Session using `src-v2/index.js`, positioning blind audition demo, 2026-04-14.
+
+---
+
+# Bug Report: KaTeX labels collapse to (0,0) when `fonts.ready` resolves before the math faces load — FIXED 2026-06-25
+
+## Summary
+
+Every KaTeX label in a diagram could intermittently collapse onto the origin `(0,0)` on a cold load, and the bad geometry was **sticky** — a fallback measurement got memoized and never recomputed. A race, not a deterministic failure: triggered when a CDN font was in flight, usually not on a warm cache. Full analysis in `katex-font-collapse-bug.md`.
+
+## Root cause
+
+`document.fonts.ready` is not a reliable signal that the KaTeX faces are usable — the faces are lazy (fetched only when a glyph needs them) and a CDN `katex.min.css` may still be parsing, so `ready` can resolve before `KaTeX_Main` / `KaTeX_Math` exist. A premature resolve both (1) **disarmed** the corrective re-render (`registerPendingReRender` early-returned once `_fontsReady` was set) and (2) **pinned** a fallback measurement in `_measureCache`, which was only ever cleared on that single already-fired event.
+
+## Fix (`src-v2/core/katex-renderer.js`)
+
+Replaced the one-shot `fonts.ready` trust with a FontFaceSet-native, event-driven correction loop:
+
+- **Discover faces, don't hardcode** — any `document.fonts` family matching `/^KaTeX/` is a target, so `KaTeX_AMS`/`KaTeX_Size*`/etc. are covered automatically.
+- **Converge on the recurring `loadingdone` event** (not one-shot `.ready`): each KaTeX font batch clears `_measureCache` and re-fits every registered math diagram. This recurring invalidation is the real cure for the sticky/poisoned cache.
+- **Re-armable queue keyed by `svgEl`** — repeated `render()` calls de-dupe and the queue never permanently disarms. `_fontsReady` is deleted entirely.
+- **Cache-write gate** — a measurement taken while a KaTeX face is still `'loading'` is returned (so first paint isn't blank) but never memoized.
+- **`fonts.ready` kept as a one-shot hint** (guaranteed second paint, upgrades a plain-text fallback if KaTeX JS loaded late) plus a **bounded backstop** for the tail case where no font event ever fires.
+
+`index.js` is unchanged (same `registerPendingReRender` signature). Test: `test/katex-font-race.test.js` (6 cases, jsdom-injected fake FontFaceSet). Approach chosen via a design panel that found the alternatives (the original `fonts.load`+`fonts.check` proposal, a signal-agnostic geometry watcher, live-DOM measurement) each reintroduced a permanent-collapse path — notably `fonts.check()` returns `true` vacuously when no face is declared, the exact CSS-in-flight window.
+
+## Follow-up
+
+The consumer-side `waitForKatex()` / double-`requestAnimationFrame` guards in `comb_plot_html.jl` and `comb_supp3.html` can now be relaxed or removed.
