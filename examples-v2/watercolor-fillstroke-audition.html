@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Watercolor — Fill vs Stroke Audition</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: #1a1a2e; color: #eee; }
+    .page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; border-bottom: 1px solid #333; }
+    .page-title { font-size: 1.3rem; margin-bottom: 0.4rem; color: #aaa; letter-spacing: 0.05em; }
+    .page-subtitle { font-size: 0.95rem; color: #666; margin-bottom: 2rem; font-style: italic; }
+    .comparison { display: flex; gap: 3rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .side { text-align: center; }
+    .side-label { font-size: 1.8rem; font-weight: bold; color: #555; margin-bottom: 1rem; letter-spacing: 0.1em; }
+    .svg-wrap { background: #fcfbf7; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); padding: 12px; display: inline-block; isolation: isolate; outline: 3px solid transparent; transition: outline-color .15s, box-shadow .15s; }
+    .svg-wrap svg { display: block; }
+    .side { cursor: pointer; }
+    .side:hover .svg-wrap { outline-color: #5a6; }
+    .side.chosen .svg-wrap { outline-color: #e6b422; box-shadow: 0 4px 30px rgba(230,180,34,0.55); }
+    .pick-hint { font-size: 0.85rem; color: #777; margin-bottom: 1.2rem; }
+    .vote-tag { height: 1.3rem; margin-top: 1.2rem; color: #e6b422; font-size: 0.95rem; font-style: italic; }
+    h1 { font-size: 2.4rem; margin-bottom: 0.3rem; color: #e6b422; }
+    .intro { max-width: 560px; text-align: center; line-height: 1.8; color: #aaa; }
+    .intro code { color: #e6b422; }
+    .reveal { font-size: 1.25rem; line-height: 2.1; text-align: center; }
+    .reveal strong { color: #e6b422; }
+    .reveal .note { font-size: 0.95rem; color: #888; font-style: italic; max-width: 560px; margin: 1.5rem auto 0; line-height: 1.7; }
+    .nav { position: fixed; bottom: 1.5rem; right: 1.5rem; font-size: 0.8rem; color: #555; background: rgba(26,26,46,0.85); padding: 0.4rem 0.7rem; border-radius: 6px; }
+    .nav a { color: #888; text-decoration: none; margin: 0 0.35rem; }
+    .nav a:hover { color: #ccc; }
+    .reload { color: #e6b422; cursor: pointer; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="page" id="intro">
+  <h1>Watercolor — Fill vs Stroke</h1>
+  <p class="intro">
+    Each page shows the same motif painted two ways: as a <strong>filled wash</strong>
+    (the region flooded with pigment) and as a <strong>stroked wash</strong> (only the
+    outline / spine swept into a ribbon of pigment).
+    <br><br>
+    <strong>Click the side that looks better</strong> on each page — your picks are
+    tallied at the end to settle which treatment wins as the default. Sides are
+    randomized per page, and the paint is freshly generated on
+    <span class="reload" onclick="location.reload()">every reload</span>.
+  </p>
+</div>
+
+<div id="pages"></div>
+
+<div class="page" id="reveal"><div class="reveal" id="reveal-body"></div></div>
+
+<nav class="nav" id="nav"></nav>
+
+<script type="module">
+import { watercolorLayers, sweepRibbon } from '../src-v2/decorations/watercolor.js';
+import { SeededRandom } from '../src-v2/core/random.js';
+
+const NS = 'http://www.w3.org/2000/svg';
+const rseed = () => Math.floor(Math.random() * 2 ** 31);
+
+// ---- geometry (point arrays, SVG y-down) ----
+function circlePts(cx, cy, r, n = 56) {
+  const p = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 2 * Math.PI;
+    p.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+  }
+  return p;
+}
+function triPts(cx, cy, r) {
+  const p = [];
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / 3;
+    p.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) });
+  }
+  return p;
+}
+function densify(pts, perEdge = 16, closed = true) {
+  const out = [];
+  const n = pts.length;
+  const edges = closed ? n : n - 1;
+  for (let i = 0; i < edges; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    for (let s = 0; s < perEdge; s++) {
+      const t = s / perEdge;
+      out.push({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) });
+    }
+  }
+  if (!closed) out.push(pts[n - 1]);
+  return out;
+}
+function sCurve(x0, x1, ymid, amp, n = 60) {
+  const p = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const x = x0 + t * (x1 - x0);
+    const y = ymid - amp * Math.sin(2 * Math.PI * t);
+    p.push({ x, y });
+  }
+  return p;
+}
+
+// ---- rendering ----
+const LAYERS = 13, OPACITY = 0.06, SPREAD = 0.16, ROUNDS = 4;
+
+function makeSVG(w, h) {
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  return svg;
+}
+function addGrain(svg, id) {
+  const defs = document.createElementNS(NS, 'defs');
+  defs.innerHTML = `<filter id="${id}" x="-15%" y="-15%" width="130%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="${rseed() % 9999}" result="n"/>
+    <feColorMatrix in="n" type="matrix"
+       values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.20 0.20" result="spots"/>
+    <feComposite in="spots" in2="SourceAlpha" operator="in" result="clip"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="clip"/></feMerge>
+  </filter>`;
+  svg.appendChild(defs);
+}
+function paintWash(svg, wash, fill) {
+  const gid = 'grain' + Math.random().toString(36).slice(2, 8);
+  addGrain(svg, gid);
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('filter', `url(#${gid})`);
+  for (const L of wash.layers) {
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', L.d);
+    path.setAttribute('fill', fill);
+    path.setAttribute('fill-opacity', L.opacity);
+    path.setAttribute('stroke', 'none');
+    g.appendChild(path);
+  }
+  svg.appendChild(g);
+}
+
+function renderFill(svg, fillPts, fill) {
+  const wash = watercolorLayers(null, { points: fillPts, closed: true, layers: LAYERS, spread: SPREAD, rounds: ROUNDS, opacity: OPACITY, seed: rseed() });
+  paintWash(svg, wash, fill);
+}
+function renderStroke(svg, spinePts, width, fill, profile) {
+  const ribbon = sweepRibbon(spinePts, { width, widthProfile: profile });
+  const wash = watercolorLayers(null, { points: ribbon, closed: true, layers: LAYERS, spread: SPREAD, rounds: ROUNDS, opacity: OPACITY, seed: rseed() });
+  paintWash(svg, wash, fill);
+}
+
+// ---- examples (≥3): each motif as both fill and stroke ----
+const EXAMPLES = [
+  {
+    subtitle: 'disc vs ring — teal',
+    fill: '#1f7a7a', w: 360, h: 320,
+    renderFill: (svg, f) => renderFill(svg, circlePts(180, 160, 110), f),
+    // outline as a constant-width ribbon (loop back to start)
+    renderStroke: (svg, f) => {
+      const c = circlePts(180, 160, 110, 64);
+      renderStroke(svg, [...c, c[0]], 22, f, () => 1);
+    },
+  },
+  {
+    subtitle: 'filled triangle vs outlined triangle — vermilion',
+    fill: '#c0492b', w: 360, h: 320,
+    renderFill: (svg, f) => renderFill(svg, densify(triPts(180, 175, 120), 18), f),
+    renderStroke: (svg, f) => {
+      const t = densify(triPts(180, 175, 120), 18);
+      renderStroke(svg, [...t, t[0]], 22, f, () => 1);
+    },
+  },
+  {
+    subtitle: 'area under curve vs the curve itself — indigo',
+    fill: '#3b3b8f', w: 380, h: 300,
+    renderFill: (svg, f) => {
+      const c = sCurve(40, 340, 130, 70);
+      const region = [...c, { x: 340, y: 250 }, { x: 40, y: 250 }];
+      renderFill(svg, region, f);
+    },
+    renderStroke: (svg, f) => renderStroke(svg, sCurve(40, 340, 150, 70), 26, f),
+  },
+  {
+    subtitle: 'filled blob vs brush swoosh — moss',
+    fill: '#4a6b2a', w: 380, h: 300,
+    renderFill: (svg, f) => renderFill(svg, circlePts(190, 150, 95, 40), f),
+    renderStroke: (svg, f) => renderStroke(svg, sCurve(50, 330, 150, 55), 30, f),
+  },
+];
+
+const pagesEl = document.getElementById('pages');
+const assignments = [];
+const votes = {}; // page number → chosen variant name
+
+EXAMPLES.forEach((ex, idx) => {
+  const leftIsFill = Math.random() < 0.5;
+
+  const page = document.createElement('div');
+  page.className = 'page';
+  page.id = 'p' + (idx + 1);
+  page.innerHTML = `
+    <div class="page-title">${idx + 1} / ${EXAMPLES.length}</div>
+    <div class="page-subtitle">${ex.subtitle}</div>
+    <div class="pick-hint">Click the one that looks better</div>
+    <div class="comparison">
+      <div class="side" id="sideA${idx}"><div class="side-label">A</div><div class="svg-wrap" id="wrapA${idx}"></div></div>
+      <div class="side" id="sideB${idx}"><div class="side-label">B</div><div class="svg-wrap" id="wrapB${idx}"></div></div>
+    </div>
+    <div class="vote-tag" id="vt${idx}"></div>`;
+  pagesEl.appendChild(page);
+
+  const svgL = makeSVG(ex.w, ex.h), svgR = makeSVG(ex.w, ex.h);
+  if (leftIsFill) {
+    ex.renderFill(svgL, ex.fill);
+    ex.renderStroke(svgR, ex.fill);
+  } else {
+    ex.renderStroke(svgL, ex.fill);
+    ex.renderFill(svgR, ex.fill);
+  }
+  document.getElementById('wrapA' + idx).appendChild(svgL);
+  document.getElementById('wrapB' + idx).appendChild(svgR);
+
+  assignments.push({ page: idx + 1, A: leftIsFill ? 'Fill' : 'Stroke', B: leftIsFill ? 'Stroke' : 'Fill' });
+
+  // ---- click-to-vote ----
+  const sideA = document.getElementById('sideA' + idx);
+  const sideB = document.getElementById('sideB' + idx);
+  const tag = document.getElementById('vt' + idx);
+  function vote(which) {
+    votes[idx + 1] = assignments[idx][which];
+    sideA.classList.toggle('chosen', which === 'A');
+    sideB.classList.toggle('chosen', which === 'B');
+    tag.textContent = 'You picked ' + which + ' ✓  (click the other to change)';
+    renderReveal();
+  }
+  sideA.addEventListener('click', () => vote('A'));
+  sideB.addEventListener('click', () => vote('B'));
+});
+
+// ---- dynamic reveal + live tally ----
+const NOTE = '<div class="note">Fill floods a closed region; Stroke sweeps the spine/outline into a ' +
+  'ribbon (<code>sweepRibbon</code>) and washes that. Both use the same layered ' +
+  'deformation engine — see <code>src-v2/docs/WATERCOLOR.md</code>.</div>';
+
+function renderReveal() {
+  const counts = {};
+  let voted = 0;
+  assignments.forEach(a => { const v = votes[a.page]; if (v) { counts[v] = (counts[v] || 0) + 1; voted++; } });
+
+  let html = '<strong>Results</strong><br><br>';
+  html += assignments.map(a => {
+    const v = votes[a.page];
+    return `Page ${a.page} &mdash; A = <strong>${a.A}</strong>, B = <strong>${a.B}</strong>` +
+      (v ? ` &nbsp;→ you chose <strong>${v}</strong>` : ' &nbsp;<em style="color:#888">(not voted)</em>');
+  }).join('<br>');
+
+  const keys = Object.keys(counts);
+  if (voted) {
+    html += '<br><br><strong>Your preference</strong> &nbsp;(' + voted + '/' + assignments.length + ' voted)<br>';
+    html += keys.map(k => `${k}: ${counts[k]}`).join(' &nbsp;·&nbsp; ');
+    const winner = keys.reduce((a, b) => counts[b] > counts[a] ? b : a);
+    const tie = keys.filter(k => counts[k] === counts[winner]).length > 1;
+    html += '<br><br>' + (tie ? '<strong>Tie</strong> so far — keep voting.' : `Leaning toward <strong>${winner}</strong>.`);
+  } else {
+    html += '<br><br><em style="color:#888">Click a side on each page to register your preference.</em>';
+  }
+  document.getElementById('reveal-body').innerHTML = html + NOTE;
+}
+renderReveal();
+
+document.getElementById('nav').innerHTML =
+  '<a href="#intro">Intro</a> ' +
+  EXAMPLES.map((_, i) => `<a href="#p${i + 1}">${i + 1}</a>`).join(' ') +
+  ' <a href="#reveal">Reveal</a>';
+</script>
+</body>
+</html>

@@ -8,7 +8,7 @@
 
 import { DEFAULTS, DIRECTIONS } from '../core/constants.js';
 import { Transform } from '../core/transform.js';
-import { morphPath, shapeToSVGPath } from '../decorations/index.js';
+import { morphPath, shapeToSVGPath, watercolorLayers, watercolorRibbon } from '../decorations/index.js';
 import { roundPathCorners } from '../decorations/rounded-corners.js';
 import { SeededRandom } from '../core/random.js';
 import { createLabelContent, createMathForeignObject } from '../core/katex-renderer.js';
@@ -167,6 +167,11 @@ function expandMarkerDisc(bbox, el, attr, x, y, markerExtents) {
  * @param {Map<string,number>} [markerExtents] - marker id → safe radius
  */
 function expandBBoxFromElement(bbox, el, markerExtents) {
+  // Watercolor bleed layers overflow the nominal outline by design (they carry
+  // data-bleed); they must not grow the viewBox. The sibling nominal path (no
+  // data-bleed) is what defines the bounds. See WATERCOLOR.md §8.4.
+  if (el.getAttribute && el.getAttribute('data-bleed') != null) return;
+
   // For <g> with a translate transform, map child extents through the
   // group's full affine (translate + optional rotate/scale, as emitNode
   // writes them) so rotated or nodeScale'd nodes don't clip.
@@ -175,7 +180,8 @@ function expandBBoxFromElement(bbox, el, markerExtents) {
   if (m) {
     // Scan immediate children for radius/size hints.
     // Include half the stroke width so the bbox covers the full painted extent.
-    for (const child of el.children) {
+    const measureChild = (child) => {
+      if (child.getAttribute && child.getAttribute('data-bleed') != null) return;
       const tag = child.tagName;
       const half = halfStroke(child);
       if (tag === 'circle') {
@@ -204,8 +210,13 @@ function expandBBoxFromElement(bbox, el, markerExtents) {
             }
           }
         }
+      } else if (tag === 'g' && child.classList && child.classList.contains('watercolor')) {
+        // Watercolor wash sits in the node's local space (no own transform):
+        // measure its nominal child through the node transform; bleed is skipped.
+        for (const gc of child.children) measureChild(gc);
       }
-    }
+    };
+    for (const child of el.children) measureChild(child);
     return;
   }
 
@@ -321,16 +332,202 @@ function buildDefs(arrowDefs, shadowFilters) {
 }
 
 // ────────────────────────────────────────────
+// Watercolor
+// ────────────────────────────────────────────
+
+/**
+ * Build a <g class="watercolor"> from a { nominal, layers } wash result: an
+ * invisible nominal outline that carries the bounding box, plus translucent
+ * filled layer copies (data-bleed, excluded from the bbox; overlaps darken by
+ * source-over stacking). Shared by fill washes (shape interiors, filled paths)
+ * and stroke ribbon washes (edges, drawn strokes). See WATERCOLOR.md §8.2/§8.4.
+ *
+ * @param {{nominal:string, layers:Array<{d:string,opacity:number}>}} wash
+ * @param {string} pigment - per-layer fill colour
+ * @param {{frequency:number, strength:number}|null} [grain] - paper-grain params;
+ *   when set, the group is tagged `data-grain` for the applyGrainFilters post-pass.
+ * @returns {SVGGElement}
+ */
+function watercolorGroup(wash, pigment, grain) {
+  const g = createSVGElement('g', { class: 'watercolor' });
+  g.appendChild(createSVGElement('path', { d: wash.nominal, fill: 'none', stroke: 'none' }));
+  for (const layer of wash.layers) {
+    g.appendChild(createSVGElement('path', {
+      d: layer.d, fill: pigment, 'fill-opacity': layer.opacity, 'data-bleed': '1',
+    }));
+  }
+  if (grain) g.setAttribute('data-grain', `${grain.frequency} ${grain.strength}`);
+  return g;
+}
+
+/**
+ * Apply to a watercolor wash <g> (a single leaf group, or a parent wrapping
+ * several) the same per-element treatment the crisp branches apply after they
+ * build their <path>: opacity, className, id, useAsBoundingBox, and overlaid
+ * arrow tips. Mirrors emitEdgePath/emitDrawPath crisp code so washed and crisp
+ * output stay consistent.
+ *
+ * Intentionally NOT applied to a wash (documented, not implemented — WATERCOLOR.md §8.6):
+ *   - stroke-dasharray / dotted / dashed  (a wash has no stroked outline)
+ *   - stroke-linecap / -linejoin / -miterlimit (resolveStrokeAttrs) (no stroke)
+ *   - fill-rule (the deformed layer fills use the default nonzero rule)
+ *   - stroke / stroke-width (pigment is a fill, not a stroke)
+ *
+ * @param {SVGGElement} group
+ * @param {Object} o
+ * @param {string}  [o.spine]          - original (pre-deformation) path 'd' for markers
+ * @param {string}  [o.markerStartId]
+ * @param {string}  [o.markerEndId]
+ * @param {number}  [o.opacity]
+ * @param {string}  [o.className]
+ * @param {string}  [o.id]
+ * @param {boolean} [o.useAsBoundingBox]
+ * @returns {SVGGElement} group
+ */
+function applyWashAttributes(group, o = {}) {
+  // Opacity: group-level so it cascades to every bleed layer AND the markers,
+  // matching `attrs.opacity = style.opacity` in the crisp branches.
+  if (o.opacity != null && o.opacity < 1) group.setAttribute('opacity', o.opacity);
+
+  if (o.className) group.classList.add(o.className);
+  if (o.id) group.setAttribute('id', o.id);
+
+  // useAsBoundingBox: tag the group; computeViewBox's [data-use-as-bbox] query
+  // selects it, and expandBBoxFromElement recurses past data-bleed to the
+  // nominal outline(s) + spine marker disc.
+  if (o.useAsBoundingBox) group.setAttribute('data-use-as-bbox', '1');
+
+  // Arrow tips: an invisible spine reusing the crisp <marker> defs. orient=auto
+  // (and auto-start-reverse for starts, set in index.js) places the tip at the
+  // spine endpoint angled along the centerline tangent — exactly where a crisp
+  // tip would land (the spine is the same shortened path the crisp branch would
+  // stroke). data-wash-spine marks it so structural tests can exclude it.
+  if (o.spine && (o.markerStartId || o.markerEndId)) {
+    const a = { d: o.spine, fill: 'none', stroke: 'none', 'data-wash-spine': '1' };
+    if (o.markerStartId) a['marker-start'] = `url(#${o.markerStartId})`;
+    if (o.markerEndId)   a['marker-end']   = `url(#${o.markerEndId})`;
+    group.appendChild(createSVGElement('path', a));   // appended last → tip paints on top
+  }
+  return group;
+}
+
+// ────────────────────────────────────────────
+// Paper grain (feTurbulence granulation) — opt-in, WATERCOLOR.md §8.1
+// ────────────────────────────────────────────
+
+/** Default paper-grain parameters (used by `grain: true`). */
+const GRAIN_DEFAULTS = { frequency: 0.55, strength: 0.20 };
+
+/**
+ * Resolve a decoration's `grain` option into `{ frequency, strength }`, or null
+ * when grain is off. Grain is opt-in: absent/falsy → no granulation;
+ * `grain: true` → defaults; `grain: { frequency, strength }` → overrides.
+ * @param {Object} [decoration]
+ * @returns {{frequency:number, strength:number}|null}
+ */
+function resolveGrain(decoration) {
+  const grain = decoration && decoration.grain;
+  if (!grain) return null;
+  if (grain === true) return { ...GRAIN_DEFAULTS };
+  return {
+    frequency: grain.frequency ?? GRAIN_DEFAULTS.frequency,
+    strength: grain.strength ?? GRAIN_DEFAULTS.strength,
+  };
+}
+
+/**
+ * Build a paper-grain <filter>: fractalNoise speckle clipped to the wash's
+ * painted area (feComposite "in" SourceAlpha) and merged over it. The noise is
+ * sampled in user space, so one filter reads as a single continuous sheet of
+ * paper under every wash that references it. Seed-tied for determinism — pure
+ * SVG, so it sidesteps the PRNG entirely.
+ * @param {string} id
+ * @param {number} frequency - feTurbulence baseFrequency (grain size)
+ * @param {number} strength - max alpha of the dark speckle (grain visibility)
+ * @param {number} seed
+ * @returns {SVGFilterElement}
+ */
+function buildGrainFilter(id, frequency, strength, seed) {
+  const filter = createSVGElement('filter', {
+    id, x: '-12%', y: '-12%', width: '124%', height: '124%',
+  });
+  filter.appendChild(createSVGElement('feTurbulence', {
+    type: 'fractalNoise', baseFrequency: frequency, numOctaves: 2,
+    seed: ((seed % 9999) + 9999) % 9999, result: 'n',
+  }));
+  filter.appendChild(createSVGElement('feColorMatrix', {
+    in: 'n', type: 'matrix',
+    values: `0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 ${-strength} ${strength}`,
+    result: 'spots',
+  }));
+  filter.appendChild(createSVGElement('feComposite', {
+    in: 'spots', in2: 'SourceAlpha', operator: 'in', result: 'clip',
+  }));
+  const merge = createSVGElement('feMerge');
+  merge.appendChild(createSVGElement('feMergeNode', { in: 'SourceGraphic' }));
+  merge.appendChild(createSVGElement('feMergeNode', { in: 'clip' }));
+  filter.appendChild(merge);
+  return filter;
+}
+
+/**
+ * Post-pass: give every wash group tagged `data-grain` a paper-grain filter.
+ * Filters are deduplicated by (frequency, strength), so the common case (uniform
+ * grain) emits exactly one shared <filter> = one continuous paper; a wash with
+ * custom params gets its own. The transient `data-grain` attribute is consumed.
+ * @param {SVGSVGElement} svgEl
+ * @param {SVGDefsElement} defs
+ * @param {number} seed
+ */
+function applyGrainFilters(svgEl, defs, seed) {
+  const groups = svgEl.querySelectorAll('g.watercolor[data-grain]');
+  if (groups.length === 0) return;
+  const byParams = new Map();
+  for (const g of groups) {
+    const [frequency, strength] = g.getAttribute('data-grain').split(' ').map(Number);
+    const key = `${frequency}|${strength}`;
+    let id = byParams.get(key);
+    if (!id) {
+      id = `wc-grain-${byParams.size}`;
+      defs.appendChild(buildGrainFilter(id, frequency, strength, seed));
+      byParams.set(key, id);
+    }
+    g.setAttribute('filter', `url(#${id})`);
+    g.removeAttribute('data-grain');
+  }
+}
+
+// ────────────────────────────────────────────
 // Edge emission
 // ────────────────────────────────────────────
 
 /**
- * Emit a single edge <path> element.
+ * Emit a single edge element.
  * @param {Object} edge
- * @returns {SVGPathElement}
+ * @returns {SVGPathElement|SVGGElement} a crisp <path>, or — for a watercolor
+ *   edge — a `<g class="watercolor">` whose stable hooks are its `id` (set here)
+ *   and an inner `path[data-wash-spine]` carrying the edge `d` + arrow markers.
  */
 function emitEdgePath(edge, prng) {
   let { path, style } = edge;
+
+  // Watercolor stroke: the spine becomes a translucent filled ribbon wash
+  // (pigment = stroke colour). Returns a <g>, not a stroked <path>. The crisp
+  // per-element treatment — arrowhead, opacity, className, id — is reapplied via
+  // applyWashAttributes; dashes/stroke attrs are intentionally not (§8.6).
+  // Ribbon width = decoration.width ?? 12.
+  if (style.decoration && style.decoration.type === 'watercolor' && prng) {
+    const pigment = style.stroke ?? DEFAULTS.edgeColor;
+    const wash = watercolorRibbon(path, { ...style.decoration, prng });
+    const group = watercolorGroup(wash, pigment, resolveGrain(style.decoration));
+    return applyWashAttributes(group, {
+      spine: path,                 // edge.path is already arrow-shortened in the geometry phase
+      markerEndId: style.arrowId,  // edges only ever carry an end arrow (single arrowId)
+      opacity: style.opacity,      // crisp parity (:496-498)
+      className: style.className,  // crisp parity (:504-506)
+      id: edge.id,                 // crisp parity (:508-510)
+    });
+  }
 
   // Apply decoration if configured
   if (style.decoration) {
@@ -527,41 +724,84 @@ const ANCHOR_OFFSETS = {
  * @param {SVGGElement} edgeLayer
  * @param {SVGGElement} labelLayer
  */
-function emitDrawPath(pathModel, edgeLayer, labelLayer) {
+function emitDrawPath(pathModel, edgeLayer, labelLayer, prng) {
   const { d, style, arrowStartId, arrowEndId, labelNodes } = pathModel;
 
   if (!d) return null;
 
-  const attrs = {
-    d,
-    fill: style.fill ?? 'none',
-    stroke: style.stroke ?? '#000',
-    'stroke-width': style.strokeWidth ?? 1.5,
-    class: 'draw-path',
-  };
+  let pathEl;
+  if (style.decoration && style.decoration.type === 'watercolor' && prng) {
+    // Watercolor, element-driven (WATERCOLOR.md §8.3): a fill becomes a fill
+    // wash, a stroke becomes a ribbon wash, both become both (overlap darkens).
+    // Each is a <g class="watercolor"> appended in z-order (fill behind stroke),
+    // wrapped in ONE id-bearing parent so id/opacity/className/useAsBoundingBox/
+    // arrows attach uniformly to multi-group output.
+    const parent = createSVGElement('g', { class: 'draw-path' });
+    const hasFill = style.fill && style.fill !== 'none';
+    const stroke = style.stroke ?? '#000';
+    const grain = resolveGrain(style.decoration);
 
-  const drawDash = resolveStrokeDash(style);
-  if (drawDash) {
-    attrs['stroke-dasharray'] = drawDash;
+    // PRESERVE ORDER: fill wash first, stroke ribbon second (PRNG determinism).
+    if (hasFill) {
+      const wash = watercolorLayers(d, { ...style.decoration, prng, closed: true });
+      parent.appendChild(watercolorGroup(wash, style.fill, grain));
+    }
+    if (stroke !== 'none') {
+      const wash = watercolorRibbon(d, { ...style.decoration, prng });
+      parent.appendChild(watercolorGroup(wash, stroke, grain));
+    }
+
+    // A fully-invisible path (no fill, no stroke, no arrows) yields an EMPTY
+    // wrapper with no measurable geometry. Tagging it data-use-as-bbox would
+    // make computeViewBox find nothing under the tag and silently fall through
+    // to the global walk — so only claim bbox authority when the wrapper bounds
+    // something (a wash child, or the arrow-carrying spine).
+    const wrapperHasGeometry = hasFill || stroke !== 'none' || arrowStartId || arrowEndId;
+    applyWashAttributes(parent, {
+      spine: (arrowStartId || arrowEndId) ? d : undefined, // markers iff arrows
+      markerStartId: arrowStartId,
+      markerEndId: arrowEndId,
+      opacity: style.opacity,                       // crisp parity (:707-709)
+      id: pathModel.id,                             // fixes id-only-on-stroke-group bug
+      useAsBoundingBox: pathModel.useAsBoundingBox && wrapperHasGeometry, // fixes dropped bbox flag
+    });
+    // NOTE: crisp draw path hardcodes class:'draw-path' and does NOT add
+    // style.className; parity = the 'draw-path' class only. Intentional.
+
+    edgeLayer.appendChild(parent);
+    pathEl = parent;
+  } else {
+    const attrs = {
+      d,
+      fill: style.fill ?? 'none',
+      stroke: style.stroke ?? '#000',
+      'stroke-width': style.strokeWidth ?? 1.5,
+      class: 'draw-path',
+    };
+
+    const drawDash = resolveStrokeDash(style);
+    if (drawDash) {
+      attrs['stroke-dasharray'] = drawDash;
+    }
+
+    if (style.opacity != null && style.opacity < 1) {
+      attrs.opacity = style.opacity;
+    }
+
+    Object.assign(attrs, resolveStrokeAttrs(style));
+
+    if (arrowStartId) {
+      attrs['marker-start'] = `url(#${arrowStartId})`;
+    }
+    if (arrowEndId) {
+      attrs['marker-end'] = `url(#${arrowEndId})`;
+    }
+
+    pathEl = createSVGElement('path', attrs);
+    if (pathModel.id) pathEl.setAttribute('id', pathModel.id);
+    if (pathModel.useAsBoundingBox) pathEl.setAttribute('data-use-as-bbox', '1');
+    edgeLayer.appendChild(pathEl);
   }
-
-  if (style.opacity != null && style.opacity < 1) {
-    attrs.opacity = style.opacity;
-  }
-
-  Object.assign(attrs, resolveStrokeAttrs(style));
-
-  if (arrowStartId) {
-    attrs['marker-start'] = `url(#${arrowStartId})`;
-  }
-  if (arrowEndId) {
-    attrs['marker-end'] = `url(#${arrowEndId})`;
-  }
-
-  const pathEl = createSVGElement('path', attrs);
-  if (pathModel.id) pathEl.setAttribute('id', pathModel.id);
-  if (pathModel.useAsBoundingBox) pathEl.setAttribute('data-use-as-bbox', '1');
-  edgeLayer.appendChild(pathEl);
 
   if (labelNodes) {
     for (const ln of labelNodes) {
@@ -885,7 +1125,21 @@ function createShapeElement(geom, style, opts = {}) {
         pathStr = shapeImpl.backgroundPath(localGeom);
       }
     }
-    if (pathStr) {
+    if (pathStr && style.decoration.type === 'watercolor') {
+      // Watercolor fill wash: stack translucent layer copies (overlaps darken
+      // by source-over buildup — WATERCOLOR.md §8.2). v1 paints the fill only;
+      // a fill pigment is required (stroke ribbon wash is a later instance).
+      if (fill && fill !== 'none') {
+        const wash = watercolorLayers(pathStr, {
+          ...style.decoration, prng: opts.prng, closed: true,
+        });
+        // No applyWashAttributes here by design (§5): the node wrapper
+        // <g class="node" id="node-…"> already owns id/className, and nodes
+        // apply no opacity/arrows/useAsBoundingBox — the shared step would be a no-op.
+        return watercolorGroup(wash, fill, resolveGrain(style.decoration));
+      }
+      // No fill pigment → fall through to crisp rendering for now.
+    } else if (pathStr) {
       const decorated = morphPath(pathStr, { ...style.decoration, prng: opts.prng });
       return createSVGElement('path', {
         d: decorated, fill, stroke, 'stroke-width': strokeWidth, ...extra,
@@ -1397,7 +1651,7 @@ export function emitSVG(svgEl, resolved) {
         case 'drawPath': {
           const pathModel = drawPaths[item.index];
           if (!pathModel) break;
-          const pathEl = emitDrawPath(pathModel, target, target);
+          const pathEl = emitDrawPath(pathModel, target, target, prng);
           if (pathEl && pathModel.id) refs.byId[pathModel.id] = pathEl;
           break;
         }
@@ -1426,6 +1680,7 @@ export function emitSVG(svgEl, resolved) {
     }
 
     emitBackground(svgEl, background);
+    applyGrainFilters(svgEl, defs, seed ?? 42);
     const viewBox = computeViewBox(svgEl, configPadding);
     svgEl.setAttribute('viewBox', viewBox);
     applyScaledSize(svgEl, viewBox, globalScaleX, globalScaleY);
@@ -1478,7 +1733,7 @@ export function emitSVG(svgEl, resolved) {
 
   // 5.6. Emit free-form paths (\draw)
   for (const pathModel of drawPaths) {
-    const pathEl = emitDrawPath(pathModel, edgeLayer, labelLayer);
+    const pathEl = emitDrawPath(pathModel, edgeLayer, labelLayer, prng);
     if (pathEl && pathModel.id) refs.byId[pathModel.id] = pathEl;
   }
 
@@ -1503,6 +1758,9 @@ export function emitSVG(svgEl, resolved) {
 
   // 8. Emit background elements (behind all content)
   emitBackground(svgEl, background);
+
+  // 8.5. Paper-grain filters for any grain-tagged wash groups (opt-in).
+  applyGrainFilters(svgEl, defs, seed ?? 42);
 
   // 9. Compute and set viewBox
   const viewBox = computeViewBox(svgEl, configPadding);

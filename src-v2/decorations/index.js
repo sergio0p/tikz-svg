@@ -3,6 +3,8 @@ import { applyRandomSteps } from './random-steps.js';
 import { applyRoundedCorners } from './rounded-corners.js';
 import { SeededRandom } from '../core/random.js';
 
+export { deformPolygon, sweepRibbon, watercolorLayers, watercolorRibbon } from './watercolor.js';
+
 /**
  * Apply a path decoration, transforming an SVG path data string.
  *

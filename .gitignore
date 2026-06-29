@@ -9,3 +9,5 @@ tex/*.log
 tex/*.pdf
 tex/*.png
 tex/test-output/
+# Animation export batches (FleetView data dumps)
+data-*.zip

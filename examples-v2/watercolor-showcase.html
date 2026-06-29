@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>tikz-svg: Watercolor Showcase (fill + stroke)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 1.5rem 2rem; background: #faf8f4; color: #222; }
+    h1 { margin: 0 0 .25rem; }
+    h2 { margin: 1.75rem 0 .75rem; font-size: 1.1rem; color: #333; border-bottom: 1px solid #e7e2d8; padding-bottom: .3rem; }
+    p.lead { color: #555; margin: 0 0 1.25rem; max-width: 64ch; }
+    .controls { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;
+      background: #fff; padding: 1rem 1.25rem; border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; position: sticky; top: 0; z-index: 10; }
+    .ctl { display: flex; flex-direction: column; font-size: .8rem; color: #444; min-width: 120px; }
+    .ctl output { font-weight: 600; color: #b5462f; }
+    .ctl.stroke-only output { color: #3f6f8f; }
+    button { font: inherit; padding: .5rem .9rem; border: none; border-radius: 8px;
+      background: #b5462f; color: #fff; cursor: pointer; }
+    button:hover { background: #983823; }
+    .seed { font-variant-numeric: tabular-nums; color: #555; font-size: .85rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+    .card { background: #fff; border-radius: 10px; padding: .75rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .card h3 { margin: .1rem 0 .5rem; font-size: .9rem; color: #333; font-weight: 600; }
+    .pair { display: flex; gap: .5rem; }
+    .pair > div { flex: 1; text-align: center; }
+    .pair small { color: #999; font-size: .7rem; }
+    svg { width: 100%; height: 150px; display: block; }
+  </style>
+</head>
+<body>
+  <h1>Watercolor washes</h1>
+  <p class="lead">Algorithmic wash &mdash; each outline is deformed (recursive midpoint
+  jitter) into <span id="layerEcho">10</span> translucent copies stacked so overlaps
+  build up and darken; no stamps, pure SVG. <b>Fills</b> wash the shape interior;
+  <b>strokes</b> sweep the path into a tapered ribbon and wash that. Each seed is a
+  fixed painting that stays put; <b>Re-roll</b> shows the family of paintings the same
+  parameters produce. Left = crisp, right = washed (same geometry).</p>
+
+  <div class="controls">
+    <div class="ctl">Layers <input id="layers" type="range" min="4" max="30" value="10"><output id="layersV">10</output></div>
+    <div class="ctl">Segment length <input id="seg" type="range" min="6" max="50" value="20"><output id="segV">20</output></div>
+    <div class="ctl">Spread <input id="spread" type="range" min="2" max="60" value="30"><output id="spreadV">0.30</output></div>
+    <div class="ctl">Layer opacity <input id="op" type="range" min="2" max="20" value="15"><output id="opV">0.15</output></div>
+    <div class="ctl">Edge concentration <input id="rounds" type="range" min="1" max="7" value="5"><output id="roundsV">5</output></div>
+    <div class="ctl stroke-only">Brush width <input id="width" type="range" min="4" max="40" value="14"><output id="widthV">14</output></div>
+    <button id="reroll">↻ Re-roll seed</button>
+    <span class="seed">seed = <span id="seedEcho">—</span></span>
+  </div>
+
+  <h2>Fill wash</h2>
+  <div class="grid" id="grid"></div>
+
+  <h2>Stroke ribbon</h2>
+  <div class="grid" id="strokeGrid"></div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    const $ = id => document.getElementById(id);
+    let seed = 7;
+
+    // ---- Fill specimens (shape interior washed; pigment = fill) -------------
+    const SPECS = [
+      { name: 'Circle',    fill: '#3f7e8f', state: { shape: 'circle', radius: 58 } },
+      { name: 'Ellipse',   fill: '#b5462f', state: { shape: 'ellipse', rx: 70, ry: 44 } },
+      { name: 'Rectangle', fill: '#6a7b3c', state: { shape: 'rectangle', minimumWidth: 130, minimumHeight: 95 } },
+      { name: 'Diamond',   fill: '#8a5a83', state: { shape: 'diamond', minimumWidth: 130, minimumHeight: 115 } },
+    ];
+
+    // ---- Stroke specimens (path swept into a ribbon; pigment = stroke) ------
+    // build(dec) returns a full render() config; dec is null for crisp, the live
+    // decoration object for the washed copy. width comes from the brush slider.
+    const STROKES = [
+      {
+        name: 'Straight line',
+        build: dec => ({ seed, states: {}, paths: [{
+          points: [{ x: -95, y: 0 }, { x: 95, y: 0 }],
+          stroke: '#3f7e8f', strokeWidth: 2, ...(dec && { decoration: dec }),
+        }] }),
+      },
+      {
+        name: 'Open polyline',
+        build: dec => ({ seed, states: {}, paths: [{
+          points: [{ x: -95, y: 38 }, { x: -25, y: -42 }, { x: 40, y: 34 }, { x: 95, y: -34 }],
+          stroke: '#b5462f', strokeWidth: 2, ...(dec && { decoration: dec }),
+        }] }),
+      },
+      {
+        name: 'Closed (filldraw)',
+        build: dec => ({ seed, states: {}, paths: [{
+          points: [{ x: 0, y: -58 }, { x: 72, y: 48 }, { x: -72, y: 48 }], cycle: true,
+          fill: '#9bb05f', stroke: '#4a5a2c', strokeWidth: 2, ...(dec && { decoration: dec }),
+        }] }),
+      },
+      {
+        name: 'Edge (node→node)',
+        build: dec => ({
+          seed,
+          states: {
+            a: { position: [-78, 0], shape: 'circle', radius: 14, fill: '#efe7d8' },
+            b: { position: [78, 0], shape: 'circle', radius: 14, fill: '#efe7d8' },
+          },
+          edges: [{ from: 'a', to: 'b', stroke: '#8a5a83', ...(dec && { decoration: dec }) }],
+        }),
+      },
+    ];
+
+    function buildCards(specs, gridId, makeConfig) {
+      const grid = $(gridId);
+      return specs.map(spec => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3>${spec.name}</h3>
+          <div class="pair">
+            <div><svg class="crisp"></svg><small>crisp</small></div>
+            <div><svg class="wash"></svg><small>watercolor</small></div>
+          </div>`;
+        grid.appendChild(card);
+        return { spec, makeConfig, crisp: card.querySelector('.crisp'), wash: card.querySelector('.wash') };
+      });
+    }
+
+    // Fill cards: crisp = no decoration; wash = decoration spread onto the node.
+    const fillCards = buildCards(SPECS, 'grid', (spec, dec) => ({
+      seed,
+      states: { n: { position: [0, 0], fill: spec.fill, ...spec.state,
+                     ...(dec && { decoration: dec }) } },
+      edges: [],
+    }));
+
+    // Stroke cards delegate to each spec's own build(dec).
+    const strokeCards = buildCards(STROKES, 'strokeGrid', (spec, dec) => spec.build(dec));
+
+    function params() {
+      return {
+        layers: +$('layers').value,
+        segmentLength: +$('seg').value,
+        spread: +$('spread').value / 100,   // 2..60  -> 0.02..0.60
+        opacity: +$('op').value / 100,      // 2..20  -> 0.02..0.20
+        rounds: +$('rounds').value,
+        width: +$('width').value,           // brush ribbon width (px)
+      };
+    }
+
+    function syncLabels(p) {
+      $('layersV').textContent = p.layers;
+      $('segV').textContent = p.segmentLength;
+      $('spreadV').textContent = p.spread.toFixed(2);
+      $('opV').textContent = p.opacity.toFixed(2);
+      $('roundsV').textContent = p.rounds;
+      $('widthV').textContent = p.width;
+      $('layerEcho').textContent = p.layers;
+      $('seedEcho').textContent = seed;
+    }
+
+    function renderAll() {
+      const p = params();
+      syncLabels(p);
+      const dec = { type: 'watercolor', ...p };
+      for (const { spec, makeConfig, crisp, wash } of [...fillCards, ...strokeCards]) {
+        render(crisp, makeConfig(spec, null));
+        render(wash, makeConfig(spec, dec));
+      }
+    }
+
+    for (const id of ['layers', 'seg', 'spread', 'op', 'rounds', 'width']) {
+      $(id).addEventListener('input', renderAll);
+    }
+    $('reroll').addEventListener('click', () => {
+      seed = Math.floor(Math.random() * 2 ** 31);
+      renderAll();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>

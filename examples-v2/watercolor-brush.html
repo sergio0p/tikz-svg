@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>tikz-svg: Watercolor Brush — painting "Claude"</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@15.1.1/lib/browser/math.js"></script>
+  <script type="importmap">{ "imports": { "mathjs": "./mathjs-shim.js" } }</script>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 1.5rem 2rem 3rem; background: #f7f4ee; color: #222; }
+    h1 { margin: 0 0 .25rem; font-size: 1.6rem; }
+    h2 { margin: 2rem 0 .75rem; font-size: 1.1rem; color: #333; border-bottom: 1px solid #e3ddd0; padding-bottom: .3rem; }
+    p.lead { color: #555; margin: 0 0 1.25rem; max-width: 70ch; line-height: 1.5; }
+    code { background: #efe9dd; padding: .05em .35em; border-radius: 4px; font-size: .9em; }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center;
+      background: #fff; padding: 1rem 1.25rem; border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; }
+    .ctl { display: flex; flex-direction: column; font-size: .8rem; color: #444; min-width: 130px; }
+    .ctl output { font-weight: 600; color: #b5462f; }
+    button { font: inherit; padding: .5rem .9rem; border: none; border-radius: 8px;
+      background: #b5462f; color: #fff; cursor: pointer; }
+    button:hover { background: #983823; }
+    .seed { font-variant-numeric: tabular-nums; color: #555; font-size: .85rem; }
+
+    /* The hero: let the soft bleed spill past the viewBox instead of clipping. */
+    .hero { background: #fffdf8; border-radius: 14px; padding: 1.5rem 1rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; }
+    #claude { width: 100%; height: 260px; display: block; overflow: visible; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.1rem; }
+    .card { background: #fff; border-radius: 10px; padding: .85rem .85rem .6rem; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+    .card h3 { margin: 0 0 .15rem; font-size: .92rem; color: #333; }
+    .card p  { margin: 0 0 .5rem; font-size: .72rem; color: #999; line-height: 1.35; }
+    .card svg { width: 100%; height: 140px; display: block; overflow: visible; }
+  </style>
+</head>
+<body>
+  <h1>Watercolor brush strokes</h1>
+  <p class="lead">Every mark here is a <b>stroke</b> — a centerline path swept into a
+  tapered ribbon, then dissolved into translucent layers that stack and darken at
+  overlaps. No fills, no fonts: the word below is six painted spines fed to
+  <code>render()</code> as <code>config.paths</code> with
+  <code>decoration:&nbsp;{ type:'watercolor' }</code>. Each seed is one fixed painting;
+  <b>Re-roll</b> shows the family of paintings the same brush produces.</p>
+
+  <div class="controls">
+    <div class="ctl">Brush width <input id="width" type="range" min="6" max="40" value="18"><output id="widthV">18</output></div>
+    <div class="ctl">Wetness (spread) <input id="spread" type="range" min="4" max="40" value="13"><output id="spreadV">0.13</output></div>
+    <div class="ctl">Layers <input id="layers" type="range" min="4" max="24" value="12"><output id="layersV">12</output></div>
+    <div class="ctl">Layer opacity <input id="op" type="range" min="4" max="24" value="15"><output id="opV">0.15</output></div>
+    <label class="ctl" style="flex-direction:row;align-items:center;gap:.45rem;min-width:auto;cursor:pointer"><input id="grain" type="checkbox" checked> Paper grain</label>
+    <button id="reroll">↻ Re-roll seed</button>
+    <span class="seed">seed = <span id="seedEcho">—</span></span>
+  </div>
+
+  <div class="hero"><svg id="claude"></svg></div>
+
+  <h2>A set of brush-stroke uses</h2>
+  <div class="grid" id="grid"></div>
+
+  <script type="module">
+    import { render } from '../src-v2/index.js';
+
+    const $ = id => document.getElementById(id);
+    let seed = 11;
+
+    // ---------- parametric spine helpers (return arrays of {x,y}) ----------
+    const D = Math.PI / 180;
+    function arc(cx, cy, r, a0, a1, n = 26, ry = null) {
+      const RY = ry == null ? r : ry, pts = [];
+      for (let i = 0; i <= n; i++) {
+        const a = (a0 + (a1 - a0) * i / n) * D;
+        pts.push({ x: cx + r * Math.cos(a), y: cy + RY * Math.sin(a) });
+      }
+      return pts;
+    }
+    function line(x0, y0, x1, y1, n = 8) {
+      const pts = [];
+      for (let i = 0; i <= n; i++) { const t = i / n; pts.push({ x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t }); }
+      return pts;
+    }
+    const join = (...segs) => segs.flat();
+
+    // ---------- letterforms: single-stroke spines on a shared metric ----------
+    // baseline B, cap top, ascender top, x-height top (SVG y-down).
+    const B = 210, CAP = 70, ASC = 58, XT = 120;
+
+    // each letter(x) -> { strokes: [pts, ...], adv } ; strokes are separate brush lifts
+    const letters = {
+      C: x => ({ adv: 138, strokes: [
+        arc(x + 64, (CAP + B) / 2, 56, 58, 302, 30, (B - CAP) / 2),
+      ]}),
+      l: x => ({ adv: 40, strokes: [
+        join(line(x + 16, ASC, x + 18, B - 20, 18), line(x + 18, B - 20, x + 34, B - 8, 5)),
+      ]}),
+      a: x => ({ adv: 108, strokes: [
+        arc(x + 44, (XT + B) / 2, 40, -28, 300, 30, (B - XT) / 2),                 // bowl
+        join(line(x + 82, XT + 8, x + 82, B - 12, 14), line(x + 82, B - 12, x + 96, B - 18, 4)), // stem + foot
+      ]}),
+      u: x => ({ adv: 100, strokes: [
+        // left stem down, rounded bottom, right stem back up — one continuous
+        // spine, no top tail (a reversal there reads as a spike, not a 'u').
+        join(
+          line(x + 12, XT + 6, x + 12, B - 28, 10),
+          arc(x + 44, B - 28, 32, 180, 0, 24, 30),   // sweep through 90° -> cup bulges DOWN
+          line(x + 76, B - 28, x + 76, XT + 6, 10),
+        ),
+      ]}),
+      d: x => ({ adv: 116, strokes: [
+        arc(x + 42, (XT + B) / 2, 40, 28, 332, 30, (B - XT) / 2),                  // bowl
+        join(line(x + 82, ASC, x + 82, B - 12, 18), line(x + 82, B - 12, x + 96, B - 18, 4)),    // ascender + foot
+      ]}),
+      e: x => ({ adv: 106, strokes: [
+        join(
+          line(x + 8, (XT + B) / 2 + 2, x + 80, (XT + B) / 2 - 6, 12),             // crossbar
+          arc(x + 42, (XT + B) / 2, 40, -10, -312, 34, (B - XT) / 2),              // loop up-over-left-down
+        ),
+      ]}),
+    };
+
+    // warm, hand-mixed palette per letter of "Claude"
+    const inkOf = { C: '#B5462F', l: '#C2562F', a: '#C77A33', u: '#B5462F', d: '#9C5C73', e: '#3F7E8F' };
+
+    function claudePaths(width) {
+      const word = 'Claude', gap = 12;
+      let x = 30;
+      const paths = [];
+      for (const ch of word) {
+        const { strokes, adv } = letters[ch](x);
+        const ink = inkOf[ch];
+        for (const points of strokes) {
+          paths.push({ points, stroke: ink, decoration: dec(width) });
+        }
+        x += adv + gap;
+      }
+      return paths;
+    }
+
+    // ---------- live decoration factory ----------
+    function dec(width) {
+      return {
+        type: 'watercolor', width,
+        segmentLength: 8,                 // small -> letter curves stay smooth
+        spread: +$('spread').value / 100,
+        layers: +$('layers').value,
+        opacity: +$('op').value / 100,
+        rounds: 4,
+      };
+    }
+
+    // ---------- the gallery: each card is its own render() ----------
+    function wave(x0, x1, y, amp, k, n = 80) {
+      const pts = [];
+      for (let i = 0; i <= n; i++) { const t = i / n, x = x0 + (x1 - x0) * t; pts.push({ x, y: y + amp * Math.sin(k * t * Math.PI * 2) }); }
+      return pts;
+    }
+    function spiral(cx, cy, r0, r1, turns, n = 140) {
+      const pts = [];
+      for (let i = 0; i <= n; i++) { const t = i / n, a = t * turns * Math.PI * 2, r = r0 + (r1 - r0) * t; pts.push({ x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }); }
+      return pts;
+    }
+
+    const GALLERY = [
+      { name: 'Brush-width ramp', note: 'one spine per width — 8 → 34 px',
+        build: () => ({ seed, states: {}, paths: [8, 16, 24, 34].map((w, i) => ({
+          points: line(-110, -52 + i * 36, 110, -52 + i * 36, 12),
+          stroke: '#3f7e8f', decoration: { ...dec(w), width: w },
+        })) }) },
+
+      { name: 'Width profiles', note: 'flat · double-taper (default) · swelling belly',
+        build: () => ({ seed, states: {}, paths: [
+          { points: line(-110, -46, 110, -46, 12), stroke: '#B5462F', decoration: { ...dec(22), widthProfile: () => 1 } },
+          { points: line(-110, 0, 110, 0, 12),     stroke: '#B5462F', decoration: { ...dec(22) } },
+          { points: line(-110, 46, 110, 46, 12),   stroke: '#B5462F', decoration: { ...dec(22), widthProfile: t => Math.sin(Math.PI * t) ** 1.6 } },
+        ] }) },
+
+      { name: 'Pigments', note: 'pigment follows each stroke color',
+        build: () => ({ seed, states: {}, paths: ['#B5462F', '#C77A33', '#6a7b3c', '#3f7e8f', '#8a5a83'].map((c, i) => ({
+          points: line(-104 + i * 6, 56, -104 + i * 6 + 40, -56, 10),
+          stroke: c, decoration: dec(20),
+        })) }) },
+
+      { name: 'Overlap darkens', note: 'translucent layers build up where strokes cross',
+        build: () => ({ seed, states: {}, paths: [
+          { points: line(-70, -70, -70, 70, 12), stroke: '#3f7e8f', decoration: dec(18) },
+          { points: line(20, -70, 20, 70, 12),   stroke: '#3f7e8f', decoration: dec(18) },
+          { points: line(-100, -28, 100, -28, 12), stroke: '#3f7e8f', decoration: dec(18) },
+          { points: line(-100, 36, 100, 36, 12),  stroke: '#3f7e8f', decoration: dec(18) },
+        ] }) },
+
+      { name: 'Underline swash', note: 'a long sweeping spine — great under a heading',
+        build: () => ({ seed, states: {}, paths: [{
+          points: join(
+            line(-118, -8, -40, 6, 8),
+            arc(40, -2, 78, 175, 8, 30, 26),
+          ),
+          stroke: '#9C5C73', decoration: { ...dec(16), widthProfile: t => 0.25 + Math.sin(Math.PI * t) },
+        }] }) },
+
+      { name: 'Wave', note: 'sampled sine fed straight to the brush',
+        build: () => ({ seed, states: {}, paths: [{
+          points: wave(-115, 115, 0, 42, 2.5), stroke: '#3f7e8f', decoration: dec(14),
+        }] }) },
+
+      { name: 'Checkmark', note: 'two-segment spine, tapered ends',
+        build: () => ({ seed, states: {}, paths: [{
+          points: join(line(-80, 4, -22, 54, 6), line(-22, 54, 92, -56, 10)),
+          stroke: '#6a7b3c', decoration: { ...dec(20), widthProfile: t => 0.2 + Math.sin(Math.PI * t) ** 0.8 },
+        }] }) },
+
+      { name: 'Spiral', note: 'a continuous winding spine',
+        build: () => ({ seed, states: {}, paths: [{
+          points: spiral(0, 0, 10, 74, 2.4), stroke: '#B5462F', decoration: dec(12),
+        }] }) },
+    ];
+
+    function buildGallery() {
+      const grid = $('grid');
+      return GALLERY.map(spec => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3>${spec.name}</h3><p>${spec.note}</p><svg></svg>`;
+        grid.appendChild(card);
+        return { spec, svg: card.querySelector('svg') };
+      });
+    }
+    const cards = buildGallery();
+
+    function syncLabels() {
+      $('widthV').textContent = $('width').value;
+      $('spreadV').textContent = (+$('spread').value / 100).toFixed(2);
+      $('layersV').textContent = $('layers').value;
+      $('opV').textContent = (+$('op').value / 100).toFixed(2);
+      $('seedEcho').textContent = seed;
+    }
+
+    // Paper grain: a feTurbulence speckle clipped to each wash's painted area —
+    // the watercolor "granulation" that makes pigment look settled into paper.
+    // Seed-tied so it stays deterministic (same seed -> same grain). This is the
+    // deferred §8.1 grain that the retired audition demos used; the production
+    // emitter does not (yet) add it.
+    const NS = 'http://www.w3.org/2000/svg';
+    let grainN = 0;
+    function applyGrain(svg) {
+      if (!$('grain').checked) return;
+      const id = 'grain' + (grainN++);
+      const defs = document.createElementNS(NS, 'defs');
+      defs.innerHTML = `<filter id="${id}" x="-12%" y="-12%" width="124%" height="124%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="${seed % 9999}" result="n"/>
+        <feColorMatrix in="n" type="matrix"
+           values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.20 0.20" result="spots"/>
+        <feComposite in="spots" in2="SourceAlpha" operator="in" result="clip"/>
+        <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="clip"/></feMerge>
+      </filter>`;
+      svg.appendChild(defs);
+      svg.querySelectorAll('g.watercolor').forEach(g => g.setAttribute('filter', `url(#${id})`));
+    }
+
+    function renderAll() {
+      syncLabels();
+      render($('claude'), { seed, states: {}, paths: claudePaths(+$('width').value) });
+      applyGrain($('claude'));
+      for (const { spec, svg } of cards) { render(svg, spec.build()); applyGrain(svg); }
+    }
+
+    for (const id of ['width', 'spread', 'layers', 'op']) $(id).addEventListener('input', renderAll);
+    $('grain').addEventListener('change', renderAll);
+    $('reroll').addEventListener('click', () => { seed = Math.floor(Math.random() * 2 ** 31); renderAll(); });
+
+    renderAll();
+    window.__ready = true;
+  </script>
+</body>
+</html>
