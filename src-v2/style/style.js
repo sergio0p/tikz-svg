@@ -12,6 +12,10 @@ function normalizeColors(style, fields) {
   }
 }
 
+// Monotonic across render() calls in one document: salts shadow filter ids so
+// distinct diagrams never collide on `shadow-0`. See collectShadowFilters.
+let _shadowSalt = 0;
+
 /**
  * Resolve a strokeWidth value: TikZ named widths → pt number; numbers pass through.
  */
@@ -253,11 +257,22 @@ export function resolvePathStyle(pathIndex, config) {
     decoration: null,
   };
   const registry = new StyleRegistry(config.styles);
+  // color= shorthand spreads to stroke only (the draw color — matches the
+  // path/plot convention, see color-shorthand.test.js), but BOTH stroke and
+  // fill pigments are color-normalized so mix syntax / named colors resolve
+  // (crisp path fills AND watercolor fill-wash, which both route through here).
   const pathColorFields = ['stroke'];
+  const pathNormalizeFields = ['stroke', 'fill'];
   const pathStyle = spreadColor(registry.expand(config.pathStyle || {}), pathColorFields);
   const pathProps = config.paths?.[pathIndex] || {};
   const expandedProps = spreadColor(registry.expand(pathProps), pathColorFields);
   const merged = { ...base, ...pathStyle, ...expandedProps };
+
+  // Did the user actually request a stroke (explicit stroke, named style, or
+  // color= shorthand)? base.stroke is always set, so test the spread layers.
+  // emitDrawPath uses this to suppress the ribbon wash on a fill-only \draw.
+  merged._strokeRequested =
+    pathStyle.stroke !== undefined || expandedProps.stroke !== undefined;
 
   merged.strokeWidth = resolveLineWidth(merged.strokeWidth);
 
@@ -269,7 +284,7 @@ export function resolvePathStyle(pathIndex, config) {
   merged.arrowStart = arrowSpec.start;
   merged.arrowEnd = arrowSpec.end;
 
-  normalizeColors(merged, pathColorFields);
+  normalizeColors(merged, pathNormalizeFields);
   return merged;
 }
 
@@ -283,6 +298,10 @@ export function resolvePathStyle(pathIndex, config) {
  */
 export function collectShadowFilters(resolvedNodes) {
   const seen = new Map();
+  // Render-unique salt so two diagrams in one document don't both mint
+  // `shadow-0` (a later SVG's url(#shadow-0) would resolve to the first SVG's
+  // filter). Within a render `seen.size` still dedups identical params.
+  const salt = _shadowSalt++;
   for (const style of Object.values(resolvedNodes)) {
     if (!style.shadow) continue;
 
@@ -292,7 +311,7 @@ export function collectShadowFilters(resolvedNodes) {
     const key = `${shadow.dx}-${shadow.dy}-${shadow.blur}-${shadow.color}`;
 
     if (!seen.has(key)) {
-      seen.set(key, { id: `shadow-${seen.size}`, ...shadow });
+      seen.set(key, { id: `shadow-${salt}-${seen.size}`, ...shadow });
     }
     style._shadowFilterId = seen.get(key).id;
   }

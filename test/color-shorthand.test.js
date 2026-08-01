@@ -99,6 +99,9 @@ describe('color shorthand: paths', () => {
       paths: [{ points: [], color: '#268bd2' }],
     });
     assert.strictEqual(s.stroke, '#268bd2');
+    // Fix #4 normalizes the fill field too, but color= must still spread to
+    // stroke ONLY — a bare color must not paint a fill.
+    assert.strictEqual(s.fill, 'none');
   });
 
   it('explicit stroke wins over color', () => {
