@@ -6,7 +6,19 @@ description: Use when creating SVG graphics for lecture pages — economics grap
 # tikz-svg Library (v2)
 
 Library: `~/Dropbox/Scripts/tikz-svg/`
-Entry: `src-v2/index.js` exports `render()` and `renderAutomaton()`.
+
+**Source:** `src-v2/` — where all development happens. (`src-v3/` exists but is parked since
+2026-06-12; it is not the successor its name suggests.)
+
+**Consumer entry:** `dist/tikz-svg.min.js` — the esbuild bundle of `src-v2/index.js`, exporting
+`render()` and `renderAutomaton()`. **Lecture pages import the bundle, not the source** (commit
+`6820900`, "all consumer pages now import the bundle").
+
+Because pages load the bundle, editing `src-v2/` changes nothing on screen until you rebuild:
+
+```bash
+cd ~/Dropbox/Scripts/tikz-svg && npm run build
+```
 
 ## Mental Model
 
@@ -32,6 +44,7 @@ Entry: `src-v2/index.js` exports `render()` and `renderAutomaton()`.
 | KaTeX math, wavy decorations | `08-math-and-decorations.md` |
 | Scale — transforms — backgrounds | `09-transforms-scale-backgrounds.md` |
 | All properties, shapes, tips | `appendix-reference.md` |
+| Watercolor wash, hand-drawn jitter | `src-v2/docs/WATERCOLOR.md` — **not yet in the Manual** |
 
 ## Common Mistakes
 
@@ -40,6 +53,9 @@ Entry: `src-v2/index.js` exports `render()` and `renderAutomaton()`.
 - **Labels overlapping edges:** Adjust `labelDistance`, `labelSide`, or `labelPos`.
 - **Plot not visible:** Check `domain` range and `samples` count. Linear plots need only `samples: 2`.
 - **Everything at origin:** Position uses y-down. For econ graphs, negate P: `y: -P`.
+- **Importing `src-v2/index.js` on a lecture page:** that is the pre-June-2026 convention. Pages
+  import `dist/tikz-svg.min.js`; seeing `dist/` in a deployed page is correct, not stale drift.
+- **Edited `src-v2/` and nothing changed:** you did not rebuild the bundle. See above.
 
 ## Quick Setup
 
@@ -53,7 +69,7 @@ Entry: `src-v2/index.js` exports `render()` and `renderAutomaton()`.
 ```
 
 ```js
-import { render } from './tikz-svg/src-v2/index.js';
+import { render } from './tikz-svg/dist/tikz-svg.min.js';
 ```
 
 Requires HTTP server — `python3 -m http.server 8080`.
